@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends
-from app.auth_core import get_current_user
+from fastapi import APIRouter
 from app.database import db_fetchall
 
 router = APIRouter()
 
 
 @router.get("/status")
-async def scheduler_status(user=Depends(get_current_user)):
+async def scheduler_status():
     """Status do scheduler — informa que análises semanais são disparadas manualmente."""
     clients = await db_fetchall("SELECT id, name FROM clients")
     return {
@@ -17,7 +16,7 @@ async def scheduler_status(user=Depends(get_current_user)):
 
 
 @router.post("/run-weekly")
-async def trigger_weekly_all(user=Depends(get_current_user)):
+async def trigger_weekly_all():
     """Atalho para disparar análise semanal de todos os clientes."""
     from fastapi import BackgroundTasks
     from app.routers.intelligence import run_weekly_analysis_job
