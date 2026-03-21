@@ -5,7 +5,6 @@ from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import init_db
-from app.auth_core import ensure_admin_exists
 from app.routers import auth, clients, analysis, emails, rd_station, reports
 from app.routers import health, flows, intelligence, crm, oauth, scheduler, campaign
 
@@ -56,7 +55,6 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 @app.on_event("startup")
 async def startup():
     await init_db()
-    await ensure_admin_exists()
 
 
 # ─── Rotas HTML ───────────────────────────────────────────────────────────────
