@@ -1,7 +1,6 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-from app.auth_core import get_current_user
 from app.ai_service import call_ai, build_client_context, SYSTEM_STRATEGIST, get_benchmarks
 from app.database import db_fetchone, parse_json_field
 from app.routers.clients import fetch_client
@@ -19,7 +18,7 @@ class CampaignRequest(BaseModel):
 
 
 @router.post("/plan")
-async def plan_campaign(req: CampaignRequest, user=Depends(get_current_user)):
+async def plan_campaign(req: CampaignRequest):
     client = await fetch_client(req.client_id)
     if not client:
         raise HTTPException(404, "Cliente não encontrado")
