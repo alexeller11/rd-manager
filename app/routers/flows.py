@@ -1,9 +1,8 @@
 import json
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 from app.database import db_fetchone, db_fetchall, db_fetchval, db_execute, parse_json_field
-from app.auth_core import get_current_user
 from app.ai_service import call_ai, build_client_context, SYSTEM_EXPERT
 from app.routers.clients import fetch_client
 
@@ -41,7 +40,7 @@ class FlowGenerate(BaseModel):
 
 
 @router.post("/generate")
-async def generate_flow(req: FlowGenerate, user=Depends(get_current_user)):
+async def generate_flow(req: FlowGenerate):
     client = await fetch_client(req.client_id)
     if not client:
         raise HTTPException(404, "Cliente não encontrado")
@@ -130,7 +129,7 @@ Crie 6-10 nós com pelo menos 1 condition e emails com assuntos reais."""
 
 
 @router.post("/save")
-async def save_flow(req: FlowSave, user=Depends(get_current_user)):
+async def save_flow(req: FlowSave):
     flow_json = json.dumps({
         "nodes": [n.model_dump() for n in req.nodes],
         "edges": [e.model_dump() for e in req.edges],
@@ -143,7 +142,7 @@ async def save_flow(req: FlowSave, user=Depends(get_current_user)):
 
 
 @router.get("/list/{client_id}")
-async def list_flows(client_id: int, user=Depends(get_current_user)):
+async def list_flows(client_id: int):
     return await db_fetchall(
         "SELECT id, name, description, created_at FROM flows WHERE client_id=$1 ORDER BY created_at DESC",
         client_id
@@ -151,7 +150,7 @@ async def list_flows(client_id: int, user=Depends(get_current_user)):
 
 
 @router.get("/detail/{flow_id}")
-async def get_flow(flow_id: int, user=Depends(get_current_user)):
+async def get_flow(flow_id: int):
     row = await db_fetchone("SELECT * FROM flows WHERE id=$1", flow_id)
     if not row:
         raise HTTPException(404, "Fluxo não encontrado")
@@ -161,6 +160,6 @@ async def get_flow(flow_id: int, user=Depends(get_current_user)):
 
 
 @router.delete("/{flow_id}")
-async def delete_flow(flow_id: int, user=Depends(get_current_user)):
+async def delete_flow(flow_id: int):
     await db_execute("DELETE FROM flows WHERE id=$1", flow_id)
     return {"success": True}
