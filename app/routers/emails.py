@@ -1,9 +1,8 @@
 import json
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from app.database import db_fetchone, db_fetchall, db_fetchval, parse_json_field
-from app.auth_core import get_current_user
 from app.ai_service import call_ai, build_client_context, SYSTEM_COPYWRITER, SYSTEM_STRATEGIST, get_benchmarks
 from app.routers.clients import fetch_client
 
@@ -34,7 +33,7 @@ EMAIL_TYPES = {
 
 
 @router.post("/generate")
-async def generate_email(req: EmailRequest, user=Depends(get_current_user)):
+async def generate_email(req: EmailRequest):
     client = await fetch_client(req.client_id)
     if not client:
         raise HTTPException(404, "Cliente não encontrado")
@@ -175,7 +174,7 @@ Para CADA EMAIL da sequência entregue:
 
 
 @router.post("/segmentation")
-async def generate_segmentation(req: EmailRequest, user=Depends(get_current_user)):
+async def generate_segmentation(req: EmailRequest):
     client = await fetch_client(req.client_id)
     if not client:
         raise HTTPException(404, "Cliente não encontrado")
@@ -221,7 +220,7 @@ Para cada segmento:
 
 
 @router.get("/history/{client_id}")
-async def get_email_history(client_id: int, user=Depends(get_current_user)):
+async def get_email_history(client_id: int):
     return await db_fetchall(
         "SELECT id, type, subject, created_at FROM email_strategies WHERE client_id=$1 ORDER BY created_at DESC LIMIT 30",
         client_id
@@ -229,6 +228,6 @@ async def get_email_history(client_id: int, user=Depends(get_current_user)):
 
 
 @router.get("/detail/{email_id}")
-async def get_email_detail(email_id: int, user=Depends(get_current_user)):
+async def get_email_detail(email_id: int):
     row = await db_fetchone("SELECT * FROM email_strategies WHERE id=$1", email_id)
     return row or {}
