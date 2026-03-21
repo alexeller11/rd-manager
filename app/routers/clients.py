@@ -1,0 +1,116 @@
+from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
+from typing import Optional
+from app.database import db_fetchone, db_fetchall, db_execute, db_fetchval
+from app.auth_core import get_current_user
+
+router = APIRouter()
+
+
+class ClientCreate(BaseModel):
+    name: str
+    segment: Optional[str] = None
+    website: Optional[str] = None
+    description: Optional[str] = None
+    rd_token: Optional[str] = None
+    rd_account_id: Optional[str] = None
+    persona: Optional[str] = None
+    tone: Optional[str] = None
+    main_pain: Optional[str] = None
+    objections: Optional[str] = None
+    rd_crm_token: Optional[str] = None
+
+
+class ClientUpdate(ClientCreate):
+    pass
+
+
+def _sanitize(client: dict) -> dict:
+    """Remove token bruto da resposta pública."""
+    has_token = bool((client.get("rd_token") or "").strip())
+    client = dict(client)
+    client["rd_token_set"] = has_token
+    client["rd_token"] = ""
+    client["rd_refresh_token"] = ""
+    return client
+
+
+async def fetch_client(client_id: int) -> dict | None:
+    return await db_fetchone("SELECT * FROM clients WHERE id = $1", client_id)
+
+
+@router.get("/")
+async def list_clients(user=Depends(get_current_user)):
+    clients = await db_fetchall("SELECT * FROM clients ORDER BY created_at DESC")
+    return [_sanitize(c) for c in clients]
+
+
+@router.get("/{client_id}")
+async def get_client(client_id: int, user=Depends(get_current_user)):
+    client = await fetch_client(client_id)
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    return _sanitize(client)
+
+
+@router.post("/")
+async def create_client(data: ClientCreate, user=Depends(get_current_user)):
+    token = (data.rd_token or "").strip() or None
+    crm_token = (data.rd_crm_token or "").strip() or None
+
+    client_id = await db_fetchval(
+        """INSERT INTO clients
+           (name, segment, website, description, rd_token, rd_account_id,
+            persona, tone, main_pain, objections, rd_crm_token)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id""",
+        data.name, data.segment, data.website, data.description,
+        token, data.rd_account_id,
+        data.persona, data.tone, data.main_pain, data.objections, crm_token
+    )
+    result = data.model_dump()
+    result["id"] = client_id
+    result["rd_token"] = ""
+    result["rd_token_set"] = bool(token)
+    return result
+
+
+@router.put("/{client_id}")
+async def update_client(client_id: int, data: ClientUpdate, user=Depends(get_current_user)):
+    existing = await fetch_client(client_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+
+    # Preserva token existente se não foi passado novo
+    rd_token = (data.rd_token or "").strip() or existing.get("rd_token")
+    crm_token = (data.rd_crm_token or "").strip() or existing.get("rd_crm_token")
+
+    await db_execute(
+        """UPDATE clients SET
+           name=$1, segment=$2, website=$3, description=$4,
+           rd_token=$5, rd_account_id=$6, persona=$7, tone=$8,
+           main_pain=$9, objections=$10, rd_crm_token=$11
+           WHERE id=$12""",
+        data.name, data.segment, data.website, data.description,
+        rd_token, data.rd_account_id, data.persona, data.tone,
+        data.main_pain, data.objections, crm_token, client_id
+    )
+    return {"success": True}
+
+
+@router.delete("/{client_id}")
+async def delete_client(client_id: int, user=Depends(get_current_user)):
+    await db_execute("DELETE FROM clients WHERE id = $1", client_id)
+    return {"success": True}
+
+
+@router.post("/{client_id}/set-token")
+async def set_rd_token(client_id: int, payload: dict, user=Depends(get_current_user)):
+    """Salva token RD Station diretamente (para quem usa token fixo sem OAuth)."""
+    token = (payload.get("rd_token") or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="Token não informado")
+    await db_execute(
+        "UPDATE clients SET rd_token=$1, rd_refresh_token=$2 WHERE id=$3",
+        token, "", client_id
+    )
+    return {"success": True}
