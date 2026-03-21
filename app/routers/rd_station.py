@@ -3,12 +3,11 @@ import json
 import asyncio
 import httpx
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 
 from app.database import db_fetchone, db_fetchval, db_execute, parse_json_field
-from app.auth_core import get_valid_mkt_token, get_current_user
 from app.ai_service import call_ai, build_client_context, SYSTEM_EXPERT
 from app.routers.clients import fetch_client
 
@@ -82,7 +81,7 @@ async def get_rd_snapshot(client_id: int) -> dict:
 # ─── Endpoints ───────────────────────────────────────────────────────────────
 
 @router.get("/sync/{client_id}")
-async def sync_client(client_id: int, user=Depends(get_current_user)):
+async def sync_client(client_id: int):
     token = await get_valid_mkt_token(client_id)
     if not token:
         raise HTTPException(400, "Token RD Marketing não configurado.")
@@ -192,13 +191,13 @@ async def sync_client(client_id: int, user=Depends(get_current_user)):
 
 
 @router.get("/snapshot/{client_id}")
-async def get_snapshot(client_id: int, user=Depends(get_current_user)):
+async def get_snapshot(client_id: int):
     snap = await get_rd_snapshot(client_id)
     return {"data": snap}
 
 
 @router.get("/diagnose/{client_id}")
-async def diagnose(client_id: int, user=Depends(get_current_user)):
+async def diagnose(client_id: int):
     token = await get_valid_mkt_token(client_id)
     if not token:
         return [{"name": "Token", "status": 0, "ok": False, "error": "Token não configurado"}]
@@ -217,7 +216,7 @@ async def diagnose(client_id: int, user=Depends(get_current_user)):
 
 @router.get("/leads-analysis/{client_id}")
 async def get_leads_analysis(client_id: int, page: int = 1, page_size: int = 50,
-                              seg_id: str = "", user=Depends(get_current_user)):
+                              seg_id: str = ""):
     token = await get_valid_mkt_token(client_id)
     path = f"/platform/segmentations/{seg_id}/contacts" if seg_id else "/platform/contacts"
     data, st, err = await rd_get(token, path, {"page": page, "page_size": page_size})
@@ -247,7 +246,7 @@ class AnalysisRequest(BaseModel):
 
 
 @router.post("/analyze")
-async def analyze_marketing(req: AnalysisRequest, user=Depends(get_current_user)):
+async def analyze_marketing(req: AnalysisRequest):
     client_obj = await fetch_client(req.client_id)
     snap = await get_rd_snapshot(req.client_id)
     context = build_client_context({**client_obj, "rd_data": snap})
@@ -257,5 +256,5 @@ async def analyze_marketing(req: AnalysisRequest, user=Depends(get_current_user)
 
 
 @router.post("/landing-pages/analyze")
-async def analyze_lps(req: AnalysisRequest, user=Depends(get_current_user)):
+async def analyze_lps(req: AnalysisRequest):
     return await analyze_marketing(req, user)
