@@ -1,8 +1,7 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from app.database import db_fetchone, db_fetchall, parse_json_field
-from app.auth_core import get_current_user
 from app.ai_service import call_ai, build_client_context, SYSTEM_EXPERT
 from app.routers.clients import fetch_client
 from app.routers.health import calc_health_score
@@ -18,7 +17,7 @@ class ReportRequest(BaseModel):
 
 
 @router.post("/generate")
-async def generate_report(req: ReportRequest, user=Depends(get_current_user)):
+async def generate_report(req: ReportRequest):
     client = await fetch_client(req.client_id)
     if not client:
         raise HTTPException(404, "Cliente não encontrado")
@@ -87,7 +86,7 @@ Estruture assim:
 
 
 @router.get("/history/{client_id}")
-async def get_report_history(client_id: int, user=Depends(get_current_user)):
+async def get_report_history(client_id: int):
     # Reutiliza análises salvas como relatórios
     return await db_fetchall(
         "SELECT id, type, created_at FROM analyses WHERE client_id=$1 ORDER BY created_at DESC LIMIT 20",
