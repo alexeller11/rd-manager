@@ -1,6 +1,5 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from app.database import db_fetchone, db_fetchall, parse_json_field
-from app.auth_core import get_current_user
 from app.routers.clients import fetch_client
 
 router = APIRouter()
@@ -72,7 +71,7 @@ def build_alerts(snapshot: dict) -> list:
 
 
 @router.get("/score/{client_id}")
-async def get_health_score(client_id: int, user=Depends(get_current_user)):
+async def get_health_score(client_id: int):
     client = await fetch_client(client_id)
     if not client:
         raise HTTPException(404, "Cliente não encontrado")
@@ -87,7 +86,7 @@ async def get_health_score(client_id: int, user=Depends(get_current_user)):
 
 
 @router.get("/all")
-async def get_all_health_scores(user=Depends(get_current_user)):
+async def get_all_health_scores():
     clients = await db_fetchall("SELECT * FROM clients ORDER BY name")
     scores = []
     for c in clients:
@@ -104,7 +103,7 @@ async def get_all_health_scores(user=Depends(get_current_user)):
 
 
 @router.get("/alerts/{client_id}")
-async def get_alerts(client_id: int, user=Depends(get_current_user)):
+async def get_alerts(client_id: int):
     row = await db_fetchone(
         "SELECT data FROM rd_snapshots WHERE client_id=$1 ORDER BY created_at DESC LIMIT 1", client_id
     )
