@@ -1,9 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.ai_service import call_ai, build_client_context, SYSTEM_STRATEGIST, SYSTEM_SEO, SYSTEM_EXPERT
 from app.routers.clients import fetch_client
 from app.database import db_fetchval, db_fetchall
-from app.auth_core import get_current_user
 
 router = APIRouter()
 
@@ -114,7 +113,7 @@ class AnalysisRequest(BaseModel):
 
 
 @router.post("/run")
-async def run_analysis(req: AnalysisRequest, user=Depends(get_current_user)):
+async def run_analysis(req: AnalysisRequest):
     client = await fetch_client(req.client_id)
     if not client:
         raise HTTPException(404, "Cliente não encontrado")
@@ -143,7 +142,7 @@ CONTEXTO DO CLIENTE:
 
 
 @router.get("/history/{client_id}")
-async def get_analysis_history(client_id: int, user=Depends(get_current_user)):
+async def get_analysis_history(client_id: int):
     rows = await db_fetchall(
         "SELECT id, type, created_at FROM analyses WHERE client_id=$1 ORDER BY created_at DESC LIMIT 20",
         client_id
@@ -152,7 +151,7 @@ async def get_analysis_history(client_id: int, user=Depends(get_current_user)):
 
 
 @router.get("/detail/{analysis_id}")
-async def get_analysis_detail(analysis_id: int, user=Depends(get_current_user)):
+async def get_analysis_detail(analysis_id: int):
     from app.database import db_fetchone
     row = await db_fetchone("SELECT * FROM analyses WHERE id=$1", analysis_id)
     if not row:
