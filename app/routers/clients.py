@@ -1,8 +1,7 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from app.database import db_fetchone, db_fetchall, db_execute, db_fetchval
-from app.auth_core import get_current_user
 
 router = APIRouter()
 
@@ -40,13 +39,13 @@ async def fetch_client(client_id: int) -> dict | None:
 
 
 @router.get("/")
-async def list_clients(user=Depends(get_current_user)):
+async def list_clients():
     clients = await db_fetchall("SELECT * FROM clients ORDER BY created_at DESC")
     return [_sanitize(c) for c in clients]
 
 
 @router.get("/{client_id}")
-async def get_client(client_id: int, user=Depends(get_current_user)):
+async def get_client(client_id: int):
     client = await fetch_client(client_id)
     if not client:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
@@ -54,7 +53,7 @@ async def get_client(client_id: int, user=Depends(get_current_user)):
 
 
 @router.post("/")
-async def create_client(data: ClientCreate, user=Depends(get_current_user)):
+async def create_client(data: ClientCreate):
     token = (data.rd_token or "").strip() or None
     crm_token = (data.rd_crm_token or "").strip() or None
 
@@ -75,7 +74,7 @@ async def create_client(data: ClientCreate, user=Depends(get_current_user)):
 
 
 @router.put("/{client_id}")
-async def update_client(client_id: int, data: ClientUpdate, user=Depends(get_current_user)):
+async def update_client(client_id: int, data: ClientUpdate):
     existing = await fetch_client(client_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
@@ -98,13 +97,13 @@ async def update_client(client_id: int, data: ClientUpdate, user=Depends(get_cur
 
 
 @router.delete("/{client_id}")
-async def delete_client(client_id: int, user=Depends(get_current_user)):
+async def delete_client(client_id: int):
     await db_execute("DELETE FROM clients WHERE id = $1", client_id)
     return {"success": True}
 
 
 @router.post("/{client_id}/set-token")
-async def set_rd_token(client_id: int, payload: dict, user=Depends(get_current_user)):
+async def set_rd_token(client_id: int, payload: dict):
     """Salva token RD Station diretamente (para quem usa token fixo sem OAuth)."""
     token = (payload.get("rd_token") or "").strip()
     if not token:
