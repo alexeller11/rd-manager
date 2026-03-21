@@ -2,11 +2,10 @@
 import json
 import httpx
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from app.database import db_fetchone, db_fetchval, parse_json_field
-from app.auth_core import get_valid_mkt_token, get_current_user
 from app.ai_service import call_ai, build_client_context, SYSTEM_STRATEGIST, SYSTEM_EXPERT
 from app.routers.clients import fetch_client
 
@@ -63,7 +62,7 @@ def safe_list(val, *keys) -> list:
 
 
 @router.get("/sync/{client_id}")
-async def sync_crm(client_id: int, user=Depends(get_current_user)):
+async def sync_crm(client_id: int):
     crm_token = await _get_crm_token(client_id)
     if not crm_token:
         return {"success": False, "errors": {"crm": "Token CRM não configurado."}}
@@ -97,13 +96,13 @@ async def sync_crm(client_id: int, user=Depends(get_current_user)):
 
 
 @router.get("/snapshot/{client_id}")
-async def get_crm_snapshot(client_id: int, user=Depends(get_current_user)):
+async def get_crm_snapshot(client_id: int):
     snap = await _get_crm_snapshot(client_id)
     return {"data": snap}
 
 
 @router.get("/landing-pages/{client_id}")
-async def get_landing_pages(client_id: int, user=Depends(get_current_user)):
+async def get_landing_pages(client_id: int):
     mkt_token = await get_valid_mkt_token(client_id)
     if not mkt_token:
         return {"landing_pages": [], "total": 0}
@@ -113,7 +112,7 @@ async def get_landing_pages(client_id: int, user=Depends(get_current_user)):
 
 
 @router.get("/sent-emails/{client_id}")
-async def get_sent_emails(client_id: int, user=Depends(get_current_user)):
+async def get_sent_emails(client_id: int):
     mkt_token = await get_valid_mkt_token(client_id)
     if not mkt_token:
         return {"emails": [], "total": 0}
@@ -123,7 +122,7 @@ async def get_sent_emails(client_id: int, user=Depends(get_current_user)):
 
 
 @router.get("/channels/{client_id}")
-async def get_channels(client_id: int, user=Depends(get_current_user)):
+async def get_channels(client_id: int):
     mkt_token = await get_valid_mkt_token(client_id)
     if not mkt_token:
         return {"channels": []}
@@ -147,7 +146,7 @@ class CRMAnalysisRequest(BaseModel):
 
 
 @router.post("/analyze")
-async def analyze_crm(req: CRMAnalysisRequest, user=Depends(get_current_user)):
+async def analyze_crm(req: CRMAnalysisRequest):
     client_obj = await fetch_client(req.client_id)
     crm_data = await _get_crm_snapshot(req.client_id)
     context = build_client_context({**client_obj, "crm_data": crm_data})
@@ -157,12 +156,12 @@ async def analyze_crm(req: CRMAnalysisRequest, user=Depends(get_current_user)):
 
 
 @router.post("/landing-pages/analyze")
-async def analyze_crm_lps(req: CRMAnalysisRequest, user=Depends(get_current_user)):
+async def analyze_crm_lps(req: CRMAnalysisRequest):
     return await analyze_crm(req, user)
 
 
 @router.post("/base/analyze")
-async def analyze_base(req: CRMAnalysisRequest, user=Depends(get_current_user)):
+async def analyze_base(req: CRMAnalysisRequest):
     client_obj = await fetch_client(req.client_id)
     snap_row = await db_fetchone(
         "SELECT data FROM rd_snapshots WHERE client_id=$1 ORDER BY created_at DESC LIMIT 1", req.client_id
