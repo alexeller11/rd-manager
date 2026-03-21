@@ -1,10 +1,9 @@
 import json
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
 from app.database import db_fetchone, db_fetchall, db_fetchval, db_execute, parse_json_field
-from app.auth_core import get_current_user
 from app.ai_service import call_ai, build_client_context, SYSTEM_EXPERT
 from app.routers.clients import fetch_client
 from app.routers.health import calc_health_score
@@ -69,7 +68,7 @@ class WeeklyRequest(BaseModel):
 
 
 @router.post("/weekly/run/{client_id}")
-async def trigger_weekly(client_id: int, background_tasks: BackgroundTasks, user=Depends(get_current_user)):
+async def trigger_weekly(client_id: int, background_tasks: BackgroundTasks):
     client = await fetch_client(client_id)
     if not client:
         raise HTTPException(404, "Cliente não encontrado")
@@ -78,7 +77,7 @@ async def trigger_weekly(client_id: int, background_tasks: BackgroundTasks, user
 
 
 @router.post("/weekly/run-all")
-async def run_all_weekly(background_tasks: BackgroundTasks, user=Depends(get_current_user)):
+async def run_all_weekly(background_tasks: BackgroundTasks):
     clients = await db_fetchall("SELECT id FROM clients")
     for c in clients:
         background_tasks.add_task(run_weekly_analysis_job, c["id"])
@@ -86,7 +85,7 @@ async def run_all_weekly(background_tasks: BackgroundTasks, user=Depends(get_cur
 
 
 @router.get("/weekly/latest/{client_id}")
-async def get_latest_weekly(client_id: int, user=Depends(get_current_user)):
+async def get_latest_weekly(client_id: int):
     row = await db_fetchone(
         "SELECT result, week_ref, created_at FROM weekly_analyses WHERE client_id=$1 ORDER BY created_at DESC LIMIT 1",
         client_id
@@ -97,7 +96,7 @@ async def get_latest_weekly(client_id: int, user=Depends(get_current_user)):
 
 
 @router.get("/weekly/history/{client_id}")
-async def get_weekly_history(client_id: int, user=Depends(get_current_user)):
+async def get_weekly_history(client_id: int):
     return await db_fetchall(
         "SELECT id, week_ref, created_at FROM weekly_analyses WHERE client_id=$1 ORDER BY created_at DESC LIMIT 12",
         client_id
@@ -113,7 +112,7 @@ class ABTestRequest(BaseModel):
 
 
 @router.post("/abtest/generate")
-async def generate_ab_test(req: ABTestRequest, user=Depends(get_current_user)):
+async def generate_ab_test(req: ABTestRequest):
     client = await fetch_client(req.client_id)
     if not client:
         raise HTTPException(404, "Cliente não encontrado")
@@ -170,7 +169,7 @@ class CalendarRequest(BaseModel):
 
 
 @router.post("/calendar/generate")
-async def generate_calendar(req: CalendarRequest, user=Depends(get_current_user)):
+async def generate_calendar(req: CalendarRequest):
     client = await fetch_client(req.client_id)
     if not client:
         raise HTTPException(404, "Cliente não encontrado")
@@ -210,7 +209,7 @@ class CompetitorRequest(BaseModel):
 
 
 @router.post("/competitor/analyze")
-async def analyze_competitors(req: CompetitorRequest, user=Depends(get_current_user)):
+async def analyze_competitors(req: CompetitorRequest):
     client = await fetch_client(req.client_id)
     if not client:
         raise HTTPException(404, "Cliente não encontrado")
