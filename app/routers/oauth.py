@@ -12,7 +12,7 @@ router = APIRouter()
 # Prioridade: RD_REDIRECT_URI > RAILWAY_STATIC_URL > fallback para localhost
 REDIRECT_URI = os.environ.get(
     "RD_REDIRECT_URI",
-    (os.environ.get("RAILWAY_STATIC_URL") or "http://localhost:8000") + "/oauth/callback"
+    ("https://" + os.environ.get("RAILWAY_STATIC_URL") if os.environ.get("RAILWAY_STATIC_URL") else "http://localhost:8000") + "/oauth/callback"
 )
 RD_AUTH_URL = "https://api.rd.services/auth/dialog"
 

@@ -16,7 +16,7 @@ app = FastAPI(title="RD Manager IA", version="4.0.0")
 # Prioridade: ALLOWED_ORIGINS > RAILWAY_STATIC_URL > localhost
 default_origins = ["http://localhost:3000", "http://localhost:8000"]
 if railway_url := os.environ.get("RAILWAY_STATIC_URL"):
-    default_origins.insert(0, railway_url)
+    default_origins.insert(0, f"https://{railway_url}")
 
 ALLOWED_ORIGINS = os.environ.get(
     "ALLOWED_ORIGINS",
