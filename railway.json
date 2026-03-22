@@ -3,7 +3,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 65",
+    "startCommand": "sh -c 'uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --timeout-keep-alive 65'",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 10,
     "healthcheckInterval": 30,
