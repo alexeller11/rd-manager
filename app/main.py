@@ -15,7 +15,7 @@ app = FastAPI(title="RD Manager IA", version="4.0.0")
 # Escolhemos uma das duas abordagens:
 ALLOWED_ORIGINS = os.environ.get(
     "ALLOWED_ORIGINS",
-    "https://alexeller-rd-manager.hf.space,http://localhost:3000,http://localhost:7860"
+    os.environ.get("RAILWAY_STATIC_URL", "https://alexeller-rd-manager.hf.space") + ",http://localhost:3000,http://localhost:8000"
 ).split(",")
 
 app.add_middleware(

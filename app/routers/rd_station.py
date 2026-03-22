@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from app.database import db_fetchone, db_fetchval, db_execute, parse_json_field
+from app.auth_core import get_valid_mkt_token
 from app.ai_service import call_ai, build_client_context, SYSTEM_EXPERT
 from app.routers.clients import fetch_client
 
@@ -257,4 +258,4 @@ async def analyze_marketing(req: AnalysisRequest):
 
 @router.post("/landing-pages/analyze")
 async def analyze_lps(req: AnalysisRequest):
-    return await analyze_marketing(req, user)
+    return await analyze_marketing(req)

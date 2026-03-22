@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from app.database import db_fetchone, db_fetchval, parse_json_field
+from app.auth_core import get_valid_mkt_token
 from app.ai_service import call_ai, build_client_context, SYSTEM_STRATEGIST, SYSTEM_EXPERT
 from app.routers.clients import fetch_client
 
@@ -157,7 +158,7 @@ async def analyze_crm(req: CRMAnalysisRequest):
 
 @router.post("/landing-pages/analyze")
 async def analyze_crm_lps(req: CRMAnalysisRequest):
-    return await analyze_crm(req, user)
+    return await analyze_crm(req)
 
 
 @router.post("/base/analyze")

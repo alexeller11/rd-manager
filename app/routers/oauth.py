@@ -11,7 +11,7 @@ router = APIRouter()
 # Usa a URL do HuggingFace Space automaticamente se configurada
 REDIRECT_URI = os.environ.get(
     "RD_REDIRECT_URI",
-    "https://alexeller-rd-manager.hf.space/oauth/callback"
+    os.environ.get("RAILWAY_STATIC_URL", "https://alexeller-rd-manager.hf.space") + "/oauth/callback"
 )
 RD_AUTH_URL = "https://api.rd.services/auth/dialog"
 
