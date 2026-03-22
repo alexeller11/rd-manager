@@ -14,7 +14,7 @@ GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 async def call_ai(prompt: str, system: str = None, max_tokens: int = 2000) -> str:
     """Chama a API do Groq. Retorna string de erro em caso de falha."""
     if not GROQ_API_KEY:
-        return "Erro: GROQ_API_KEY não configurada. Adicione nas secrets do HuggingFace Space."
+        return "Erro: GROQ_API_KEY não configurada. Adicione nas variáveis de ambiente do Railway."
 
     messages = []
     if system:

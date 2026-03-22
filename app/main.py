@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import init_db
+from app.auth_core import ensure_admin_exists
 from app.routers import auth, clients, analysis, emails, rd_station, reports
 from app.routers import health, flows, intelligence, crm, oauth, scheduler, campaign
 
@@ -12,10 +13,14 @@ app = FastAPI(title="RD Manager IA", version="4.0.0")
 
 # ─── CORS ─────────────────────────────────────────────────────────────────────
 # allow_origins=["*"] + allow_credentials=True é inválido pelo spec do CORS.
-# Escolhemos uma das duas abordagens:
+# Prioridade: ALLOWED_ORIGINS > RAILWAY_STATIC_URL > localhost
+default_origins = ["http://localhost:3000", "http://localhost:8000"]
+if railway_url := os.environ.get("RAILWAY_STATIC_URL"):
+    default_origins.insert(0, railway_url)
+
 ALLOWED_ORIGINS = os.environ.get(
     "ALLOWED_ORIGINS",
-    os.environ.get("RAILWAY_STATIC_URL", "https://alexeller-rd-manager.hf.space") + ",http://localhost:3000,http://localhost:8000"
+    ",".join(default_origins)
 ).split(",")
 
 app.add_middleware(
@@ -55,6 +60,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 @app.on_event("startup")
 async def startup():
     await init_db()
+    await ensure_admin_exists()
 
 
 # ─── Rotas HTML ───────────────────────────────────────────────────────────────

@@ -8,10 +8,11 @@ from app.auth_core import save_mkt_token, MKT_CLIENT_ID, MKT_CLIENT_SECRET, RD_T
 
 router = APIRouter()
 
-# Usa a URL do HuggingFace Space automaticamente se configurada
+# Constrói a URL de redirecionamento dinamicamente
+# Prioridade: RD_REDIRECT_URI > RAILWAY_STATIC_URL > fallback para localhost
 REDIRECT_URI = os.environ.get(
     "RD_REDIRECT_URI",
-    os.environ.get("RAILWAY_STATIC_URL", "https://alexeller-rd-manager.hf.space") + "/oauth/callback"
+    (os.environ.get("RAILWAY_STATIC_URL") or "http://localhost:8000") + "/oauth/callback"
 )
 RD_AUTH_URL = "https://api.rd.services/auth/dialog"
 
@@ -37,7 +38,7 @@ h1{{color:#dc3545;}}a{{color:#007bff;}}</style></head>
 @router.get("/authorize/{client_id}")
 async def start_oauth(client_id: int):
     if not MKT_CLIENT_ID:
-        return HTMLResponse(_error_html("RD_CLIENT_ID não configurado nas secrets do Space."))
+        return HTMLResponse(_error_html("RD_CLIENT_ID não configurado nas variáveis de ambiente do Railway."))
     url = (
         f"{RD_AUTH_URL}?response_type=code"
         f"&client_id={MKT_CLIENT_ID}"

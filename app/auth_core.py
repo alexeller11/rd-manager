@@ -13,7 +13,7 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 
 from app.database import db_execute, db_fetchone, db_fetchval
 
@@ -26,7 +26,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("TOKEN_EXPIRE_MINUTES", "1440")
 ADMIN_USER = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASS = os.environ.get("ADMIN_PASSWORD", "admin123")
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 # ─── RD Station OAuth ─────────────────────────────────────────────────────────
@@ -46,11 +45,21 @@ _token_cache: dict[int, str] = {}
 # ─── Funções de senha ─────────────────────────────────────────────────────────
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    """Hash de senha usando bcrypt diretamente."""
+    # bcrypt tem limite de 72 bytes, então truncamos
+    pwd_bytes = password[:72].encode('utf-8')
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(pwd_bytes, salt).decode('utf-8')
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    """Verifica senha contra hash bcrypt."""
+    try:
+        pwd_bytes = plain[:72].encode('utf-8')
+        hashed_bytes = hashed.encode('utf-8') if isinstance(hashed, str) else hashed
+        return bcrypt.checkpw(pwd_bytes, hashed_bytes)
+    except Exception:
+        return False
 
 
 # ─── JWT ─────────────────────────────────────────────────────────────────────
