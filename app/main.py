@@ -72,6 +72,7 @@ async def root():
 
 @app.get("/health")
 async def health_check():
+    """Health check simples e rápido para Railway."""
     return {"status": "ok", "version": "4.0.0"}
 
 
