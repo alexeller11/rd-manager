@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>RD Manager IA v4</title>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -442,7 +442,17 @@ function App(){
         <div className="main">{PAGES[page]||<div className="card"><h1>{page}</h1></div>}</div>
     </div>);
 }
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+try {
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App/>);
+} catch (e) {
+    console.error("React Render Error:", e);
+    document.getElementById('root').innerHTML = `<div style="padding:20px;color:red;font-family:sans-serif;">
+        <h2>Erro de Inicialização</h2>
+        <p>${e.message}</p>
+        <p>Verifique o console do navegador para mais detalhes.</p>
+    </div>`;
+}
 </script>
 </body>
 </html>
