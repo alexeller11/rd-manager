@@ -338,10 +338,10 @@ function Flows({clients}){
                 <div className="ct">{res.name}</div>
                 <p style={{fontSize:13,color:'var(--ink2)',marginBottom:'1rem'}}>{res.description}</p>
                 <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:'1rem'}}>
-                    {(res.nodes||[]).map((n,i)=><div key={i} style={{border:'1.5px solid var(--bd)',borderRadius:9,padding:'7px 12px',fontSize:12,display:'flex',alignItems:'center',gap:8}}>
-                        <div style={{flex:1}}><div style={{fontWeight:600,marginBottom:3}}>{n.label}</div><span className={`badge ${NODE_COLOR[n.type]||'badge-b'}`}>{n.type}</span></div>
-                        {n.type==='email'&&<button className="btn btn-sm" onClick={()=>generateEmailCopy(n)} disabled={emailLoading}>Gerar Copy</button>
-                    </div>)}
+	                    {(res.nodes||[]).map((n,i)=><div key={i} style={{border:'1.5px solid var(--bd)',borderRadius:9,padding:'7px 12px',fontSize:12,display:'flex',alignItems:'center',gap:8}}>
+	                        <div style={{flex:1}}><div style={{fontWeight:600,marginBottom:3}}>{n.label}</div><span className={`badge ${NODE_COLOR[n.type]||'badge-b'}`}>{n.type}</span></div>
+	                        {n.type==='email' && <button className="btn btn-sm" onClick={()=>generateEmailCopy(n)} disabled={emailLoading}>Gerar Copy</button>}
+	                    </div>)}
                 </div>
                 {genEmail&&<div style={{background:'var(--gl)',borderRadius:10,padding:'12px 15px',marginTop:'1rem'}}>
                     <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>Email: {genEmail.node}</div>
