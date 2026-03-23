@@ -109,6 +109,14 @@ async def oauth_callback(code: str = None, state: str = None, error: str = None)
             # Garante que o client_id seja tratado como int
             await save_mkt_token(int(client_id), access_token, refresh_token)
             print(f"DEBUG OAuth: Token salvo com sucesso!")
+            
+            # Verificação imediata pós-salvamento para diagnóstico
+            from app.database import db_fetchone
+            check = await db_fetchone("SELECT id, rd_token FROM clients WHERE id=$1", int(client_id))
+            if check and check.get("rd_token"):
+                print(f"DEBUG OAuth: Verificação de banco OK - Token presente para ID {client_id}")
+            else:
+                print(f"DEBUG OAuth: VERIFICAÇÃO DE BANCO FALHOU - Token não encontrado para ID {client_id} logo após salvamento")
         except Exception as e:
             import traceback
             err_stack = traceback.format_exc()

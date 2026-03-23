@@ -311,6 +311,14 @@ async def init_db():
         else:
             pool = await get_pg_pool()
             async with pool.acquire() as conn:
+                # Migração forçada: garante que as colunas de token existam
+                try:
+                    await conn.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS rd_token TEXT")
+                    await conn.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS rd_refresh_token TEXT")
+                    await conn.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()")
+                except:
+                    pass
+                
                 # Tenta executar o schema em blocos para ser mais resiliente
                 for stmt in SCHEMA_PG.strip().split(";"):
                     stmt = stmt.strip()
