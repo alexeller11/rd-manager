@@ -327,7 +327,18 @@
                                 <div className="field"><label>Principal dor</label><input value={form.main_pain || ''} onChange={e => setForm({ ...form, main_pain: e.target.value })} /></div>
                                 <div className="field"><label>Objeções</label><input value={form.objections || ''} onChange={e => setForm({ ...form, objections: e.target.value })} /></div>
                             </div>
-                            <div className="field"><label>Token RD Marketing (Fixo)</label><input type="password" value={rdToken} onChange={e => setRdToken(e.target.value)} placeholder="Cole o access_token aqui" /></div>
+                            <div className="field">
+                                <label>RD Marketing</label>
+                                <div style={{display: 'flex', gap: 8, marginBottom: 8}}>
+                                    <input type="password" style={{flex: 1}} value={rdToken} onChange={e => setRdToken(e.target.value)} placeholder="Token fixo (opcional)" />
+                                    {editing && (
+                                        <a href={`/oauth/authorize/${editing}`} target="_blank" className="btn btn-sm btn-ik" style={{textDecoration:'none'}}>
+                                            🔌 Conectar OAuth
+                                        </a>
+                                    )}
+                                </div>
+                                <p style={{fontSize:10, color:'var(--ink3)'}}>Use o token fixo OU conecte via OAuth (recomendado).</p>
+                            </div>
                             <div style={{display: 'flex', gap: 10, marginTop: '1rem'}}>
                                 <button className="btn btn-p" onClick={save} disabled={saving}>{saving ? <><span className="spin"/>Salvando...</> : 'Salvar'}</button>
                                 <button className="btn" onClick={() => setShow(false)}>Cancelar</button>

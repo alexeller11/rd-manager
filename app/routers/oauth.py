@@ -56,9 +56,12 @@ async def oauth_callback(code: str = None, state: str = None, error: str = None)
     if not code:
         return HTMLResponse(_error_html("Code não recebido."))
 
-    client_id = int(state.split(":")[-1]) if state and ":" in state else 0
+    try:
+        client_id = int(state.split(":")[-1]) if state and ":" in state else 0
+    except:
+        client_id = 0
 
-    async with httpx.AsyncClient(timeout=15.0) as http:
+    async with httpx.AsyncClient(timeout=20.0) as http:
         r = await http.post(RD_TOKEN_URL, json={
             "client_id": MKT_CLIENT_ID,
             "client_secret": MKT_CLIENT_SECRET,
@@ -68,7 +71,12 @@ async def oauth_callback(code: str = None, state: str = None, error: str = None)
         })
 
     if r.status_code != 200:
-        return HTMLResponse(_error_html(f"Erro ao trocar code: HTTP {r.status_code}"))
+        try:
+            err_data = r.json()
+            err_msg = err_data.get("error_description", err_data.get("error", f"HTTP {r.status_code}"))
+        except:
+            err_msg = f"HTTP {r.status_code}: {r.text[:100]}"
+        return HTMLResponse(_error_html(f"Erro na troca do token: {err_msg}"))
 
     data = r.json()
     if "error" in data:

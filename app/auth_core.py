@@ -116,9 +116,12 @@ async def get_tokens_from_db(client_id: int) -> dict:
 
 async def save_mkt_token(client_id: int, access_token: str, refresh_token: str):
     _token_cache.pop(client_id, None)  # invalida cache
+    # Garantir que os tokens não sejam None
+    acc = (access_token or "").strip()
+    ref = (refresh_token or "").strip()
     await db_execute(
         "UPDATE clients SET rd_token=$1, rd_refresh_token=$2, updated_at=$3 WHERE id=$4",
-        access_token.strip(), refresh_token.strip(), datetime.utcnow().isoformat(), client_id
+        acc, ref, datetime.utcnow().isoformat(), client_id
     )
 
 
@@ -169,27 +172,41 @@ async def get_valid_mkt_token(client_id: int) -> str:
     if client_id not in _refresh_locks:
         _refresh_locks[client_id] = asyncio.Lock()
 
-    async with httpx.AsyncClient(timeout=10.0) as http:
+    async with httpx.AsyncClient(timeout=15.0) as http:
         try:
+            # Tenta um endpoint leve para validar o token
             r = await http.get(
-                "https://api.rd.services/platform/contacts",
+                "https://api.rd.services/platform/segmentations",
                 headers={"Authorization": f"Bearer {token}"},
                 params={"page": 1, "page_size": 1}
             )
             if r.status_code == 200:
                 _token_cache[client_id] = token
                 return token
+            
+            # Se o token expirou (401), tenta refresh
             if r.status_code == 401:
                 async with _refresh_locks[client_id]:
+                    # Tenta novamente o cache (pode ter sido atualizado por outro processo enquanto esperava o lock)
+                    if client_id in _token_cache and _token_cache[client_id] != token:
+                        return _token_cache[client_id]
+                        
                     new_token = await _refresh_mkt_token(client_id)
                     if new_token:
                         _token_cache[client_id] = new_token
-                    return new_token
-            if r.status_code == 400:
-                # Token malformado ou revogado que não permite nem o check
+                        return new_token
+                    else:
+                        # Se o refresh falhou, o token está morto
+                        await db_execute("UPDATE clients SET rd_token='', rd_refresh_token='' WHERE id=$1", client_id)
+                        _token_cache.pop(client_id, None)
+                        return ""
+            
+            # Erro 400 ou 403 costuma indicar token revogado ou permissões alteradas
+            if r.status_code in (400, 403):
                 await db_execute("UPDATE clients SET rd_token='', rd_refresh_token='' WHERE id=$1", client_id)
                 _token_cache.pop(client_id, None)
                 return ""
+                
         except Exception as e:
             await _log_error(client_id, "check_token", "GET", e)
 
