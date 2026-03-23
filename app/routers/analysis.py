@@ -104,6 +104,55 @@ ANALYSIS_GUIDES = {
 ## 6. KPIs do Funil
 [Métricas para monitorar semana a semana]"""
     },
+    "cold_metrics": {
+        "label": "Análise de Métricas Frias — Leads Inativos e Reengajamento",
+        "system": SYSTEM_EXPERT,
+        "guide": """Realize uma ANÁLISE PROFUNDA de MÉTRICAS FRIAS. Estruture assim:
+
+## 1. Diagnóstico de Leads Inativos
+[Quantos leads não abrem há 60+ dias? Qual % da base? Tendência nos últimos 3 meses?]
+
+## 2. Segmentação de Inativos
+- Nunca abriram (dormentes desde captura)
+- Abriram antes, mas pararam (desengajados)
+- Abrem raramente (baixo engajamento crônico)
+[Para cada: volume, causas prováveis, potencial de reativação]
+
+## 3. Análise de Causas Raiz
+[Por que esses leads ficaram inativos? Frequência excessiva? Conteúdo irrelevante? Falta de relevância?]
+
+## 4. Impacto Financeiro
+[Quanto de receita potencial está dormindo nessa base inativa?]
+
+## 5. Estratégia de Reengajamento em 3 Fases
+
+### Fase 1: Diagnóstico (Semana 1)
+- Email com assunto provocador: "Sentimos sua falta..."
+- Objetivo: medir quem ainda está vivo
+- Segmentação: enviar apenas para 30% da base inativa
+
+### Fase 2: Resgate (Semanas 2-3)
+- Oferta especial ou conteúdo exclusivo
+- Frequência: 2-3 emails com CTAs diferentes
+- Segmentação: apenas quem abriu na Fase 1
+
+### Fase 3: Limpeza (Semana 4)
+- Último email: "Última chance antes de remover"
+- Remover quem não engajar
+- Manter apenas leads com potencial real
+
+## 6. Automação de Reengajamento no RD Station
+[Fluxo automático: gatilho → segmentação → sequência → limpeza]
+
+## 7. Métricas de Sucesso
+- Taxa de reabertura esperada: X%
+- Taxa de conversão esperada: Y%
+- Economia de custo de lista: Z%
+- ROI do reengajamento
+
+## 8. Ações Imediatas
+[Top 3 ações para começar hoje]"""
+    },
 }
 
 

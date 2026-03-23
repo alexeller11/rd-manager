@@ -140,3 +140,18 @@ def build_client_context(client: dict) -> str:
         parts.append(f"\nDados RD Marketing: Leads: {rd.get('total_leads', 0)} | Open Rate: {rd.get('avg_open_rate', 0)}%")
         
     return "\n".join(parts)
+
+
+def get_benchmarks(segment: str) -> dict:
+    """Retorna benchmarks médios por segmento de mercado."""
+    benchmarks = {
+        "E-commerce": {"open_rate": 15, "click_rate": 2.5, "conversion": 1.5},
+        "SaaS":       {"open_rate": 22, "click_rate": 3.0, "conversion": 2.0},
+        "Servicos":   {"open_rate": 25, "click_rate": 3.5, "conversion": 3.0},
+        "Educacao":   {"open_rate": 20, "click_rate": 2.8, "conversion": 2.5},
+        "Saude":      {"open_rate": 28, "click_rate": 4.0, "conversion": 4.0},
+        "Varejo":     {"open_rate": 18, "click_rate": 2.2, "conversion": 1.2},
+        "Industria":  {"open_rate": 24, "click_rate": 3.2, "conversion": 2.8},
+        "Outro":      {"open_rate": 20, "click_rate": 2.5, "conversion": 2.0},
+    }
+    return benchmarks.get(segment, benchmarks["Outro"])

@@ -241,7 +241,7 @@ function Health({clients}){
 }
 
 function Analysis({clients}){
-    const TYPES=[{id:'complete',l:'360° Completa'},{id:'seo',l:'SEO + AI SEO'},{id:'cro',l:'CRO + Conversão'},{id:'funnel',l:'Diagnóstico de Funil'}];
+    const TYPES=[{id:'complete',l:'360° Completa'},{id:'seo',l:'SEO + AI SEO'},{id:'cro',l:'CRO + Conversão'},{id:'funnel',l:'Diagnóstico de Funil'},{id:'cold_metrics',l:'Métricas Frias'}];
     const [cid,setCid]=useState('');const [type,setType]=useState('complete');const [res,setRes]=useState('');const [loading,setLoading]=useState(false);
     const run=async()=>{if(!cid)return alert('Selecione um cliente');setLoading(true);setRes('');
         try{const d=await api('POST','/api/analysis/run',{client_id:parseInt(cid),type});setRes(d.result);}catch(e){alert(e.message);}setLoading(false);};
