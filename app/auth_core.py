@@ -174,17 +174,21 @@ async def get_valid_mkt_token(client_id: int) -> str:
 
     async with httpx.AsyncClient(timeout=15.0) as http:
         try:
-            # Tenta um endpoint leve para validar o token
+            # Tenta um endpoint universal para validar o token (Contatos)
+            # Se falhar com 404 ou 403, pode ser que o usuário não tenha permissão, mas o token ainda é válido para outros fins.
             r = await http.get(
-                "https://api.rd.services/platform/segmentations",
+                "https://api.rd.services/platform/contacts",
                 headers={"Authorization": f"Bearer {token}"},
                 params={"page": 1, "page_size": 1}
             )
+            
+            # 200 OK ou 404/403 em endpoints específicos podem significar que o token é válido, mas sem acesso a este recurso.
+            # No entanto, se o token estiver expirado, ele retornará 401.
             if r.status_code == 200:
                 _token_cache[client_id] = token
                 return token
             
-            # Se o token expirou (401), tenta refresh
+            # Se o token expirou (401), tenta refresh obrigatoriamente
             if r.status_code == 401:
                 async with _refresh_locks[client_id]:
                     # Tenta novamente o cache (pode ter sido atualizado por outro processo enquanto esperava o lock)
@@ -201,8 +205,14 @@ async def get_valid_mkt_token(client_id: int) -> str:
                         _token_cache.pop(client_id, None)
                         return ""
             
-            # Erro 400 ou 403 costuma indicar token revogado ou permissões alteradas
-            if r.status_code in (400, 403):
+            # Se for 403 (Proibido), o token é válido mas não tem escopo para este endpoint.
+            # Não limpamos o token aqui, pois ele pode ser útil para outros endpoints (ex: emails).
+            if r.status_code == 403:
+                _token_cache[client_id] = token
+                return token
+
+            # Erro 400 (Bad Request) costuma indicar token revogado definitivamente.
+            if r.status_code == 400:
                 await db_execute("UPDATE clients SET rd_token='', rd_refresh_token='' WHERE id=$1", client_id)
                 _token_cache.pop(client_id, None)
                 return ""

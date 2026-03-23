@@ -100,18 +100,25 @@ async def update_client(client_id: int, data: ClientUpdate):
     if not crm_token:
         crm_token = existing.get("rd_crm_token")
 
-    # Se o rd_token mudou e foi fornecido um valor não nulo, limpamos o refresh_token
+    # Só atualizamos o rd_token se ele for diferente do atual.
+    # Se o frontend mandar uma string vazia (devido ao _sanitize), ignoramos para não apagar o token real.
     if data.rd_token is not None:
-        await db_execute("UPDATE clients SET rd_refresh_token = '' WHERE id = $1", client_id)
+        new_token = data.rd_token.strip()
+        # Se o novo token for diferente do atual e não for vazio, atualizamos e limpamos o refresh_token
+        # Se for vazio, e o atual não for vazio, o usuário quer deslogar o RD Marketing.
+        if new_token != (existing.get("rd_token") or ""):
+            if new_token or (existing.get("rd_token") and not new_token):
+                await db_execute("UPDATE clients SET rd_token=$1, rd_refresh_token='' WHERE id=$2", new_token, client_id)
+                rd_token = new_token
 
     await db_execute(
         """UPDATE clients SET
            name=$1, segment=$2, website=$3, description=$4,
-           rd_token=$5, rd_account_id=$6, persona=$7, tone=$8,
-           main_pain=$9, objections=$10, rd_crm_token=$11
-           WHERE id=$12""",
+           rd_account_id=$5, persona=$6, tone=$7,
+           main_pain=$8, objections=$9, rd_crm_token=$10
+           WHERE id=$11""",
         data.name, data.segment, data.website, data.description,
-        rd_token, data.rd_account_id, data.persona, data.tone,
+        data.rd_account_id, data.persona, data.tone,
         data.main_pain, data.objections, crm_token, client_id
     )
     return {"success": True}
