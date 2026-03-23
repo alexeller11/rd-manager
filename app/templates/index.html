@@ -1,116 +1,302 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>RD Manager IA - Diagnóstico</title>
-    <!-- Carregamento de Scripts com Fallback e Integridade -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        :root { --g: #1D9E75; --bg: #F2F0EB; --ink: #1C1C1A; --danger: #E24B4A; }
-        body { font-family: 'DM Sans', sans-serif; background: var(--bg); margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        #root { width: 100%; }
-        .loading-screen { text-align: center; padding: 20px; }
-        .error-panel { background: #fff; border: 1px solid #E4E2DA; border-radius: 18px; padding: 2.5rem; max-width: 500px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        .error-title { font-family: 'Syne', sans-serif; color: var(--danger); font-size: 24px; margin-bottom: 1rem; }
-        .error-msg { color: #5A5A55; line-height: 1.6; margin-bottom: 1.5rem; font-size: 14px; }
-        .error-code { background: #F9F8F5; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #dc3545; overflow-x: auto; margin-bottom: 1.5rem; border: 1px solid #eee; }
-        .btn { background: var(--g); color: #fff; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
-        .diag-box { position: fixed; bottom: 10px; right: 10px; font-size: 10px; color: #ccc; }
-    </style>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>RD Manager IA v4.2</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#F2F0EB;color:#1C1C1A;min-height:100vh}
+:root{--g:#1D9E75;--gd:#0F6E56;--gl:#E1F5EE;--ink:#1C1C1A;--ink2:#5A5A55;--ink3:#9A9A94;--paper:#FFF;--bg:#F2F0EB;--sf:#FAFAF7;--bd:#E4E2DA;--bd2:#D0CEC6;--warn:#EF9F27;--danger:#E24B4A;--info:#378ADD}
+.sb{position:fixed;left:0;top:0;width:218px;height:100vh;background:var(--ink);display:flex;flex-direction:column;z-index:100;overflow-y:auto}
+.sb-logo{padding:1.2rem 1rem .85rem;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;display:flex;align-items:center;gap:8px}
+.logo-m{width:26px;height:26px;background:var(--g);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
+.sb-user{padding:.55rem 1rem;font-size:11px;color:rgba(255,255,255,.35);border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center}
+.sb-body{padding:.5rem .6rem;flex:1}
+.ns{font-size:9px;font-weight:600;color:rgba(255,255,255,.22);text-transform:uppercase;letter-spacing:.1em;padding:9px 8px 3px}
+.nb{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;border:none;background:transparent;color:rgba(255,255,255,.48);font-size:12.5px;cursor:pointer;width:100%;text-align:left;margin-bottom:1px;transition:all .12s}
+.nb:hover{color:rgba(255,255,255,.82);background:rgba(255,255,255,.06)}
+.nb.active{background:var(--g);color:#fff}
+.ni{font-size:13px;width:16px;text-align:center;flex-shrink:0}
+.main{margin-left:218px;padding:2.25rem 2rem;min-height:100vh}
+.ph{margin-bottom:1.5rem}.ph h1{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:.2rem}
+.ph .sub{font-size:13px;color:var(--ink2)}
+.card{background:var(--paper);border:1px solid var(--bd);border-radius:14px;padding:1.35rem 1.5rem;margin-bottom:1rem}
+.ct{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:.85rem}
+.mg{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin-bottom:1.2rem}
+.mc{background:var(--paper);border:1px solid var(--bd);border-radius:12px;padding:.85rem 1.1rem}
+.ml{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;font-weight:500}
+.mv{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.btn{padding:7px 15px;border-radius:9px;border:1.5px solid var(--bd);background:transparent;color:var(--ink);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover:not(:disabled){border-color:var(--bd2);background:#FAFAF7}
+.btn-p{background:var(--g);color:#fff;border-color:var(--g)}.btn-p:hover:not(:disabled){background:var(--gd);border-color:var(--gd)}
+.btn-ik{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn-sm{padding:5px 11px;font-size:12px;border-radius:7px}
+.btn-d{color:var(--danger);border-color:#f7c1c1}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+input,textarea,select{width:100%;padding:8px 12px;border:1.5px solid var(--bd);border-radius:9px;background:var(--paper);color:var(--ink);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .15s}
+input:focus,textarea:focus,select:focus{border-color:var(--g)}
+textarea{min-height:75px;resize:vertical}
+.field{margin-bottom:.8rem}.field label{display:block;font-size:12px;font-weight:500;color:var(--ink2);margin-bottom:.3rem}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+.crow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--bd)}.crow:last-child{border-bottom:none}
+.av{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;font-family:'Syne',sans-serif}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;margin-right:5px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.spin-d{border-color:rgba(0,0,0,.1);border-top-color:var(--ink)}
+.res{background:#F9F8F5;border:1px solid var(--bd);border-radius:10px;padding:1rem 1.25rem;font-size:13px;line-height:1.7;white-space:pre-wrap;margin-top:1rem;max-height:620px;overflow-y:auto}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
+.badge-g{background:#E1F5EE;color:#0F6E56}.badge-y{background:#FFF3D6;color:#8B5A00}.badge-r{background:#FCEBEB;color:#A32D2D}.badge-b{background:#E6F1FB;color:#0C447C}
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:11px;background:var(--gl);color:var(--gd);margin:2px}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+.login-box{background:var(--paper);border:1px solid var(--bd);border-radius:18px;padding:2.5rem 2.25rem;width:100%;max-width:370px}
+.err{background:#FCEBEB;border:1px solid #f7c1c1;color:#A32D2D;border-radius:8px;padding:9px 13px;font-size:13px;margin-bottom:1rem}
+.alert-box{border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:13px}
+.alert-d{background:#FCEBEB;border:1px solid #f7c1c1}.alert-w{background:#FFF8E7;border:1px solid #FAC775}.alert-s{background:#E1F5EE;border:1px solid #9FE1CB}.alert-i{background:#E6F1FB;border:1px solid #B5D4F4}
+</style>
 </head>
 <body>
-    <div id="root">
-        <div class="loading-screen">
-            <div style="font-family: 'Syne', sans-serif; font-weight: 800; color: var(--ink); font-size: 20px; margin-bottom: 10px;">RD Manager IA</div>
-            <div style="color: var(--ink3); font-size: 14px;">Carregando interface...</div>
-            <script>
-                // Diagnóstico visual imediato: se o JS rodar, o fundo muda levemente
-                document.body.style.backgroundColor = "#E1F5EE";
-            </script>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useCallback} = React;
+const TOKEN_KEY='rdm_v4_token';
+const getToken=()=>localStorage.getItem(TOKEN_KEY);
+const setToken=t=>t?localStorage.setItem(TOKEN_KEY,t):localStorage.removeItem(TOKEN_KEY);
+
+async function api(method,path,body,isForm=false){
+    const h={};const tok=getToken();
+    if(tok) h['Authorization']=`Bearer ${tok}`;
+    let fb=null;
+    if(body){if(isForm){h['Content-Type']='application/x-www-form-urlencoded';fb=new URLSearchParams(body).toString();}else{h['Content-Type']='application/json';fb=JSON.stringify(body);}}
+    const r=await fetch(path,{method,headers:h,body:fb});
+    if(r.status===401){setToken(null);window.location.reload();return;}
+    const txt=await r.text();
+    try{const d=JSON.parse(txt);if(!r.ok)throw new Error(d.detail||'Erro na API');return d;}
+    catch(e){if(e.message.startsWith('Erro'))throw e;throw new Error('Erro do servidor: '+txt.substring(0,150));}
+}
+
+function Login({onLogin}){
+    const [u,setU]=useState('');const [p,setP]=useState('');const [loading,setLoading]=useState(false);const [err,setErr]=useState('');
+    const submit=async e=>{e.preventDefault();if(!u||!p)return;setLoading(true);setErr('');
+        try{const d=await api('POST','/api/auth/login',{username:u,password:p},true);setToken(d.access_token);onLogin({username:d.username,is_admin:d.is_admin});}
+        catch(ex){setErr(ex.message);}setLoading(false);};
+    return(<div className="login-wrap"><div className="login-box">
+        <div style={{fontFamily:'Syne',fontSize:18,fontWeight:800,display:'flex',alignItems:'center',gap:10,marginBottom:'1.75rem'}}>
+            <div className="logo-m">RD</div>RD Manager IA
         </div>
-    </div>
+        {err&&<div className="err">{err}</div>}
+        <form onSubmit={submit}>
+            <div className="field"><label>Usuário</label><input value={u} onChange={e=>setU(e.target.value)} autoFocus autoComplete="username"/></div>
+            <div className="field" style={{marginBottom:'1.25rem'}}><label>Senha</label><input type="password" value={p} onChange={e=>setP(e.target.value)} autoComplete="current-password"/></div>
+            <button className="btn btn-p" type="submit" disabled={loading} style={{width:'100%',justifyContent:'center'}}>{loading?<><span className="spin"/>Entrando...</>:'Entrar'}</button>
+        </form>
+    </div></div>);
+}
 
-    <div class="diag-box">v4.1.0-stable</div>
+function ClientSelect({clients,value,onChange}){
+    return <select value={value} onChange={e=>onChange(e.target.value)}>
+        <option value="">Selecione o cliente...</option>
+        {clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+    </select>;
+}
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+function AICard({title,children,result,loading}){return(<div className="card">
+    <div className="ct">{title}</div>{children}
+    {loading&&<div style={{padding:'1rem',color:'var(--ink3)',fontSize:13}}><span className="spin spin-d"/>Gerando com IA...</div>}
+    {result&&<div className="res">{result}</div>}
+</div>);}
 
-        // --- Error Boundary ---
-        class ErrorBoundary extends React.Component {
-            constructor(props) { super(props); this.state = { hasError: false, error: null }; }
-            static getDerivedStateFromError(error) { return { hasError: true, error }; }
-            render() {
-                if (this.state.hasError) {
-                    return (
-                        <div className="error-panel" style={{margin:'auto'}}>
-                            <div className="error-title">⚠️ Erro de Carregamento</div>
-                            <div className="error-msg">
-                                Não foi possível carregar a interface do RD Manager. Isso geralmente acontece por um erro de sintaxe no JavaScript ou falha na conexão com o servidor.
-                            </div>
-                            <div className="error-code">{this.state.error?.toString()}</div>
-                            <button className="btn" onClick={() => window.location.reload()}>Tentar Novamente</button>
-                        </div>
-                    );
-                }
-                return this.props.children;
-            }
+function Dashboard({clients}){
+    const [scores,setScores]=useState([]);
+    useEffect(()=>{api('GET','/api/health/all').then(setScores).catch(()=>{});},[]);
+    return(<div>
+        <div className="ph"><h1>Dashboard</h1><p className="sub">Visão consolidada — {clients.length} clientes</p></div>
+        <div className="mg">
+            <div className="mc"><div className="ml">Clientes</div><div className="mv">{clients.length}</div></div>
+            <div className="mc"><div className="ml">Com dados RD</div><div className="mv">{scores.filter(s=>s.has_data).length}</div></div>
+            <div className="mc"><div className="ml">Health score médio</div><div className="mv">{scores.length?Math.round(scores.reduce((s,c)=>s+c.score,0)/scores.length):'—'}</div></div>
+            <div className="mc"><div className="ml">Críticos</div><div className="mv" style={{color:'var(--danger)'}}>{scores.filter(s=>s.status==='red').length}</div></div>
+        </div>
+        {scores.length>0&&<div className="card"><div className="ct">Health Score por Cliente</div>
+            {scores.map(s=><div key={s.client_id} className="crow">
+                <div className="av" style={{background:s.status==='green'?'#E1F5EE':s.status==='yellow'?'#FFF3D6':'#FCEBEB',color:s.status==='green'?'#0F6E56':s.status==='yellow'?'#8B5A00':'#A32D2D',width:38,height:38}}>{s.score}</div>
+                <div style={{flex:1}}><div style={{fontWeight:500,fontSize:13}}>{s.client_name}</div><div style={{fontSize:11,color:'var(--ink3)'}}>{s.segment||''}</div></div>
+                <span className={`badge badge-${s.status==='green'?'g':s.status==='yellow'?'y':'r'}`}>{s.label}</span>
+            </div>)}
+        </div>}
+    </div>);
+}
+
+function Clients({clients,onRefresh}){
+    const SEG=['E-commerce','SaaS','Servicos','Educacao','Saude','Varejo','Industria','Outro'];
+    const EMPTY={name:'',segment:'E-commerce',website:'',description:'',persona:'',tone:'',main_pain:'',objections:'',rd_crm_token:''};
+    const [show,setShow]=useState(false);const [form,setForm]=useState(EMPTY);const [editing,setEditing]=useState(null);
+    const [rdToken,setRdToken]=useState('');const [saving,setSaving]=useState(false);
+    const [suggesting,setSuggesting]=useState(false);
+    const open=(c=null)=>{setForm(c?{...c}:EMPTY);setEditing(c?.id||null);setRdToken('');setShow(true);};
+    const suggest=async()=>{if(!form.website)return alert('Informe o site primeiro');setSuggesting(true);try{const d=await api('POST','/api/clients/suggest-data',{website:form.website});setForm(prev=>({...prev,...d}));}catch(e){alert('Erro na IA: '+e.message);}setSuggesting(false);};
+    const save=async()=>{setSaving(true);try{const payload={...form};if(rdToken.trim())payload.rd_token=rdToken.trim();const res=await api(editing?'PUT':'POST',editing?`/api/clients/${editing}`:'/api/clients/',payload);if(!editing)setEditing(res.id);await onRefresh();alert(editing?'Atualizado com sucesso!':'Cliente criado!');}catch(e){alert(e.message);}setSaving(false);};
+    const del=async id=>{if(!confirm('Excluir cliente e todos os dados?'))return;await api('DELETE',`/api/clients/${id}`);onRefresh();};
+    return(<div>
+        <div className="ph" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <div><h1>Clientes</h1><p className="sub">{clients.length} clientes cadastrados</p></div>
+            <button className="btn btn-p" onClick={()=>open()}>+ Novo Cliente</button>
+        </div>
+        {show&&<div className="card">
+            <div className="ct">{editing?'Editar':'Novo'} Cliente</div>
+            <div className="two"><div className="field"><label>Nome *</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></div>
+            <div className="field"><label>Segmento</label><select value={form.segment} onChange={e=>setForm({...form,segment:e.target.value})}>{SEG.map(s=><option key={s}>{s}</option>)}</select></div></div>
+            <div className="two"><div className="field"><label>Website</label><div style={{display:'flex',gap:8}}><input style={{flex:1}} value={form.website||''} onChange={e=>setForm({...form,website:e.target.value})} placeholder="https://"/><button className="btn btn-sm" onClick={suggest} disabled={suggesting}>{suggesting?<span className="spin spin-d"/>:'🪄 Sugerir com IA'}</button></div></div>
+            <div className="field"><label>Token CRM RD Station</label><input type="password" value={form.rd_crm_token||''} onChange={e=>setForm({...form,rd_crm_token:e.target.value})} placeholder="Token do CRM (opcional)"/></div></div>
+            <div className="field"><label>Descrição do negócio</label><textarea value={form.description||''} onChange={e=>setForm({...form,description:e.target.value})} rows={3}/></div>
+            <div className="field"><label>Persona / ICP</label><textarea value={form.persona||''} onChange={e=>setForm({...form,persona:e.target.value})} rows={2} placeholder="Quem é o cliente ideal?"/></div>
+            <div className="three"><div className="field"><label>Tom de voz</label><input value={form.tone||''} onChange={e=>setForm({...form,tone:e.target.value})} placeholder="Ex: Profissional e direto"/></div>
+            <div className="field"><label>Principal dor</label><input value={form.main_pain||''} onChange={e=>setForm({...form,main_pain:e.target.value})}/></div>
+            <div className="field"><label>Objeções comuns</label><input value={form.objections||''} onChange={e=>setForm({...form,objections:e.target.value})}/></div></div>
+            <div className="field"><label>Token RD Marketing (fixo — alternativa ao OAuth)</label><input type="password" value={rdToken} onChange={e=>setRdToken(e.target.value)} placeholder="Cole o access_token aqui para salvar"/></div>
+            <div style={{display:'flex',gap:10,marginBottom:'1rem'}}>
+                {editing?(<a href={`/oauth/authorize/${editing}`} target="_blank" rel="noreferrer"><button className="btn btn-p btn-sm">🔗 Conectar via OAuth RD Marketing</button></a>):(<button className="btn btn-p btn-sm" onClick={()=>alert('Salve o cliente primeiro')}>🔗 Conectar via OAuth RD Marketing</button>)}
+            </div>
+            <div style={{display:'flex',gap:10}}><button className="btn btn-p" onClick={save} disabled={saving}>{saving?<><span className="spin"/>Salvando...</>:'Salvar'}</button><button className="btn" onClick={()=>setShow(false)}>Cancelar</button></div>
+        </div>}
+        <div className="card">{clients.length===0&&<p style={{color:'var(--ink3)',fontSize:13}}>Nenhum cliente cadastrado.</p>}
+            {clients.map(c=><div key={c.id} className="crow">
+                <div className="av" style={{background:'#EEEDFE',color:'#3C3489',width:36,height:36}}>{c.name[0].toUpperCase()}</div>
+                <div style={{flex:1}}><div style={{fontWeight:500,fontSize:13}}>{c.name}</div><div style={{fontSize:11,color:'var(--ink3)'}}>{c.segment} | {c.website||'Sem site'}</div></div>
+                <div style={{display:'flex',gap:8}}><button className="btn btn-sm" onClick={()=>open(c)}>Editar</button><button className="btn btn-sm btn-d" onClick={()=>del(c.id)}>Excluir</button></div>
+            </div>)}
+        </div>
+    </div>);
+}
+
+function Intelligence({clients}){
+    const [cid,setCid]=useState('');const [type,setType]=useState('weekly');const [res,setRes]=useState('');const [loading,setLoading]=useState(false);
+    const run=async()=>{if(!cid)return alert('Selecione um cliente');setLoading(true);setRes('');try{const d=await api('POST','/api/analysis/run',{client_id:parseInt(cid),type});setRes(d.result);}catch(e){alert(e.message);}setLoading(false);};
+    return(<div>
+        <div className="ph"><h1>Inteligência</h1><p className="sub">Análises estratégicas com IA</p></div>
+        <AICard title="Nova Análise" result={res} loading={loading}>
+            <div className="two" style={{marginBottom:'1rem'}}>
+                <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>
+                <div className="field"><label>Tipo de Análise</label><select value={type} onChange={e=>setType(e.target.value)}><option value="weekly">Análise Semanal (Snapshot)</option><option value="complete">Análise 360° (Marketing)</option><option value="seo">SEO & Conteúdo</option><option value="cro">CRO & Landing Pages</option><option value="funnel">Funil de Vendas</option><option value="cold_metrics">Métricas Frias (Inativos)</option></select></div>
+            </div>
+            <button className="btn btn-p" onClick={run} disabled={loading||!cid}>Executar Análise</button>
+        </AICard>
+    </div>);
+}
+
+function Emails({clients}){
+    const [cid,setCid]=useState('');const [type,setType]=useState('nurturing');const [theme,setTheme]=useState('');const [res,setRes]=useState('');const [loading,setLoading]=useState(false);
+    const run=async()=>{if(!cid)return alert('Selecione um cliente');setLoading(true);setRes('');try{const d=await api('POST','/api/emails/generate',{client_id:parseInt(cid),type,theme});setRes(d.result);}catch(e){alert(e.message);}setLoading(false);};
+    return(<div>
+        <div className="ph"><h1>E-mails</h1><p className="sub">Copywriting de alta conversão</p></div>
+        <AICard title="Gerar E-mail" result={res} loading={loading}>
+            <div className="three" style={{marginBottom:'1rem'}}>
+                <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>
+                <div className="field"><label>Tipo</label><select value={type} onChange={e=>setType(e.target.value)}><option value="nurturing">Nutrição</option><option value="welcome">Boas-vindas</option><option value="promo">Promocional</option><option value="reengagement">Reengajamento</option><option value="newsletter">Newsletter</option><option value="strategy">Estratégia Completa</option></select></div>
+                <div className="field"><label>Tema/Objetivo</label><input value={theme} onChange={e=>setTheme(e.target.value)} placeholder="Ex: Lançamento do curso X"/></div>
+            </div>
+            <button className="btn btn-p" onClick={run} disabled={loading||!cid}>Gerar Copy</button>
+        </AICard>
+    </div>);
+}
+
+function Flows({clients}){
+    const FT=[{id:'nurturing',l:'Nutrição'},{id:'welcome',l:'Boas-vindas'},{id:'reengagement',l:'Reengajamento'},{id:'post_purchase',l:'Pós-compra'},{id:'lead_scoring',l:'Lead Scoring'},{id:'onboarding',l:'Onboarding'}];
+    const [cid,setCid]=useState('');const [obj,setObj]=useState('');const [ftype,setFtype]=useState('nurturing');const [res,setRes]=useState(null);const [loading,setLoading]=useState(false);
+    const run=async()=>{if(!cid||!obj)return alert('Preencha cliente e objetivo');setLoading(true);setRes(null);try{const d=await api('POST','/api/flows/generate',{client_id:parseInt(cid),objective:obj,flow_type:ftype});setRes(d);}catch(e){alert(e.message);}setLoading(false);};
+    return(<div>
+        <div className="ph"><h1>Fluxos de Automação</h1><p className="sub">Crie fluxos de automação com IA</p></div>
+        <div className="card"><div className="ct">Configurar Fluxo</div>
+            <div className="three" style={{marginBottom:'1rem'}}>
+                <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>
+                <div className="field"><label>Tipo</label><select value={ftype} onChange={e=>setFtype(e.target.value)}>{FT.map(f=><option key={f.id} value={f.id}>{f.l}</option>)}</select></div>
+                <div className="field"><label>Objetivo *</label><input value={obj} onChange={e=>setObj(e.target.value)} placeholder="Ex: Recuperar leads que abandonaram checkout"/></div>
+            </div>
+            <button className="btn btn-p" onClick={run} disabled={loading||!cid||!obj}>{loading?<><span className="spin"/>Gerando...</>:'Gerar Estrutura de Fluxo'}</button>
+        </div>
+        {res&&<div className="card"><div className="ct">{res.name}</div><p style={{fontSize:13,color:'var(--ink2)',marginBottom:'1rem'}}>{res.description}</p>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1.5rem'}}>
+                <div><div className="ml">Estrutura Visual</div>{res.nodes.map(n=><div key={n.id} className="crow"><span className={`badge badge-b`}>{n.type}</span><span style={{fontSize:13}}>{n.label}</span></div>)}</div>
+                <div><div className="ml">Passos no RD Station</div>{res.rd_station_steps.map((s,i)=><div key={i} style={{fontSize:12,marginBottom:6}}>• {s}</div>)}</div>
+            </div>
+        </div>}
+    </div>);
+}
+
+function Leads({clients}){
+    const [cid,setCid]=useState('');const [segs,setSegs]=useState([]);const [segId,setSegId]=useState('');const [leads,setLeads]=useState([]);
+    const loadSegs=async()=>{if(!cid)return;try{const d=await api('GET',`/api/rd/sync/${cid}`);setSegs(d.data?.segmentations||[]);}catch(e){}};
+    const loadLeads=async()=>{if(!cid)return;try{const d=await api('GET',`/api/rd/leads-analysis/${cid}${segId?`?segmentation_id=${segId}`:''}`);setLeads(d.leads||[]);}catch(e){}};
+    useEffect(()=>{loadSegs();},[cid]);useEffect(()=>{loadLeads();},[cid,segId]);
+    return(<div><div className="ph"><h1>Leads e Segmentações</h1><p className="sub">Visualize sua base de leads</p></div><div className="card"><div className="two" style={{marginBottom:'1rem'}}><div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div><div className="field"><label>Segmentação</label><select value={segId} onChange={e=>setSegId(e.target.value)}><option value="">Todos os leads</option>{segs.map(s=><option key={s.id} value={s.id}>{s.name} ({s.contacts})</option>)}</select></div></div>{leads.length>0&&<div className="card" style={{marginTop:'1rem'}}><div className="ct">Leads ({leads.length})</div>{leads.map((l,i)=><div key={i} className="crow"><div style={{flex:1}}><div style={{fontWeight:500,fontSize:13}}>{l.name||'Sem nome'}</div><div style={{fontSize:11,color:'var(--ink3)'}}>{l.email}</div></div><span className={`badge badge-g`}>{l.potential}</span></div>)}</div>}</div></div>);
+}
+
+function LandingPages({clients}){
+    const [cid,setCid]=useState('');const [lps,setLps]=useState([]);const [analysis,setAnalysis]=useState('');const [loading,setLoading]=useState(false);
+    const loadLps=async()=>{if(!cid)return;try{const d=await api('GET',`/api/rd/sync/${cid}`);setLps(d.data?.landing_pages||[]);}catch(e){}};
+    const analyzeLp=async()=>{if(!cid)return;setLoading(true);try{const d=await api('POST','/api/analysis/run',{client_id:parseInt(cid),type:'cro'});setAnalysis(d.result);}catch(e){alert(e.message);}setLoading(false);};
+    useEffect(()=>{loadLps();},[cid]);
+    return(<div><div className="ph"><h1>Landing Pages</h1><p className="sub">Analise suas landing pages</p></div><div className="card"><div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>{lps.length>0&&<div style={{marginTop:'1rem'}}>{lps.map((lp,i)=><div key={i} className="crow" onClick={analyzeLp} style={{cursor:'pointer'}}><div style={{flex:1}}><div style={{fontWeight:500,fontSize:13}}>{lp.name}</div><div style={{fontSize:11,color:'var(--ink3)'}}>Conversões: {lp.conversions}</div></div><span className="badge badge-b">{lp.conversion_rate}%</span></div>)}</div>}</div>{analysis&&<div className="card"><div className="ct">Análise IA</div><div className="res">{analysis}</div></div>}{loading&&<div style={{textAlign:'center',padding:'1rem'}}><span className="spin spin-d"/>Analisando...</div>}</div>);
+}
+
+function Sync({clients}){
+    const [cid,setCid]=useState('');const [res,setRes]=useState(null);const [loading,setLoading]=useState('');
+    const syncRD=async()=>{if(!cid)return alert('Selecione um cliente');setLoading('rd');try{const d=await api('GET',`/api/rd/sync/${cid}`);setRes(d);}catch(e){alert(e.message);}setLoading('');};
+    return(<div><div className="ph"><h1>Sincronização</h1><p className="sub">Atualize os dados do RD Station</p></div><div className="card"><div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div><button className="btn btn-p" onClick={syncRD} disabled={loading||!cid}>{loading?<><span className="spin"/>Sincronizando...</>:'Sincronizar RD Station'}</button></div>{res&&<div className="card"><div className="ct">Resultado da Sincronização</div><div className="res">{JSON.stringify(res.data,null,2)}</div></div>}</div>);
+}
+
+function App(){
+    const [user,setUser]=useState(null);const [page,setPage]=useState('dashboard');const [clients,setClients]=useState([]);const [loading,setLoading]=useState(true);
+    const refreshClients=useCallback(async()=>{try{const d=await api('GET','/api/clients/');setClients(d);}catch(e){}},[]);
+    useEffect(()=>{const tok=getToken();if(tok) api('GET','/api/auth/me').then(u=>{setUser(u);refreshClients();}).catch(()=>setToken(null)).finally(()=>setLoading(false));else setLoading(false);},[refreshClients]);
+    if(loading)return <div className="login-wrap"><span className="spin spin-d" style={{width:30,height:30}}/></div>;
+    if(!user)return <Login onLogin={u=>{setUser(u);refreshClients();}}/>;
+    const PAGES={dashboard:<Dashboard clients={clients}/>,clients:<Clients clients={clients} onRefresh={refreshClients}/>,intel:<Intelligence clients={clients}/>,emails:<Emails clients={clients}/>,flows:<Flows clients={clients}/>,leads:<Leads clients={clients}/>,lps:<LandingPages clients={clients}/>,sync:<Sync clients={clients}/>};
+    return(<div style={{display:'flex'}}>
+        <nav className="sb">
+            <div className="sb-logo"><div className="logo"><div className="logo-m">RD</div>RD Manager IA</div></div>
+            <div className="sb-user"><span>{user.username}</span><button onClick={()=>{setToken(null);window.location.reload();}} style={{background:'none',border:'none',color:'inherit',cursor:'pointer'}}>Sair</button></div>
+            <div className="sb-body">
+                <div className="ns">Principal</div>
+                <button className={`nb ${page==='dashboard'?'active':''}`} onClick={()=>setPage('dashboard')}><span className="ni">📊</span>Dashboard</button>
+                <button className={`nb ${page==='clients'?'active':''}`} onClick={()=>setPage('clients')}><span className="ni">👥</span>Clientes</button>
+                <div className="ns">IA & Estratégia</div>
+                <button className={`nb ${page==='intel'?'active':''}`} onClick={()=>setPage('intel')}><span className="ni">🧠</span>Inteligência</button>
+                <button className={`nb ${page==='emails'?'active':''}`} onClick={()=>setPage('emails')}><span className="ni">✉️</span>E-mails</button>
+                <button className={`nb ${page==='flows'?'active':''}`} onClick={()=>setPage('flows')}><span className="ni">⚡</span>Fluxos</button>
+                <div className="ns">Dados RD</div>
+                <button className={`nb ${page==='leads'?'active':''}`} onClick={()=>setPage('leads')}><span className="ni">🎯</span>Leads</button>
+                <button className={`nb ${page==='lps'?'active':''}`} onClick={()=>setPage('lps')}><span className="ni">📄</span>Landing Pages</button>
+                <button className={`nb ${page==='sync'?'active':''}`} onClick={()=>setPage('sync')}><span className="ni">🔄</span>Sincronizar</button>
+            </div>
+        </nav>
+        <div className="main">{PAGES[page]||<div className="card"><h1>{page}</h1></div>}</div>
+    </div>);
+}
+
+// --- Error Boundary ---
+class ErrorBoundary extends React.Component {
+    constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+    static getDerivedStateFromError(error) { return { hasError: true, error }; }
+    render() {
+        if (this.state.hasError) {
+            return (<div style={{padding:'40px',textAlign:'center',background:'#FCEBEB',minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+                <h1 style={{color:'#A32D2D'}}>Ops! Algo deu errado.</h1>
+                <p style={{color:'#5A5A55',maxWidth:'500px',margin:'20px 0'}}>{this.state.error?.toString()}</p>
+                <button className="btn btn-p" onClick={()=>window.location.reload()}>Recarregar Página</button>
+            </div>);
         }
+        return this.props.children;
+    }
+}
 
-        // --- App Principal (Versão Simplificada para Teste) ---
-        function App() {
-            const [status, setStatus] = useState('Verificando servidor...');
-            const [error, setError] = useState(null);
-
-            useEffect(() => {
-                fetch('/api/health')
-                    .then(r => r.json())
-                    .then(d => setStatus(`Servidor Online (v${d.version})`))
-                    .catch(e => {
-                        console.error(e);
-                        setError("Não foi possível conectar ao backend. Verifique se o deploy no Railway foi concluído.");
-                    });
-            }, []);
-
-            if (error) {
-                return (
-                    <div className="error-panel" style={{margin:'auto'}}>
-                        <div className="error-title">🔌 Erro de Conexão</div>
-                        <div className="error-msg">{error}</div>
-                        <button className="btn" onClick={() => window.location.reload()}>Recarregar</button>
-                    </div>
-                );
-            }
-
-            return (
-                <div style={{textAlign:'center', padding:'40px'}}>
-                    <div style={{fontFamily:'Syne', fontSize:'32px', fontWeight:800, marginBottom:'10px'}}>RD Manager IA</div>
-                    <div style={{color:'var(--g)', fontWeight:600, marginBottom:'30px'}}>{status}</div>
-                    
-                    <div style={{background:'#fff', padding:'30px', borderRadius:'20px', border:'1px solid #E4E2DA', maxWidth:'400px', margin:'auto'}}>
-                        <p style={{fontSize:'14px', color:'#5A5A55', marginBottom:'20px'}}>
-                            A interface básica carregou com sucesso! Se você está vendo esta tela, o problema da "Tela Branca" foi resolvido.
-                        </p>
-                        <button className="btn" onClick={() => window.location.href = '/api/auth/login'}>Ir para Login</button>
-                    </div>
-                </div>
-            );
-        }
-
-        // --- Renderização ---
-        try {
-            const root = ReactDOM.createRoot(document.getElementById('root'));
-            root.render(
-                <ErrorBoundary>
-                    <App />
-                </ErrorBoundary>
-            );
-        } catch (e) {
-            document.getElementById('root').innerHTML = `<div style="padding:40px; color:red;">Erro Crítico: ${e.message}</div>`;
-        }
-    </script>
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<ErrorBoundary><App/></ErrorBoundary>);
+</script>
 </body>
 </html>
