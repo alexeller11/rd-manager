@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>RD Manager IA v4.5</title>
+    <title>RD Manager IA v4.5 - Full Edition</title>
     <script>
         (function() {
             const noop = () => {};
@@ -66,19 +66,9 @@
     </style>
 </head>
 <body>
-    <div id="root">
-        <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#555;">
-            <div style="text-align:center;">
-                <div style="border:3px solid #f3f3f3;border-top:3px solid #1D9E75;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;margin:0 auto 15px;"></div>
-                <p>Carregando RD Manager IA...</p>
-            </div>
-        </div>
-    </div>
-    <style>@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>
-
+    <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo } = React;
-
         const TOKEN_KEY = 'rdm_v4_token';
         const getToken = () => localStorage.getItem(TOKEN_KEY);
         const setToken = t => t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY);
@@ -162,18 +152,17 @@
                         <div className="mc"><div className="ml">Com dados RD</div><div className="mv">{scores.filter(s => s.has_data).length}</div></div>
                         <div className="mc"><div className="ml">Críticos</div><div className="mv" style={{color:'var(--danger)'}}>{scores.filter(s => s.status === 'red').length}</div></div>
                     </div>
-                    {scores.length > 0 && (
-                        <div className="card">
-                            <div className="ct">Status por Cliente</div>
-                            {scores.map(s => (
-                                <div key={s.client_id} className="crow">
-                                    <div className="av" style={{background: s.status === 'green' ? '#E1F5EE' : s.status === 'yellow' ? '#FFF3D6' : '#FCEBEB', color: s.status === 'green' ? '#0F6E56' : s.status === 'yellow' ? '#8B5A00' : '#A32D2D', width: 38, height: 38}}>{s.score}</div>
-                                    <div style={{flex: 1}}><div style={{fontWeight: 500, fontSize: 13}}>{s.client_name}</div><div style={{fontSize: 11, color: 'var(--ink3)'}}>{s.segment || ''}</div></div>
-                                    <span className={`badge badge-${s.status === 'green' ? 'g' : s.status === 'yellow' ? 'y' : 'r'}`}>{s.label}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    <div className="card">
+                        <div className="ct">Status por Cliente</div>
+                        {scores.map(s => (
+                            <div key={s.client_id} className="crow">
+                                <div className="av" style={{background: s.status === 'green' ? '#E1F5EE' : s.status === 'yellow' ? '#FFF3D6' : '#FCEBEB', color: s.status === 'green' ? '#0F6E56' : s.status === 'yellow' ? '#8B5A00' : '#A32D2D', width: 38, height: 38}}>{s.score}</div>
+                                <div style={{flex: 1}}><div style={{fontWeight: 500, fontSize: 13}}>{s.client_name}</div><div style={{fontSize: 11, color: 'var(--ink3)'}}>{s.segment || ''}</div></div>
+                                <span className={`badge badge-${s.status === 'green' ? 'g' : s.status === 'yellow' ? 'y' : 'r'}`}>{s.label}</span>
+                            </div>
+                        ))}
+                        {scores.length === 0 && <p style={{fontSize:13,color:'var(--ink3)',textAlign:'center',padding:'1rem'}}>Nenhum dado sincronizado ainda.</p>}
+                    </div>
                 </div>
             );
         }
@@ -199,7 +188,7 @@
                 try {
                     const payload = { ...form };
                     if (rdToken.trim()) payload.rd_token = rdToken.trim();
-                    const res = await api(editing ? 'PUT' : 'POST', editing ? `/api/clients/${editing}` : '/api/clients/', payload);
+                    await api(editing ? 'PUT' : 'POST', editing ? `/api/clients/${editing}` : '/api/clients/', payload);
                     await onRefresh(); alert(editing ? 'Atualizado!' : 'Criado!'); setShow(false);
                 } catch (e) { alert(e.message); } finally { setSaving(false); }
             };
@@ -317,6 +306,97 @@
             );
         }
 
+        function IntelPage({ clients }) {
+            const [cid, setCid] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [res, setRes] = useState('');
+            const run = async (path) => {
+                if (!cid) return alert('Selecione');
+                setLoading(true); setRes('');
+                try { const d = await api('POST', `/api/intel/${path}`, { client_id: parseInt(cid) }); setRes(d.result || JSON.stringify(d, null, 2)); }
+                catch (e) { alert(e.message); } finally { setLoading(false); }
+            };
+            return (
+                <div>
+                    <div className="ph"><h1>Inteligência</h1><p className="sub">Insights avançados e planejamento</p></div>
+                    <div className="card">
+                        <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                            <button className="btn btn-p" onClick={() => run('weekly/run/' + cid)} disabled={loading}>Análise Semanal</button>
+                            <button className="btn" onClick={() => run('calendar/generate')} disabled={loading}>Calendário de Conteúdo</button>
+                            <button className="btn" onClick={() => run('competitor/analyze')} disabled={loading}>Análise Concorrentes</button>
+                        </div>
+                    </div>
+                    {loading && <div className="card"><span className="spin spin-d"/>Processando inteligência...</div>}
+                    {res && <div className="card"><div className="res">{res}</div></div>}
+                </div>
+            );
+        }
+
+        function FlowsPage({ clients }) {
+            const [cid, setCid] = useState('');
+            const [obj, setObj] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [res, setRes] = useState(null);
+            const generate = async () => {
+                if (!cid || !obj) return alert('Preencha');
+                setLoading(true); setRes(null);
+                try { const d = await api('POST', '/api/flows/generate', { client_id: parseInt(cid), objective: obj, flow_type: 'nurturing' }); setRes(d); }
+                catch (e) { alert(e.message); } finally { setLoading(false); }
+            };
+            return (
+                <div>
+                    <div className="ph"><h1>Fluxos de Automação</h1><p className="sub">Design de jornadas do cliente</p></div>
+                    <div className="card">
+                        <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
+                        <div className="field"><label>Objetivo do Fluxo</label><input value={obj} onChange={e => setObj(e.target.value)} placeholder="Ex: Recuperação de carrinho" /></div>
+                        <button className="btn btn-p" onClick={generate} disabled={loading}>Gerar Fluxo</button>
+                    </div>
+                    {loading && <div className="card"><span className="spin spin-d"/>Desenhando fluxo...</div>}
+                    {res && (
+                        <div className="card">
+                            <div className="ct">{res.name}</div>
+                            <p style={{fontSize:13,color:'var(--ink2)',marginBottom:'1rem'}}>{res.description}</p>
+                            <div className="res">{JSON.stringify(res.nodes, null, 2)}</div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function ReportsPage({ clients }) {
+            const [cid, setCid] = useState('');
+            const [type, setType] = useState('monthly');
+            const [loading, setLoading] = useState(false);
+            const [res, setRes] = useState('');
+            const generate = async () => {
+                if (!cid) return alert('Selecione');
+                setLoading(true); setRes('');
+                try { const d = await api('POST', '/api/reports/generate', { client_id: parseInt(cid), type }); setRes(d.result); }
+                catch (e) { alert(e.message); } finally { setLoading(false); }
+            };
+            return (
+                <div>
+                    <div className="ph"><h1>Relatórios</h1><p className="sub">Documentos executivos prontos</p></div>
+                    <div className="card">
+                        <div className="two">
+                            <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
+                            <div className="field"><label>Tipo de Relatório</label>
+                                <select value={type} onChange={e => setType(e.target.value)}>
+                                    <option value="monthly">Mensal de Performance</option>
+                                    <option value="executive">Executivo (Diretoria)</option>
+                                    <option value="campaign">Pós-Campanha</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button className="btn btn-p" onClick={generate} disabled={loading}>Gerar Relatório</button>
+                    </div>
+                    {loading && <div className="card"><span className="spin spin-d"/>Compilando dados...</div>}
+                    {res && <div className="card"><div className="res">{res}</div></div>}
+                </div>
+            );
+        }
+
         function CRMPage({ clients }) {
             const [cid, setCid] = useState('');
             const [res, setRes] = useState(null);
@@ -347,10 +427,17 @@
         function SyncPage({ clients }) {
             const [cid, setCid] = useState('');
             const [loading, setLoading] = useState(false);
+            const [diag, setDiag] = useState(null);
             const sync = async () => {
                 if (!cid) return alert('Selecione');
-                setLoading(true);
+                setLoading(true); setDiag(null);
                 try { await api('GET', `/api/rd/sync/${cid}`); alert('Sincronizado!'); }
+                catch (e) { alert(e.message); } finally { setLoading(false); }
+            };
+            const test = async () => {
+                if (!cid) return alert('Selecione');
+                setLoading(true);
+                try { const d = await api('GET', `/api/rd/diagnose/${cid}`); setDiag(d); }
                 catch (e) { alert(e.message); } finally { setLoading(false); }
             };
             return (
@@ -358,8 +445,23 @@
                     <div className="ph"><h1>Sincronizar</h1><p className="sub">Atualizar dados do RD Marketing</p></div>
                     <div className="card">
                         <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
-                        <button className="btn btn-p" onClick={sync} disabled={loading}>Sincronizar Agora</button>
+                        <div style={{display:'flex',gap:10}}>
+                            <button className="btn btn-p" onClick={sync} disabled={loading}>Sincronizar Agora</button>
+                            <button className="btn" onClick={test} disabled={loading}>Testar Conexão</button>
+                        </div>
                     </div>
+                    {diag && (
+                        <div className="card">
+                            <div className="ct">Diagnóstico de Conexão</div>
+                            {diag.map(d => (
+                                <div key={d.name} className="crow">
+                                    <div style={{flex:1}}>{d.name}</div>
+                                    <span className={`badge badge-${d.ok ? 'g' : 'r'}`}>{d.status} {d.ok ? 'OK' : 'ERRO'}</span>
+                                    {d.error && <div style={{fontSize:10,color:'var(--danger)',marginTop:4}}>{d.error}</div>}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -384,6 +486,9 @@
                     case 'analysis': return <AIAnalysisPage clients={clients} />;
                     case 'emails': return <EmailPage clients={clients} />;
                     case 'campaigns': return <CampaignPage clients={clients} />;
+                    case 'flows': return <FlowsPage clients={clients} />;
+                    case 'intel': return <IntelPage clients={clients} />;
+                    case 'reports': return <ReportsPage clients={clients} />;
                     case 'crm': return <CRMPage clients={clients} />;
                     case 'sync': return <SyncPage clients={clients} />;
                     default: return <div>Página não encontrada</div>;
@@ -402,7 +507,10 @@
                             <button className={`nb ${page==='analysis'?'active':''}`} onClick={()=>setPage('analysis')}><span className="ni">🧠</span>Análise IA</button>
                             <button className={`nb ${page==='emails'?'active':''}`} onClick={()=>setPage('emails')}><span className="ni">✉️</span>E-mails IA</button>
                             <button className={`nb ${page==='campaigns'?'active':''}`} onClick={()=>setPage('campaigns')}><span className="ni">🚀</span>Campanhas</button>
-                            <div className="ns">Dados</div>
+                            <button className={`nb ${page==='flows'?'active':''}`} onClick={()=>setPage('flows')}><span className="ni">🌊</span>Fluxos</button>
+                            <button className={`nb ${page==='intel'?'active':''}`} onClick={()=>setPage('intel')}><span className="ni">💡</span>Insights</button>
+                            <div className="ns">Resultados</div>
+                            <button className={`nb ${page==='reports'?'active':''}`} onClick={()=>setPage('reports')}><span className="ni">📄</span>Relatórios</button>
                             <button className={`nb ${page==='crm'?'active':''}`} onClick={()=>setPage('crm')}><span className="ni">💼</span>RD CRM</button>
                             <button className={`nb ${page==='sync'?'active':''}`} onClick={()=>setPage('sync')}><span className="ni">🔄</span>Sincronizar</button>
                         </div>

@@ -311,10 +311,16 @@ async def init_db():
         else:
             pool = await get_pg_pool()
             async with pool.acquire() as conn:
+                # Tenta executar o schema em blocos para ser mais resiliente
                 for stmt in SCHEMA_PG.strip().split(";"):
                     stmt = stmt.strip()
                     if stmt:
-                        await conn.execute(stmt)
+                        try:
+                            await conn.execute(stmt)
+                        except Exception as inner_e:
+                            # Ignora erros de "já existe" mas loga outros
+                            if "already exists" not in str(inner_e).lower():
+                                print(f"ℹ️ Info: stmt falhou ({stmt[:30]}...): {inner_e}")
             print("✅ PostgreSQL initialized")
     except Exception as e:
         print(f"⚠️ Erro ao inicializar banco de dados: {e}")

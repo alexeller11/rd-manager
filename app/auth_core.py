@@ -141,14 +141,16 @@ async def _refresh_mkt_token(client_id: int) -> str:
     if not refresh_tok:
         return ""
 
+    # RD Station exige Content-Type: application/x-www-form-urlencoded para o refresh também
     async with httpx.AsyncClient(timeout=15.0) as http:
         try:
-            r = await http.post(RD_TOKEN_URL, json={
+            payload = {
                 "client_id": MKT_CLIENT_ID,
                 "client_secret": MKT_CLIENT_SECRET,
                 "refresh_token": refresh_tok,
                 "grant_type": "refresh_token"
-            })
+            }
+            r = await http.post(RD_TOKEN_URL, data=payload)
             if r.status_code == 200:
                 data = r.json()
                 new_acc = data.get("access_token", "")
@@ -221,9 +223,9 @@ async def get_valid_mkt_token(client_id: int) -> str:
                 _token_cache[client_id] = token
                 return token
 
-            # Erro 400 (Bad Request) costuma indicar token revogado definitivamente.
+            # Erro 400 (Bad Request) pode ser erro de parâmetro ou token revogado.
+            # Em vez de apagar imediatamente, vamos apenas não retornar como válido e deixar o cache vazio.
             if r.status_code == 400:
-                await db_execute("UPDATE clients SET rd_token='', rd_refresh_token='' WHERE id=$1", client_id)
                 _token_cache.pop(client_id, None)
                 return ""
                 
