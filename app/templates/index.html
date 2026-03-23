@@ -1,545 +1,116 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>RD Manager IA v4</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:#F2F0EB;color:#1C1C1A;min-height:100vh}
-:root{--g:#1D9E75;--gd:#0F6E56;--gl:#E1F5EE;--ink:#1C1C1A;--ink2:#5A5A55;--ink3:#9A9A94;--paper:#FFF;--bg:#F2F0EB;--sf:#FAFAF7;--bd:#E4E2DA;--bd2:#D0CEC6;--warn:#EF9F27;--danger:#E24B4A;--info:#378ADD}
-.sb{position:fixed;left:0;top:0;width:218px;height:100vh;background:var(--ink);display:flex;flex-direction:column;z-index:100;overflow-y:auto}
-.sb-logo{padding:1.2rem 1rem .85rem;border-bottom:1px solid rgba(255,255,255,.08)}
-.logo{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;display:flex;align-items:center;gap:8px}
-.logo-m{width:26px;height:26px;background:var(--g);border-radius:7px;display:flex;align-items:center;justifycontent:center;font-size:11px;font-weight:800;color:#fff}
-.sb-user{padding:.55rem 1rem;font-size:11px;color:rgba(255,255,255,.35);border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center}
-.sb-body{padding:.5rem .6rem;flex:1}
-.ns{font-size:9px;font-weight:600;color:rgba(255,255,255,.22);text-transform:uppercase;letter-spacing:.1em;padding:9px 8px 3px}
-.nb{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;border:none;background:transparent;color:rgba(255,255,255,.48);font-size:12.5px;cursor:pointer;width:100%;text-align:left;margin-bottom:1px;transition:all .12s}
-.nb:hover{color:rgba(255,255,255,.82);background:rgba(255,255,255,.06)}
-.nb.active{background:var(--g);color:#fff}
-.ni{font-size:13px;width:16px;text-align:center;flex-shrink:0}
-.main{margin-left:218px;padding:2.25rem 2rem;min-height:100vh}
-.ph{margin-bottom:1.5rem}.ph h1{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:.2rem}
-.ph .sub{font-size:13px;color:var(--ink2)}
-.card{background:var(--paper);border:1px solid var(--bd);border-radius:14px;padding:1.35rem 1.5rem;margin-bottom:1rem}
-.ct{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:.85rem}
-.mg{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin-bottom:1.2rem}
-.mc{background:var(--paper);border:1px solid var(--bd);border-radius:12px;padding:.85rem 1.1rem}
-.ml{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;font-weight:500}
-.mv{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1}
-.btn{padding:7px 15px;border-radius:9px;border:1.5px solid var(--bd);background:transparent;color:var(--ink);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
-.btn:hover:not(:disabled){border-color:var(--bd2);background:#FAFAF7}
-.btn-p{background:var(--g);color:#fff;border-color:var(--g)}.btn-p:hover:not(:disabled){background:var(--gd);border-color:var(--gd)}
-.btn-ik{background:var(--ink);color:#fff;border-color:var(--ink)}
-.btn-sm{padding:5px 11px;font-size:12px;border-radius:7px}
-.btn-d{color:var(--danger);border-color:#f7c1c1}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-input,textarea,select{width:100%;padding:8px 12px;border:1.5px solid var(--bd);border-radius:9px;background:var(--paper);color:var(--ink);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .15s}
-input:focus,textarea:focus,select:focus{border-color:var(--g)}
-textarea{min-height:75px;resize:vertical}
-.field{margin-bottom:.8rem}.field label{display:block;font-size:12px;font-weight:500;color:var(--ink2);margin-bottom:.3rem}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-.three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
-.crow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--bd)}.crow:last-child{border-bottom:none}
-.av{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;font-family:'Syne',sans-serif}
-.spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;margin-right:5px}
-@keyframes sp{to{transform:rotate(360deg)}}
-.spin-d{border-color:rgba(0,0,0,.1);border-top-color:var(--ink)}
-.res{background:#F9F8F5;border:1px solid var(--bd);border-radius:10px;padding:1rem 1.25rem;font-size:13px;line-height:1.7;white-space:pre-wrap;margin-top:1rem;max-height:620px;overflow-y:auto}
-.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
-.badge-g{background:#E1F5EE;color:#0F6E56}.badge-y{background:#FFF3D6;color:#8B5A00}.badge-r{background:#FCEBEB;color:#A32D2D}.badge-b{background:#E6F1FB;color:#0C447C}
-.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;font-size:11px;background:var(--gl);color:var(--gd);margin:2px}
-.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
-.login-box{background:var(--paper);border:1px solid var(--bd);border-radius:18px;padding:2.5rem 2.25rem;width:100%;max-width:370px}
-.err{background:#FCEBEB;border:1px solid #f7c1c1;color:#A32D2D;border-radius:8px;padding:9px 13px;font-size:13px;margin-bottom:1rem}
-.alert-box{border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:13px}
-.alert-d{background:#FCEBEB;border:1px solid #f7c1c1}.alert-w{background:#FFF8E7;border:1px solid #FAC775}.alert-s{background:#E1F5EE;border:1px solid #9FE1CB}.alert-i{background:#E6F1FB;border:1px solid #B5D4F4}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>RD Manager IA - Diagnóstico</title>
+    <!-- Carregamento de Scripts com Fallback e Integridade -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --g: #1D9E75; --bg: #F2F0EB; --ink: #1C1C1A; --danger: #E24B4A; }
+        body { font-family: 'DM Sans', sans-serif; background: var(--bg); margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        #root { width: 100%; }
+        .loading-screen { text-align: center; padding: 20px; }
+        .error-panel { background: #fff; border: 1px solid #E4E2DA; border-radius: 18px; padding: 2.5rem; max-width: 500px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .error-title { font-family: 'Syne', sans-serif; color: var(--danger); font-size: 24px; margin-bottom: 1rem; }
+        .error-msg { color: #5A5A55; line-height: 1.6; margin-bottom: 1.5rem; font-size: 14px; }
+        .error-code { background: #F9F8F5; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #dc3545; overflow-x: auto; margin-bottom: 1.5rem; border: 1px solid #eee; }
+        .btn { background: var(--g); color: #fff; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+        .diag-box { position: fixed; bottom: 10px; right: 10px; font-size: 10px; color: #ccc; }
+    </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel">
-const {useState,useEffect,useCallback} = React;
-const TOKEN_KEY='rdm_v4_token';
-const getToken=()=>localStorage.getItem(TOKEN_KEY);
-const setToken=t=>t?localStorage.setItem(TOKEN_KEY,t):localStorage.removeItem(TOKEN_KEY);
-
-async function api(method,path,body,isForm=false){
-    const h={};const tok=getToken();
-    if(tok) h['Authorization']=`Bearer ${tok}`;
-    let fb=null;
-    if(body){if(isForm){h['Content-Type']='application/x-www-form-urlencoded';fb=new URLSearchParams(body).toString();}else{h['Content-Type']='application/json';fb=JSON.stringify(body);}}
-    const r=await fetch(path,{method,headers:h,body:fb});
-    if(r.status===401){setToken(null);window.location.reload();return;}
-    const txt=await r.text();
-    try{const d=JSON.parse(txt);if(!r.ok)throw new Error(d.detail||'Erro na API');return d;}
-    catch(e){if(e.message.startsWith('Erro'))throw e;throw new Error('Erro do servidor: '+txt.substring(0,150));}
-}
-
-function Login({onLogin}){
-    const [u,setU]=useState('');const [p,setP]=useState('');const [loading,setLoading]=useState(false);const [err,setErr]=useState('');
-    const submit=async e=>{e.preventDefault();if(!u||!p)return;setLoading(true);setErr('');
-        try{const d=await api('POST','/api/auth/login',{username:u,password:p},true);setToken(d.access_token);onLogin({username:d.username,is_admin:d.is_admin});}
-        catch(ex){setErr(ex.message);}setLoading(false);};
-    return(<div className="login-wrap"><div className="login-box">
-        <div style={{fontFamily:'Syne',fontSize:18,fontWeight:800,display:'flex',alignItems:'center',gap:10,marginBottom:'1.75rem'}}>
-            <div className="logo-m">RD</div>RD Manager IA
+    <div id="root">
+        <div class="loading-screen">
+            <div style="font-family: 'Syne', sans-serif; font-weight: 800; color: var(--ink); font-size: 20px; margin-bottom: 10px;">RD Manager IA</div>
+            <div style="color: var(--ink3); font-size: 14px;">Carregando interface...</div>
+            <script>
+                // Diagnóstico visual imediato: se o JS rodar, o fundo muda levemente
+                document.body.style.backgroundColor = "#E1F5EE";
+            </script>
         </div>
-        {err&&<div className="err">{err}</div>}
-        <form onSubmit={submit}>
-            <div className="field"><label>Usuário</label><input value={u} onChange={e=>setU(e.target.value)} autoFocus autoComplete="username"/></div>
-            <div className="field" style={{marginBottom:'1.25rem'}}><label>Senha</label><input type="password" value={p} onChange={e=>setP(e.target.value)} autoComplete="current-password"/></div>
-            <button className="btn btn-p" type="submit" disabled={loading} style={{width:'100%',justifyContent:'center'}}>{loading?<><span className="spin"/>Entrando...</>:'Entrar'}</button>
-        </form>
-    </div></div>);
-}
+    </div>
 
-function ClientSelect({clients,value,onChange}){
-    return <select value={value} onChange={e=>onChange(e.target.value)}>
-        <option value="">Selecione o cliente...</option>
-        {clients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-    </select>;
-}
+    <div class="diag-box">v4.1.0-stable</div>
 
-function AICard({title,children,result,loading}){return(<div className="card">
-    <div className="ct">{title}</div>{children}
-    {loading&&<div style={{padding:'1rem',color:'var(--ink3)',fontSize:13}}><span className="spin spin-d"/>Gerando com IA...</div>}
-    {result&&<div className="res">{result}</div>}
-</div>);}
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-function Dashboard({clients}){
-    const [scores,setScores]=useState([]);
-    useEffect(()=>{api('GET','/api/health/all').then(setScores).catch(()=>{});},[]);
-    const COLOR={green:'var(--g)',yellow:'var(--warn)',red:'var(--danger)'};
-    return(<div>
-        <div className="ph"><h1>Dashboard</h1><p className="sub">Visão consolidada — {clients.length} clientes</p></div>
-        <div className="mg">
-            <div className="mc"><div className="ml">Clientes</div><div className="mv">{clients.length}</div></div>
-            <div className="mc"><div className="ml">Com dados RD</div><div className="mv">{scores.filter(s=>s.has_data).length}</div></div>
-            <div className="mc"><div className="ml">Health score médio</div><div className="mv">{scores.length?Math.round(scores.reduce((s,c)=>s+c.score,0)/scores.length):'—'}</div></div>
-            <div className="mc"><div className="ml">Críticos</div><div className="mv" style={{color:'var(--danger)'}}>{scores.filter(s=>s.status==='red').length}</div></div>
-        </div>
-        {scores.length>0&&<div className="card"><div className="ct">Health Score por Cliente</div>
-            {scores.map(s=><div key={s.client_id} className="crow">
-                <div className="av" style={{background:s.status==='green'?'#E1F5EE':s.status==='yellow'?'#FFF3D6':'#FCEBEB',color:s.status==='green'?'#0F6E56':s.status==='yellow'?'#8B5A00':'#A32D2D',width:38,height:38}}>{s.score}</div>
-                <div style={{flex:1}}><div style={{fontWeight:500,fontSize:13}}>{s.client_name}</div><div style={{fontSize:11,color:'var(--ink3)'}}>{s.segment||''}</div></div>
-                <span className={`badge badge-${s.status==='green'?'g':s.status==='yellow'?'y':'r'}`}>{s.label}</span>
-            </div>)}
-        </div>}
-    </div>);
-}
-
-function Clients({clients,onRefresh}){
-    const SEG=['E-commerce','SaaS','Servicos','Educacao','Saude','Varejo','Industria','Outro'];
-    const EMPTY={name:'',segment:'E-commerce',website:'',description:'',persona:'',tone:'',main_pain:'',objections:'',rd_crm_token:''};
-    const [show,setShow]=useState(false);const [form,setForm]=useState(EMPTY);const [editing,setEditing]=useState(null);
-    const [rdToken,setRdToken]=useState('');const [saving,setSaving]=useState(false);
-    const [suggesting,setSuggesting]=useState(false);
-    const open=(c=null)=>{setForm(c?{...c}:EMPTY);setEditing(c?.id||null);setRdToken('');setShow(true);};
-    const suggest=async()=>{
-        if(!form.website) return alert('Informe o site primeiro');
-        setSuggesting(true);
-        try {
-            const d = await api('POST', '/api/clients/suggest-data', {website: form.website});
-            if(d.error) throw new Error(d.error);
-            setForm(prev => ({...prev, ...d}));
-        } catch(e) { alert('Erro na IA: ' + e.message); }
-        setSuggesting(false);
-    };
-    const save=async()=>{setSaving(true);try{
-        const payload={...form};if(rdToken.trim())payload.rd_token=rdToken.trim();
-        const res=await api(editing?'PUT':'POST',editing?`/api/clients/${editing}`:'/api/clients/',payload);
-        if(!editing)setEditing(res.id);await onRefresh();alert(editing?'Atualizado com sucesso!':'Cliente criado!');
-    }catch(e){alert(e.message);}setSaving(false);};
-    const del=async id=>{if(!confirm('Excluir cliente e todos os dados?'))return;await api('DELETE',`/api/clients/${id}`);onRefresh();};
-    return(<div>
-        <div className="ph" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-            <div><h1>Clientes</h1><p className="sub">{clients.length} clientes cadastrados</p></div>
-            <button className="btn btn-p" onClick={()=>open()}>+ Novo Cliente</button>
-        </div>
-        {show&&<div className="card">
-            <div className="ct">{editing?'Editar':'Novo'} Cliente</div>
-            <div className="two"><div className="field"><label>Nome *</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></div>
-            <div className="field"><label>Segmento</label><select value={form.segment} onChange={e=>setForm({...form,segment:e.target.value})}>{SEG.map(s=><option key={s}>{s}</option>)}</select></div></div>
-            <div className="two"><div className="field"><label>Website</label>
-                <div style={{display:'flex',gap:8}}>
-                    <input style={{flex:1}} value={form.website||''} onChange={e=>setForm({...form,website:e.target.value})} placeholder="https://"/>
-                    <button className="btn btn-sm" onClick={suggest} disabled={suggesting}>{suggesting ? <span className="spin spin-d"/> : '🪄 Sugerir com IA'}</button>
-                </div>
-            </div>
-            <div className="field"><label>Token CRM RD Station</label><input type="password" value={form.rd_crm_token||''} onChange={e=>setForm({...form,rd_crm_token:e.target.value})} placeholder="Token do CRM (opcional)"/></div></div>
-            <div className="field"><label>Descrição do negócio</label><textarea value={form.description||''} onChange={e=>setForm({...form,description:e.target.value})} rows={3}/></div>
-            <div className="field"><label>Persona / ICP</label><textarea value={form.persona||''} onChange={e=>setForm({...form,persona:e.target.value})} rows={2} placeholder="Quem é o cliente ideal?"/></div>
-            <div className="three"><div className="field"><label>Tom de voz</label><input value={form.tone||''} onChange={e=>setForm({...form,tone:e.target.value})} placeholder="Ex: Profissional e direto"/></div>
-            <div className="field"><label>Principal dor</label><input value={form.main_pain||''} onChange={e=>setForm({...form,main_pain:e.target.value})}/></div>
-            <div className="field"><label>Objeções comuns</label><input value={form.objections||''} onChange={e=>setForm({...form,objections:e.target.value})}/></div></div>
-            <div className="field"><label>Token RD Marketing (fixo — alternativa ao OAuth)</label>
-            <input type="password" value={rdToken} onChange={e=>setRdToken(e.target.value)} placeholder="Cole o access_token aqui para salvar"/></div>
-            <div style={{display:'flex',gap:10,marginBottom:'1rem'}}>
-    {editing ? (
-        <a href={`/oauth/authorize/${editing}`} target="_blank" rel="noreferrer">
-            <button className="btn btn-p btn-sm">🔗 Conectar via OAuth RD Marketing</button>
-        </a>
-    ) : (
-        <button className="btn btn-p btn-sm" onClick={() => alert('Salve o cliente primeiro para habilitar o OAuth.')} title="Salve o cliente para habilitar o OAuth">
-            🔗 Conectar via OAuth RD Marketing
-        </button>
-    )}
-    <button className="btn btn-sm" onClick={() => alert('O Token do CRM deve ser inserido manualmente no campo acima.')}>
-        🔗 Conectar RD CRM
-    </button>
-</div>
-            <div style={{display:'flex',gap:10}}><button className="btn btn-p" onClick={save} disabled={saving}>{saving?<><span className="spin"/>Salvando...</>:'Salvar'}</button><button className="btn" onClick={()=>setShow(false)}>Cancelar</button></div>
-        </div>}
-        <div className="card">{clients.length===0&&<p style={{color:'var(--ink3)',fontSize:13}}>Nenhum cliente cadastrado.</p>}
-            {clients.map(c=><div key={c.id} className="crow">
-                <div className="av" style={{background:'#EEEDFE',color:'#3C3489',width:36,height:36}}>{c.name[0].toUpperCase()}</div>
-                <div style={{flex:1}}><div style={{fontWeight:600,fontSize:13,display:'flex',alignItems:'center',gap:8}}>
-                    {c.name}
-                    <div style={{display:'flex',gap:4}}>
-                        <span title={c.rd_token_set ? 'RD Marketing Ativo' : 'RD Marketing Ausente'} style={{fontSize:12, color: c.rd_token_set ? 'var(--g)' : 'var(--danger)'}}>{c.rd_token_set ? '●' : '○'}</span>
-                        <span title={c.crm_token_set ? 'CRM Ativo' : 'CRM Ausente'} style={{fontSize:12, color: c.crm_token_set ? 'var(--info)' : 'var(--danger)'}}>{c.crm_token_set ? '■' : '□'}</span>
-                    </div>
-                </div>
-                <div style={{fontSize:11,color:'var(--ink3)'}}>{c.segment||''} {c.website}</div></div>
-                <button className="btn btn-sm" onClick={()=>open(c)}>Editar</button>
-                <button className="btn btn-sm btn-d" onClick={()=>del(c.id)}>Excluir</button>
-            </div>)}
-        </div>
-    </div>);
-}
-
-function Health({clients}){
-    const [cid,setCid]=useState('');const [score,setScore]=useState(null);const [alerts,setAlerts]=useState(null);const [loading,setLoading]=useState(false);
-    const load=async()=>{if(!cid)return;setLoading(true);try{const[s,a]=await Promise.all([api('GET',`/api/health/score/${cid}`),api('GET',`/api/health/alerts/${cid}`)]);setScore(s);setAlerts(a);}catch(e){alert(e.message);}setLoading(false);};
-    useEffect(()=>{if(cid)load();},[cid]);
-    const C={green:'var(--g)',yellow:'var(--warn)',red:'var(--danger)'};
-    return(<div>
-        <div className="ph"><h1>Health Score</h1><p className="sub">Diagnóstico de saúde de marketing</p></div>
-        <div className="card"><div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>
-        {loading&&<p style={{fontSize:13,color:'var(--ink3)'}}><span className="spin spin-d"/>Carregando...</p>}
-        {score&&<div>
-            <div style={{display:'flex',alignItems:'center',gap:16,margin:'1rem 0'}}>
-                <div style={{width:70,height:70,borderRadius:'50%',background:`conic-gradient(${C[score.status]} ${score.score*3.6}deg, var(--bd) 0)`,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                    <div style={{width:52,height:52,background:'var(--paper)',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Syne',fontWeight:800,fontSize:18}}>{score.score}</div>
-                </div>
-                <div><div style={{fontFamily:'Syne',fontWeight:800,fontSize:17}}>{score.label}</div><div style={{fontSize:12,color:'var(--ink3)'}}>Score 0–100</div></div>
-            </div>
-            <div className="mg">{Object.entries(score.breakdown||{}).map(([k,v])=><div key={k} className="mc"><div className="ml">{v.label}</div><div className="mv" style={{fontSize:16}}>{v.pts}<span style={{fontSize:11,color:'var(--ink3)',fontWeight:400}}>/{v.max}</span></div></div>)}</div>
-        </div>}
-        {alerts?.alerts?.map((a,i)=><div key={i} className={`alert-box alert-${a.type==='danger'?'d':a.type==='success'?'s':a.type==='warning'?'w':'i'}`}>
-            <div style={{fontWeight:600,marginBottom:3}}>{a.title}</div>
-            <div style={{fontSize:12,color:'var(--ink2)'}}>{a.message}</div>
-            {a.action&&<div style={{fontSize:11,color:'var(--gd)',marginTop:4,fontWeight:500}}>→ {a.action}</div>}
-        </div>)}
-        </div>
-    </div>);
-}
-
-function Analysis({clients}){
-    const TYPES=[{id:'complete',l:'360° Completa'},{id:'seo',l:'SEO + AI SEO'},{id:'cro',l:'CRO + Conversão'},{id:'funnel',l:'Diagnóstico de Funil'},{id:'cold_metrics',l:'Métricas Frias'}];
-    const [cid,setCid]=useState('');const [type,setType]=useState('complete');const [res,setRes]=useState('');const [loading,setLoading]=useState(false);
-    const run=async()=>{if(!cid)return alert('Selecione um cliente');setLoading(true);setRes('');
-        try{const d=await api('POST','/api/analysis/run',{client_id:parseInt(cid),type});setRes(d.result);}catch(e){alert(e.message);}setLoading(false);};
-    return(<div>
-        <div className="ph"><h1>Análise Estratégica</h1><p className="sub">Diagnósticos de marketing com IA</p></div>
-        <AICard title="Configurar análise" result={res} loading={loading}>
-            <div className="two" style={{marginBottom:'1rem'}}>
-                <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>
-                <div className="field"><label>Tipo de análise</label><select value={type} onChange={e=>setType(e.target.value)}>{TYPES.map(t=><option key={t.id} value={t.id}>{t.l}</option>)}</select></div>
-            </div>
-            <button className="btn btn-p" onClick={run} disabled={loading||!cid}>Rodar análise</button>
-        </AICard>
-    </div>);
-}
-
-function Emails({clients}){
-    const TYPES=[{id:'nurturing',l:'Nutrição'},{id:'welcome',l:'Boas-vindas'},{id:'promo',l:'Promocional'},{id:'reengagement',l:'Reengajamento'},{id:'followup',l:'Follow-up'},{id:'launch',l:'Lançamento'},{id:'newsletter',l:'Newsletter'},{id:'strategy',l:'Estratégia completa'}];
-    const [cid,setCid]=useState('');const [type,setType]=useState('nurturing');const [tone,setTone]=useState('Conversacional e direto');const [theme,setTheme]=useState('');const [extra,setExtra]=useState('');const [res,setRes]=useState('');const [loading,setLoading]=useState(false);
-    const run=async()=>{if(!cid)return alert('Selecione um cliente');setLoading(true);setRes('');
-        try{const d=await api('POST','/api/emails/generate',{client_id:parseInt(cid),type,tone,theme,extra});setRes(d.result);}catch(e){alert(e.message);}setLoading(false);};
-    return(<div>
-        <div className="ph"><h1>Email IA</h1><p className="sub">Geração de copy e estratégias de email</p></div>
-        <AICard title="Gerar email" result={res} loading={loading}>
-            <div className="three" style={{marginBottom:'1rem'}}>
-                <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>
-                <div className="field"><label>Tipo</label><select value={type} onChange={e=>setType(e.target.value)}>{TYPES.map(t=><option key={t.id} value={t.id}>{t.l}</option>)}</select></div>
-                <div className="field"><label>Tom de voz</label><input value={tone} onChange={e=>setTone(e.target.value)}/></div>
-            </div>
-            <div className="two" style={{marginBottom:'1rem'}}>
-                <div className="field"><label>Tema / assunto</label><input value={theme} onChange={e=>setTheme(e.target.value)} placeholder="Deixe em branco para IA decidir"/></div>
-                <div className="field"><label>Instruções extras</label><input value={extra} onChange={e=>setExtra(e.target.value)} placeholder="Detalhes adicionais..."/></div>
-            </div>
-            <button className="btn btn-p" onClick={run} disabled={loading||!cid}>Gerar email</button>
-        </AICard>
-    </div>);
-}
-
-function Intelligence({clients}){
-    const TABS=[{id:'weekly',l:'Análise Semanal'},{id:'ab',l:'A/B Test'},{id:'calendar',l:'Calendário'},{id:'competitor',l:'Concorrência'}];
-    const [cid,setCid]=useState('');const [tab,setTab]=useState('weekly');const [abElem,setAbElem]=useState('subject');const [calFocus,setCalFocus]=useState('');const [res,setRes]=useState('');const [loading,setLoading]=useState(false);
-    const run=async()=>{if(!cid)return alert('Selecione um cliente');setLoading(true);setRes('');
-        try{let d;
-            if(tab==='weekly')d=await api('POST',`/api/intel/weekly/run/${cid}`);
-            else if(tab==='ab')d=await api('POST','/api/intel/abtest/generate',{client_id:parseInt(cid),element:abElem});
-            else if(tab==='calendar')d=await api('POST','/api/intel/calendar/generate',{client_id:parseInt(cid),focus:calFocus});
-            else d=await api('POST','/api/intel/competitor/analyze',{client_id:parseInt(cid)});
-            setRes(d.result||d.message||JSON.stringify(d));
-        }catch(e){alert(e.message);}setLoading(false);};
-    return(<div>
-        <div className="ph"><h1>Inteligência</h1><p className="sub">Ferramentas avançadas de IA</p></div>
-        <div style={{display:'flex',gap:6,marginBottom:'1rem',flexWrap:'wrap'}}>{TABS.map(t=><button key={t.id} className={`btn btn-sm${tab===t.id?' btn-p':''}`} onClick={()=>setTab(t.id)}>{t.l}</button>)}</div>
-        <AICard title={TABS.find(t=>t.id===tab)?.l} result={res} loading={loading}>
-            <div className="field" style={{marginBottom:'1rem'}}><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>
-            {tab==='ab'&&<div className="field" style={{marginBottom:'1rem'}}><label>Elemento a testar</label><select value={abElem} onChange={e=>setAbElem(e.target.value)}><option value="subject">Linha de assunto</option><option value="cta">Call-to-action</option><option value="content">Conteúdo</option><option value="send_time">Horário de envio</option><option value="sender_name">Nome do remetente</option></select></div>}
-            {tab==='calendar'&&<div className="field" style={{marginBottom:'1rem'}}><label>Foco do calendário (opcional)</label><input value={calFocus} onChange={e=>setCalFocus(e.target.value)} placeholder="Ex: Lançamento, Black Friday..."/></div>}
-            <button className="btn btn-p" onClick={run} disabled={loading||!cid}>Gerar</button>
-        </AICard>
-    </div>);
-}
-
-function Reports({clients}){
-    const [cid,setCid]=useState('');const [type,setType]=useState('monthly');const [period,setPeriod]=useState('');const [res,setRes]=useState('');const [loading,setLoading]=useState(false);
-    const run=async()=>{if(!cid)return alert('Selecione um cliente');setLoading(true);setRes('');
-        try{const d=await api('POST','/api/reports/generate',{client_id:parseInt(cid),type,period});setRes(d.result);}catch(e){alert(e.message);}setLoading(false);};
-    return(<div>
-        <div className="ph"><h1>Relatórios</h1><p className="sub">Relatórios executivos com IA</p></div>
-        <AICard title="Gerar relatório" result={res} loading={loading}>
-            <div className="three" style={{marginBottom:'1rem'}}>
-                <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>
-                <div className="field"><label>Tipo</label><select value={type} onChange={e=>setType(e.target.value)}><option value="monthly">Mensal</option><option value="executive">Executivo</option><option value="campaign">Campanha</option><option value="roi">ROI</option></select></div>
-                <div className="field"><label>Período</label><input value={period} onChange={e=>setPeriod(e.target.value)} placeholder="Ex: Janeiro 2025"/></div>
-            </div>
-            <button className="btn btn-p" onClick={run} disabled={loading||!cid}>Gerar relatório</button>
-        </AICard>
-    </div>);
-}
-
-function Campaign({clients}){
-    const [cid,setCid]=useState('');const [obj,setObj]=useState('');const [budget,setBudget]=useState('');const [dur,setDur]=useState('30 dias');const [res,setRes]=useState('');const [loading,setLoading]=useState(false);
-    const run=async()=>{if(!cid||!obj)return alert('Preencha cliente e objetivo');setLoading(true);setRes('');
-        try{const d=await api('POST','/api/campaign/plan',{client_id:parseInt(cid),objective:obj,budget,duration:dur});setRes(d.result);}catch(e){alert(e.message);}setLoading(false);};
-    return(<div>
-        <div className="ph"><h1>Plano de Campanha</h1><p className="sub">Planejamento completo de campanhas</p></div>
-        <AICard title="Configurar campanha" result={res} loading={loading}>
-            <div className="two" style={{marginBottom:'1rem'}}>
-                <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>
-                <div className="field"><label>Objetivo *</label><input value={obj} onChange={e=>setObj(e.target.value)} placeholder="Ex: Gerar 200 leads para o produto X"/></div>
-            </div>
-            <div className="two" style={{marginBottom:'1rem'}}>
-                <div className="field"><label>Orçamento (opcional)</label><input value={budget} onChange={e=>setBudget(e.target.value)} placeholder="Ex: R$ 3.000"/></div>
-                <div className="field"><label>Duração</label><input value={dur} onChange={e=>setDur(e.target.value)} placeholder="Ex: 30 dias"/></div>
-            </div>
-            <button className="btn btn-p" onClick={run} disabled={loading||!cid||!obj}>Gerar plano</button>
-        </AICard>
-    </div>);
-}
-
-function Flows({clients}){
-    const FT=[{id:'nurturing',l:'Nutrição'},{id:'welcome',l:'Boas-vindas'},{id:'reengagement',l:'Reengajamento'},{id:'post_purchase',l:'Pós-compra'},{id:'lead_scoring',l:'Lead Scoring'},{id:'onboarding',l:'Onboarding'}];
-    const [cid,setCid]=useState('');const [obj,setObj]=useState('');const [ftype,setFtype]=useState('nurturing');const [emailCount,setEmailCount]=useState(3);const [res,setRes]=useState(null);const [loading,setLoading]=useState(false);const [genEmail,setGenEmail]=useState(null);const [emailLoading,setEmailLoading]=useState(false);
-    const [existingAuts,setExistingAuts]=useState([]);
-    useEffect(()=>{if(cid) api('GET',`/api/rd/sync/${cid}`).then(d=>setExistingAuts(d.data?.automations||[])).catch(()=>{});},[cid]);
-    const run=async()=>{if(!cid||!obj)return alert('Preencha cliente e objetivo');setLoading(true);setRes(null);
-        try{const d=await api('POST','/api/flows/generate',{client_id:parseInt(cid),objective:obj,flow_type:ftype});setRes(d);}catch(e){alert(e.message);}setLoading(false);};
-    const generateEmailCopy=async(node)=>{if(!cid||!node)return;setEmailLoading(true);try{const d=await api('POST','/api/emails/generate',{client_id:parseInt(cid),type:'flow',theme:node.label,tone:'Profissional e persuasivo'});setGenEmail({node:node.label,copy:d.result});}catch(e){alert(e.message);}setEmailLoading(false)};
-    const NODE_COLOR={trigger:'badge-g',condition:'badge-y',end:'badge-r',email:'badge-b',wait:'badge-b',tag:'badge-b'};
-    return(<div>
-        <div className="ph"><h1>Fluxos de Automação</h1><p className="sub">Crie fluxos de automação com IA ou veja existentes</p></div>
-        <div className="card">
-            <div className="ct">Gerar Novo Fluxo com IA</div>
-            <div className="three" style={{marginBottom:'1rem'}}>
-                <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>
-                <div className="field"><label>Tipo</label><select value={ftype} onChange={e=>setFtype(e.target.value)}>{FT.map(t=><option key={t.id} value={t.id}>{t.l}</option>)}</select></div>
-                <div className="field"><label>Objetivo</label><input value={obj} onChange={e=>setObj(e.target.value)} placeholder="Ex: Converter leads em 21 dias"/></div>
-            </div>
-            <div className="field" style={{marginBottom:'1rem'}}><label>Quantidade de emails no fluxo</label><input type="number" min="1" max="10" value={emailCount} onChange={e=>setEmailCount(parseInt(e.target.value))}/></div>
-            <button className="btn btn-p" onClick={run} disabled={loading||!cid||!obj}>{loading?<><span className="spin"/>Gerando...</>:'Gerar fluxo estratégico'}</button>
-        </div>
-        {existingAuts.length>0 && <div className="card">
-            <div className="ct">Automações Ativas no RD Station</div>
-            <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-                {existingAuts.map(a=><div key={a.id} className="mc" style={{padding:'8px 12px',fontSize:12,border:'1px solid var(--bd)'}}>
-                    <div style={{fontWeight:600}}>{a.name}</div>
-                    <div style={{fontSize:10,color:'var(--ink3)'}}>{a.status}</div>
-                </div>)}
-            </div>
-        </div>}
-        {res&&<div className="card" style={{marginTop:'2rem',background:'var(--sf)'}}>
-            <div className="ct" style={{fontSize:18,marginBottom:5}}>{res.name}</div>
-            <p style={{fontSize:13,color:'var(--ink2)',marginBottom:'2rem'}}>{res.description}</p>
-            <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:0,maxWidth:600,margin:'0 auto'}}>
-                {(res.nodes||[]).map((n,i)=>(
-                    <React.Fragment key={i}>
-                        <div style={{width:'100%',maxWidth:400,background:'var(--paper)',border:'2px solid var(--bd)',borderRadius:12,padding:'15px 20px',position:'relative',boxShadow:'0 4px 6px rgba(0,0,0,0.02)',zIndex:2}}>
-                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:15}}>
-                                <div style={{flex:1}}>
-                                    <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.05em',color:'var(--ink3)',marginBottom:4,fontWeight:700}}>{n.type}</div>
-                                    <div style={{fontWeight:700,fontSize:14,color:'var(--ink)'}}>{n.label}</div>
-                                </div>
-                                <span className={`badge ${NODE_COLOR[n.type]||'badge-b'}`} style={{fontSize:10}}>{n.type==='trigger'?'INÍCIO':n.type==='end'?'FIM':n.type.toUpperCase()}</span>
+        // --- Error Boundary ---
+        class ErrorBoundary extends React.Component {
+            constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+            static getDerivedStateFromError(error) { return { hasError: true, error }; }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="error-panel" style={{margin:'auto'}}>
+                            <div className="error-title">⚠️ Erro de Carregamento</div>
+                            <div className="error-msg">
+                                Não foi possível carregar a interface do RD Manager. Isso geralmente acontece por um erro de sintaxe no JavaScript ou falha na conexão com o servidor.
                             </div>
-                            {n.type==='condition' && n.paths && (
-                                <div style={{marginTop:10,display:'flex',gap:10}}>
-                                    <div className="badge badge-g" style={{fontSize:9}}>SIM → ID:{n.paths.yes}</div>
-                                    <div className="badge badge-r" style={{fontSize:9}}>NÃO → ID:{n.paths.no}</div>
-                                </div>
-                            )}
-                            {n.type==='email' && (
-                                <button className="btn btn-sm btn-p" style={{marginTop:12,width:'100%',justifyContent:'center'}} onClick={()=>generateEmailCopy(n)} disabled={emailLoading}>
-                                    {emailLoading && genEmail?.node === n.label ? <span className="spin"/> : '✉ Gerar Copy do Email'}
-                                </button>
-                            )}
+                            <div className="error-code">{this.state.error?.toString()}</div>
+                            <button className="btn" onClick={() => window.location.reload()}>Tentar Novamente</button>
                         </div>
-                        {i < (res.nodes.length - 1) && (
-                            <div style={{width:2,height:40,background:'var(--bd2)',position:'relative',zIndex:1}}>
-                                <div style={{position:'absolute',bottom:-5,left:-4,width:0,height:0,borderLeft:'5px solid transparent',borderRight:'5px solid transparent',borderTop:'8px solid var(--bd2)'}}></div>
-                            </div>
-                        )}
-                    </React.Fragment>
-                ))}
-            </div>
-            {genEmail&&<div style={{background:'var(--gl)',borderRadius:10,padding:'12px 15px',marginTop:'1rem'}}>
-                <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>Email: {genEmail.node}</div>
-                <div className="res" style={{fontSize:12}}>{genEmail.copy}</div>
-            </div>}
-        </div>}
-    </div>);
-}
+                    );
+                }
+                return this.props.children;
+            }
+        }
 
-function CRM({clients}){
-    const [cid,setCid]=useState('');const [snap,setSnap]=useState(null);const [res,setRes]=useState('');const [loading,setLoading]=useState('');const [showDeals,setShowDeals]=useState(false);
-    const load=async()=>{if(!cid)return;try{const d=await api('GET',`/api/crm/snapshot/${cid}`);setSnap(d.data||{});}catch(e){setSnap(null);}};
-    useEffect(()=>{if(cid)load();},[cid]);
-    const analyze=async()=>{if(!cid)return;setLoading('a');try{const d=await api('POST','/api/crm/analyze',{client_id:parseInt(cid)});setRes(d.result);}catch(e){alert(e.message);}setLoading('');};
-    const syncCRM=async()=>{if(!cid)return;setLoading('s');try{await api('GET',`/api/crm/sync/${cid}`);await load();alert('CRM sincronizado!');}catch(e){alert(e.message);}setLoading('');};
-    return(<div>
-        <div className="ph"><h1>CRM e Vendas</h1><p className="sub">Pipeline e análise do RD Station CRM</p></div>
-        <div className="card">
-            <div style={{display:'flex',gap:10,marginBottom:'1rem'}}>
-                <div style={{flex:1}}><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>
-                <button className="btn btn-ik btn-sm" onClick={syncCRM} disabled={!!loading}>{loading==='s'?<><span className="spin"/>...</>:'Sync CRM'}</button>
-                <button className="btn btn-p btn-sm" onClick={analyze} disabled={!!loading}>{loading==='a'?<><span className="spin"/>...</>:'Analisar IA'}</button>
-            </div>
-            {snap&&snap.total_deals>0&&<div>
-            <div className="mg">
-                <div className="mc"><div className="ml">Total deals</div><div className="mv">{snap.total_deals}</div></div>
-                <div className="mc"><div className="ml">Ganhos</div><div className="mv" style={{color:'var(--g)'}}>{snap.won_deals||0}</div></div>
-                <div className="mc"><div className="ml">Perdidos</div><div className="mv" style={{color:'var(--danger)'}}>{snap.lost_deals||0}</div></div>
-                <div className="mc"><div className="ml">Taxa de vitória</div><div className="mv" style={{color:Math.round((snap.won_deals||0)/(snap.total_deals||1)*100)>=50?'var(--g)':'var(--warn)'}}>{Math.round((snap.won_deals||0)/(snap.total_deals||1)*100)}%</div></div>
-                <div className="mc"><div className="ml">Receita</div><div className="mv" style={{fontSize:16}}>R$ {(snap.total_revenue||0).toLocaleString('pt-BR',{maximumFractionDigits:0})}</div></div>
-            </div>
-            {snap.recent_deals&&snap.recent_deals.length>0&&<div style={{marginTop:'1rem'}}><button className="btn btn-sm" onClick={()=>setShowDeals(!showDeals)}>Deals Recentes ({snap.recent_deals.length})</button>
-            {showDeals&&<div className="card" style={{marginTop:'1rem'}}><div className="ct">Deals Recentes</div>{snap.recent_deals.slice(0,10).map((d,i)=><div key={i} className="crow"><div className="av" style={{background:d.win?'#E1F5EE':'#FCEBEB',color:d.win?'#0F6E56':'#A32D2D'}}>💰</div><div style={{flex:1}}><div style={{fontWeight:500,fontSize:13}}>{d.name||'Deal'}</div><div style={{fontSize:11,color:'var(--ink3)'}}>R$ {(d.amount||0).toLocaleString('pt-BR',{maximumFractionDigits:0})}</div></div><span className={`badge badge-${d.win?'g':'r'}`}>{d.win?'Ganho':'Perdido'}</span></div>)}</div>}
-            </div>}
-            </div>}
-            {res&&<div className="res">{res}</div>}
-            {!snap?.total_deals&&!res&&cid&&<p style={{fontSize:13,color:'var(--ink3)'}}>Configure o Token CRM nas configurações do cliente e clique em Sync CRM.</p>}
-        </div>
-    </div>);
-}
+        // --- App Principal (Versão Simplificada para Teste) ---
+        function App() {
+            const [status, setStatus] = useState('Verificando servidor...');
+            const [error, setError] = useState(null);
 
-function Leads({clients}){
-    const [cid,setCid]=useState('');const [leads,setLeads]=useState([]);const [segId,setSegId]=useState('');const [segs,setSegs]=useState([]);const [loading,setLoading]=useState(false);const [page,setPage]=useState(1);
-    const loadSegs=async()=>{if(!cid)return;try{const d=await api('GET',`/api/rd/sync/${cid}`);setSegs(d.data?.segmentations||[]);}catch(e){}};
-    const loadLeads=async()=>{if(!cid)return;setLoading(true);try{const d=await api('GET',`/api/rd/leads-analysis/${cid}?page=${page}&seg_id=${segId}`);setLeads(d.leads||[]);}catch(e){alert(e.message);}setLoading(false);};
-    useEffect(()=>{loadSegs();},[cid]);useEffect(()=>{loadLeads();},[cid,segId,page]);
-    return(<div><div className="ph"><h1>Leads e Segmentações</h1><p className="sub">Visualize e analise sua base de leads</p></div><div className="card"><div className="two" style={{marginBottom:'1rem'}}><div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div><div className="field"><label>Segmentação (opcional)</label><select value={segId} onChange={e=>setSegId(e.target.value)}><option value="">Todos os leads</option>{segs.map(s=><option key={s.id} value={s.id}>{s.name} ({s.contacts})</option>)}</select></div></div>{leads.length>0&&<div><div className="mg"><div className="mc"><div className="ml">Total de Leads</div><div className="mv">{leads.length}</div></div><div className="mc"><div className="ml">Alto Potencial</div><div className="mv" style={{color:'var(--g)'}}>{leads.filter(l=>l.potential==='alto').length}</div></div><div className="mc"><div className="ml">Médio Potencial</div><div className="mv" style={{color:'var(--warn)'}}>{leads.filter(l=>l.potential==='medio').length}</div></div><div className="mc"><div className="ml">Baixo Potencial</div><div className="mv" style={{color:'var(--danger)'}}>{leads.filter(l=>l.potential==='baixo').length}</div></div></div><div className="card" style={{marginTop:'1rem'}}><div className="ct">Leads ({leads.length})</div>{leads.map((l,i)=><div key={i} className="crow"><div className="av" style={{background:l.potential==='alto'?'#E1F5EE':l.potential==='medio'?'#FFF3D6':'#FCEBEB',color:l.potential==='alto'?'#0F6E56':l.potential==='medio'?'#8B5A00':'#A32D2D'}}>{l.score}</div><div style={{flex:1}}><div style={{fontWeight:500,fontSize:13}}>{l.name||'Sem nome'}</div><div style={{fontSize:11,color:'var(--ink3)'}}>{l.email}</div></div><span className={`badge badge-${l.potential==='alto'?'g':l.potential==='medio'?'y':'r'}`}>{l.potential}</span></div>)}</div></div>}</div></div>);
-}
+            useEffect(() => {
+                fetch('/api/health')
+                    .then(r => r.json())
+                    .then(d => setStatus(`Servidor Online (v${d.version})`))
+                    .catch(e => {
+                        console.error(e);
+                        setError("Não foi possível conectar ao backend. Verifique se o deploy no Railway foi concluído.");
+                    });
+            }, []);
 
-function LandingPages({clients}){const [cid,setCid]=useState('');const [lps,setLps]=useState([]);const [selectedLp,setSelectedLp]=useState(null);const [analysis,setAnalysis]=useState('');const [loading,setLoading]=useState(fals    const loadLps=async()=>{if(!cid)return;try{const d=await api('GET',`/api/rd/sync/${cid}`);setLps(d.data?.landing_pages||[]);}catch(e){}}const analyzeLp=async(lp)=>{if(!cid||!lp)return;setLoading(true);try{const d=await api('POST','/api/analysis/run',{client_id:parseInt(cid),type:'complete'});setAnalysis(d.result);}catch(e){alert(e.message);}setLoading(false)};useEffect(()=>{loadLps();},[cid]);return(<div><div className="ph"><h1>Landing Pages</h1><p className="sub">Analise SEO, velocidade e UX das suas landing pages</p></div><div className="card"><div className="field" style={{marginBottom:'1rem'}}><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>{lps.length>0&&<div><div className="ct" style={{marginBottom:'1rem'}}>Landing Pages ({lps.length})</div>{lps.map((lp,i)=><div key={i} className="crow" style={{cursor:'pointer'}} onClick={()=>{setSelectedLp(lp);analyzeLp(lp);}}><div className="av" style={{background:'#E6F1FB',color:'#0C447C'}}>📄</div><div style={{flex:1}}><div style={{fontWeight:500,fontSize:13}}>{lp.name||lp.title}</div><div style={{fontSize:11,color:'var(--ink3)'}}>Visitantes: {lp.visitors||0} | Conversões: {lp.conversions||0} | Taxa: {lp.conversion_rate||0}%</div></div><span className="badge badge-b">{lp.conversion_rate||0}%</span></div>)}</div>}</div>{analysis&&<div className="card" style={{marginTop:'1rem'}}><div className="ct">Análise de {selectedLp?.name||'Landing Page'}</div><div className="res">{analysis}</div></div>}{loading&&<div className="card" style={{marginTop:'1rem',textAlign:'center',color:'var(--ink3)',fontSize:13}}><span className="spin spin-d"/>Analisando com IA...</div>}</div>);}
-
-function Sync({clients}){
-    const [cid,setCid]=useState('');const [res,setRes]=useState(null);const [loading,setLoading]=useState('');
-    const syncRD=async()=>{if(!cid)return alert('Selecione um cliente');setLoading('rd');try{const d=await api('GET',`/api/rd/sync/${cid}`);setRes(d);}catch(e){alert(e.message);}setLoading('');};
-    const syncCRM=async()=>{if(!cid)return alert('Selecione um cliente');setLoading('crm');try{const d=await api('GET',`/api/crm/sync/${cid}`);setRes(d);}catch(e){alert(e.message);}setLoading('');};
-    const diagnose=async()=>{if(!cid)return alert('Selecione um cliente');setLoading('dx');try{const d=await api('GET',`/api/rd/diagnose/${cid}`);setRes(d);}catch(e){alert(e.message);}setLoading('');};
-    return(<div>
-        <div className="ph"><h1>Sincronização</h1><p className="sub">Sync de dados com o RD Station</p></div>
-        <div className="card">
-            <div className="field" style={{marginBottom:'1rem'}}><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>
-            <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-                <button className="btn btn-p" onClick={syncRD} disabled={!!loading}>{loading==='rd'?<><span className="spin"/>Sincronizando RD...</>:'Sincronizar RD Marketing'}</button>
-                <button className="btn btn-ik" onClick={syncCRM} disabled={!!loading}>{loading==='crm'?<><span className="spin"/>Sincronizando CRM...</>:'Sincronizar CRM'}</button>
-                <button className="btn" onClick={diagnose} disabled={!!loading}>{loading==='dx'?<><span className="spin spin-d"/>Diagnosticando...</>:'Diagnosticar Token'}</button>
-            </div>
-            {res&&<div className="res" style={{maxHeight:300}}>{JSON.stringify(res,null,2)}</div>}
-        </div>
-    </div>);
-}
-
-function App(){
-    const [user,setUser]=useState(null);const [checked,setChecked]=useState(false);
-    const [page,setPage]=useState('dashboard');const [clients,setClients]=useState([]);
-    useEffect(()=>{const tok=getToken();if(tok)api('GET','/api/auth/me').then(u=>{setUser(u);setChecked(true);}).catch(()=>{setToken(null);setChecked(true);});else setChecked(true);},[]);
-    const loadClients=useCallback(()=>api('GET','/api/clients/').then(setClients).catch(()=>{}),[]);
-    useEffect(()=>{if(user)loadClients();},[user,loadClients]);
-    const logout=()=>{setToken(null);setUser(null);};
-    if(!checked)return<div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',color:'var(--ink3)',fontSize:13}}><span className="spin spin-d"/>Carregando...</div>;
-    if(!user)return<Login onLogin={u=>setUser(u)}/>;
-    const NAV=[
-        {s:'Visão Geral',items:[{id:'dashboard',i:'◉',l:'Dashboard'},{id:'clients',i:'◎',l:'Clientes'}]},
-        {s:'RD Marketing',items:[{id:'health',i:'♥',l:'Health Score'},{id:'leads',i:'👥',l:'Leads'},{id:'landing-pages',i:'📄',l:'Landing Pages'},{id:'analysis',i:'◆',l:'Análise Estratégica'},{id:'emails',i:'✉',l:'Email IA'},{id:'flows',i:'⟶',l:'Fluxos'},{id:'intelligence',i:'★',l:'Inteligência'},{id:'reports',i:'≡',l:'Relatórios'},{id:'campaign',i:'⚑',l:'Campanhas'}]},
-        {s:'RD CRM',items:[{id:'crm',i:'$',l:'CRM & Vendas'}]},
-        {s:'Ferramentas',items:[{id:'sync',i:'⟳',l:'Sincronização'}]},
-    ];
-    const PAGES={dashboard:<Dashboard clients={clients}/>,clients:<Clients clients={clients} onRefresh={loadClients}/>,health:<Health clients={clients}/>,leads:<Leads clients={clients}/>,'landing-pages':<LandingPages clients={clients}/>,analysis:<Analysis clients={clients}/>,emails:<Emails clients={clients}/>,flows:<Flows clients={clients}/>,intelligence:<Intelligence clients={clients}/>,reports:<Reports clients={clients}/>,campaign:<Campaign clients={clients}/>,crm:<CRM clients={clients}/>,sync:<Sync clients={clients}/>};
-    return(<div>
-        <nav className="sb">
-            <div className="sb-logo"><div className="logo"><div className="logo-m">RD</div>RD Manager IA v4</div></div>
-            <div className="sb-user"><span>@{user.username}</span><button onClick={logout} style={{background:'none',border:'none',color:'rgba(255,255,255,.3)',cursor:'pointer',fontSize:11}}>sair</button></div>
-            <div className="sb-body">{NAV.map(g=><div key={g.s}><div className="ns">{g.s}</div>{g.items.map(i=><button key={i.id} className={'nb'+(page===i.id?' active':'')} onClick={()=>setPage(i.id)}><span className="ni">{i.i}</span>{i.l}</button>)}</div>)}</div>
-        </nav>
-        <div className="main">{PAGES[page]||<div className="card"><h1>{page}</h1></div>}</div>
-    </div>);
-}
-// --- Error Boundary Component ---
-class ErrorBoundary extends React.Component {
-    constructor(props) { super(props); this.state = { hasError: false, error: null }; }
-    static getDerivedStateFromError(error) { return { hasError: true, error }; }
-    componentDidCatch(error, errorInfo) { console.error("React Error Boundary:", error, errorInfo); }
-    render() {
-        if (this.state.hasError) {
-            return (
-                <div style={{padding:'40px', textAlign:'center', fontFamily:'Syne, sans-serif', background:'#FCEBEB', minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center'}}>
-                    <div style={{fontSize:'48px', marginBottom:'20px'}}>⚠️</div>
-                    <h1 style={{color:'#A32D2D', marginBottom:'10px'}}>Ops! Algo deu errado.</h1>
-                    <p style={{color:'#5A5A55', maxWidth:'500px', marginBottom:'20px'}}>
-                        A interface encontrou um erro inesperado. Isso pode ser causado por uma falha na conexão com o banco de dados ou um erro de resposta da API.
-                    </p>
-                    <div style={{background:'#fff', padding:'15px', borderRadius:'10px', border:'1px solid #f7c1c1', textAlign:'left', width:'100%', maxWidth:'600px', overflowX:'auto', marginBottom:'20px'}}>
-                        <code style={{fontSize:'12px', color:'#dc3545'}}>{this.state.error?.toString()}</code>
+            if (error) {
+                return (
+                    <div className="error-panel" style={{margin:'auto'}}>
+                        <div className="error-title">🔌 Erro de Conexão</div>
+                        <div className="error-msg">{error}</div>
+                        <button className="btn" onClick={() => window.location.reload()}>Recarregar</button>
                     </div>
-                    <button className="btn btn-p" onClick={() => window.location.reload()}>Recarregar Página</button>
+                );
+            }
+
+            return (
+                <div style={{textAlign:'center', padding:'40px'}}>
+                    <div style={{fontFamily:'Syne', fontSize:'32px', fontWeight:800, marginBottom:'10px'}}>RD Manager IA</div>
+                    <div style={{color:'var(--g)', fontWeight:600, marginBottom:'30px'}}>{status}</div>
+                    
+                    <div style={{background:'#fff', padding:'30px', borderRadius:'20px', border:'1px solid #E4E2DA', maxWidth:'400px', margin:'auto'}}>
+                        <p style={{fontSize:'14px', color:'#5A5A55', marginBottom:'20px'}}>
+                            A interface básica carregou com sucesso! Se você está vendo esta tela, o problema da "Tela Branca" foi resolvido.
+                        </p>
+                        <button className="btn" onClick={() => window.location.href = '/api/auth/login'}>Ir para Login</button>
+                    </div>
                 </div>
             );
         }
-        return this.props.children;
-    }
-}
 
-try {
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(
-        <ErrorBoundary>
-            <App/>
-        </ErrorBoundary>
-    );
-} catch (e) {
-    console.error("Critical Render Error:", e);
-    document.getElementById('root').innerHTML = `
-        <div style="padding:40px; text-align:center; font-family:sans-serif; background:#FCEBEB; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-            <h1 style="color:#A32D2D;">Erro Crítico de Inicialização</h1>
-            <p style="color:#5A5A55;">Não foi possível carregar o aplicativo.</p>
-            <pre style="background:#fff; padding:15px; border-radius:10px; border:1px solid #f7c1c1; text-align:left; max-width:600px; overflow:auto;">${e.message}</pre>
-            <button style="margin-top:20px; padding:10px 20px; background:#1D9E75; color:#fff; border:none; border-radius:8px; cursor:pointer;" onclick="window.location.reload()">Tentar Novamente</button>
-        </div>
-    `;
-}
-</script>
+        // --- Renderização ---
+        try {
+            const root = ReactDOM.createRoot(document.getElementById('root'));
+            root.render(
+                <ErrorBoundary>
+                    <App />
+                </ErrorBoundary>
+            );
+        } catch (e) {
+            document.getElementById('root').innerHTML = `<div style="padding:40px; color:red;">Erro Crítico: ${e.message}</div>`;
+        }
+    </script>
 </body>
 </html>
