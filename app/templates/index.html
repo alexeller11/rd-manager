@@ -4,31 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>RD Manager IA v4.5</title>
-    <!-- Proteção contra extensões que injetam código e quebram o React -->
     <script>
         (function() {
             const noop = () => {};
-            const mockEthereum = {
-                isMetaMask: false,
-                request: () => Promise.resolve([]),
-                on: noop,
-                removeListener: noop,
-                enable: () => Promise.resolve([]),
-                send: noop,
-                sendAsync: noop
-            };
-            if (!window.ethereum) {
-                window.ethereum = mockEthereum;
-            } else {
-                try {
-                    // Tenta proteger a propriedade se ela não for readonly
-                    Object.defineProperty(window, 'ethereum', {
-                        value: window.ethereum,
-                        writable: false,
-                        configurable: false
-                    });
-                } catch (e) {}
-            }
+            const mockEthereum = { isMetaMask: false, request: () => Promise.resolve([]), on: noop, removeListener: noop, enable: () => Promise.resolve([]), send: noop, sendAsync: noop };
+            if (!window.ethereum) window.ethereum = mockEthereum;
         })();
     </script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -87,7 +67,6 @@
 </head>
 <body>
     <div id="root">
-        <!-- Loader inicial para evitar tela em branco absoluta -->
         <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#555;">
             <div style="text-align:center;">
                 <div style="border:3px solid #f3f3f3;border-top:3px solid #1D9E75;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;margin:0 auto 15px;"></div>
@@ -100,17 +79,14 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo } = React;
 
-        // --- Configurações de Token ---
         const TOKEN_KEY = 'rdm_v4_token';
         const getToken = () => localStorage.getItem(TOKEN_KEY);
         const setToken = t => t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY);
 
-        // --- API Helper ---
         async function api(method, path, body, isForm = false) {
             const headers = {};
             const token = getToken();
             if (token) headers['Authorization'] = `Bearer ${token}`;
-
             let fetchBody = null;
             if (body) {
                 if (isForm) {
@@ -121,35 +97,17 @@
                     fetchBody = JSON.stringify(body);
                 }
             }
-
             try {
                 const response = await fetch(path, { method, headers, body: fetchBody });
-                
-                if (response.status === 401) {
-                    setToken(null);
-                    window.location.reload();
-                    return;
-                }
-
+                if (response.status === 401) { setToken(null); window.location.reload(); return; }
                 const text = await response.text();
                 let data;
-                try {
-                    data = JSON.parse(text);
-                } catch (e) {
-                    throw new Error(`Erro do servidor: ${text.substring(0, 100)}`);
-                }
-
-                if (!response.ok) {
-                    throw new Error(data.detail || data.error || 'Erro na requisição');
-                }
+                try { data = JSON.parse(text); } catch (e) { throw new Error(`Erro do servidor: ${text.substring(0, 100)}`); }
+                if (!response.ok) throw new Error(data.detail || data.error || 'Erro na requisição');
                 return data;
-            } catch (err) {
-                console.error(`API Error (${path}):`, err);
-                throw err;
-            }
+            } catch (err) { console.error(`API Error (${path}):`, err); throw err; }
         }
 
-        // --- Componentes de UI ---
         function ClientSelect({ clients, value, onChange }) {
             return (
                 <select value={value} onChange={e => onChange(e.target.value)}>
@@ -159,40 +117,21 @@
             );
         }
 
-        function AICard({ title, children, result, loading }) {
-            return (
-                <div className="card">
-                    <div className="ct">{title}</div>
-                    {children}
-                    {loading && <div style={{padding:'1rem',color:'var(--ink3)',fontSize:13}}><span className="spin spin-d"/>Processando com IA...</div>}
-                    {result && <div className="res">{result}</div>}
-                </div>
-            );
-        }
-
-        // --- Páginas ---
         function Login({ onLogin }) {
             const [u, setU] = useState('');
             const [p, setP] = useState('');
             const [loading, setLoading] = useState(false);
             const [err, setErr] = useState('');
-
             const handleSubmit = async e => {
                 e.preventDefault();
-                if (!u || !p) return;
-                setLoading(true);
-                setErr('');
+                setLoading(true); setErr('');
                 try {
                     const d = await api('POST', '/api/auth/login', { username: u, password: p }, true);
                     setToken(d.access_token);
                     onLogin({ username: d.username, is_admin: d.is_admin });
-                } catch (ex) {
-                    setErr(ex.message);
-                } finally {
-                    setLoading(false);
-                }
+                } catch (ex) { setErr(ex.message); }
+                finally { setLoading(false); }
             };
-
             return (
                 <div className="login-wrap">
                     <div className="login-box">
@@ -214,10 +153,7 @@
 
         function Dashboard({ clients }) {
             const [scores, setScores] = useState([]);
-            useEffect(() => {
-                api('GET', '/api/health/all').then(setScores).catch(console.error);
-            }, []);
-
+            useEffect(() => { api('GET', '/api/health/all').then(setScores).catch(console.error); }, []);
             return (
                 <div>
                     <div className="ph"><h1>Dashboard</h1><p className="sub">Visão consolidada — {clients.length} clientes</p></div>
@@ -251,110 +187,132 @@
             const [rdToken, setRdToken] = useState('');
             const [saving, setSaving] = useState(false);
             const [suggesting, setSuggesting] = useState(false);
-
-            const open = (c = null) => {
-                setForm(c ? { ...c } : EMPTY);
-                setEditing(c?.id || null);
-                setRdToken('');
-                setShow(true);
-            };
-
+            const open = (c = null) => { setForm(c ? { ...c } : EMPTY); setEditing(c?.id || null); setRdToken(''); setShow(true); };
             const suggest = async () => {
                 if (!form.website) return alert('Informe o site primeiro');
                 setSuggesting(true);
-                try {
-                    const d = await api('POST', '/api/clients/suggest-data', { website: form.website });
-                    setForm(prev => ({ ...prev, ...d }));
-                } catch (e) {
-                    alert('Erro na IA: ' + e.message);
-                } finally {
-                    setSuggesting(false);
-                }
+                try { const d = await api('POST', '/api/clients/suggest-data', { website: form.website }); setForm(prev => ({ ...prev, ...d })); }
+                catch (e) { alert('Erro na IA: ' + e.message); } finally { setSuggesting(false); }
             };
-
             const save = async () => {
                 setSaving(true);
                 try {
                     const payload = { ...form };
                     if (rdToken.trim()) payload.rd_token = rdToken.trim();
                     const res = await api(editing ? 'PUT' : 'POST', editing ? `/api/clients/${editing}` : '/api/clients/', payload);
-                    if (!editing) setEditing(res.id);
-                    await onRefresh();
-                    alert(editing ? 'Atualizado com sucesso!' : 'Cliente criado!');
-                    setShow(false);
-                } catch (e) {
-                    alert(e.message);
-                } finally {
-                    setSaving(false);
-                }
+                    await onRefresh(); alert(editing ? 'Atualizado!' : 'Criado!'); setShow(false);
+                } catch (e) { alert(e.message); } finally { setSaving(false); }
             };
-
-            const del = async id => {
-                if (!confirm('Excluir cliente e todos os dados?')) return;
-                try {
-                    await api('DELETE', `/api/clients/${id}`);
-                    onRefresh();
-                } catch (e) { alert(e.message); }
-            };
-
+            const del = async id => { if (confirm('Excluir?')) { try { await api('DELETE', `/api/clients/${id}`); onRefresh(); } catch (e) { alert(e.message); } } };
             return (
                 <div>
                     <div className="ph" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                        <div><h1>Clientes</h1><p className="sub">{clients.length} clientes cadastrados</p></div>
+                        <div><h1>Clientes</h1><p className="sub">{clients.length} cadastrados</p></div>
                         <button className="btn btn-p" onClick={() => open()}>+ Novo Cliente</button>
                     </div>
                     {show && (
                         <div className="card">
-                            <div className="ct">{editing ? 'Editar Cliente' : 'Novo Cliente'}</div>
+                            <div className="ct">{editing ? 'Editar' : 'Novo'}</div>
                             <div className="two">
                                 <div className="field"><label>Nome *</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
                                 <div className="field"><label>Segmento</label><select value={form.segment} onChange={e => setForm({ ...form, segment: e.target.value })}>{SEG.map(s => <option key={s}>{s}</option>)}</select></div>
                             </div>
                             <div className="two">
-                                <div className="field">
-                                    <label>Website</label>
-                                    <div style={{display: 'flex', gap: 8}}>
-                                        <input style={{flex: 1}} value={form.website || ''} onChange={e => setForm({ ...form, website: e.target.value })} placeholder="https://" />
-                                        <button className="btn btn-sm" onClick={suggest} disabled={suggesting}>{suggesting ? <span className="spin spin-d"/> : '🪄 IA'}</button>
-                                    </div>
-                                </div>
-                                <div className="field"><label>Token CRM RD Station</label><input type="password" value={form.rd_crm_token || ''} onChange={e => setForm({ ...form, rd_crm_token: e.target.value })} placeholder="Token do CRM" /></div>
+                                <div className="field"><label>Website</label><div style={{display:'flex',gap:8}}><input style={{flex:1}} value={form.website || ''} onChange={e => setForm({ ...form, website: e.target.value })} /><button className="btn btn-sm" onClick={suggest} disabled={suggesting}>{suggesting ? <span className="spin spin-d"/> : '🪄 IA'}</button></div></div>
+                                <div className="field"><label>Token CRM</label><input type="password" value={form.rd_crm_token || ''} onChange={e => setForm({ ...form, rd_crm_token: e.target.value })} /></div>
                             </div>
-                            <div className="field"><label>Descrição do negócio</label><textarea value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} /></div>
-                            <div className="field"><label>Persona / ICP</label><textarea value={form.persona || ''} onChange={e => setForm({ ...form, persona: e.target.value })} rows={2} /></div>
-                            <div className="three">
-                                <div className="field"><label>Tom de voz</label><input value={form.tone || ''} onChange={e => setForm({ ...form, tone: e.target.value })} /></div>
-                                <div className="field"><label>Principal dor</label><input value={form.main_pain || ''} onChange={e => setForm({ ...form, main_pain: e.target.value })} /></div>
-                                <div className="field"><label>Objeções</label><input value={form.objections || ''} onChange={e => setForm({ ...form, objections: e.target.value })} /></div>
-                            </div>
-                            <div className="field">
-                                <label>RD Marketing</label>
-                                <div style={{display: 'flex', gap: 8, marginBottom: 8}}>
-                                    <input type="password" style={{flex: 1}} value={rdToken} onChange={e => setRdToken(e.target.value)} placeholder="Token fixo (opcional)" />
-                                    {editing && (
-                                        <a href={`/oauth/authorize/${editing}`} target="_blank" className="btn btn-sm btn-ik" style={{textDecoration:'none'}}>
-                                            🔌 Conectar OAuth
-                                        </a>
-                                    )}
-                                </div>
-                                <p style={{fontSize:10, color:'var(--ink3)'}}>Use o token fixo OU conecte via OAuth (recomendado).</p>
-                            </div>
-                            <div style={{display: 'flex', gap: 10, marginTop: '1rem'}}>
-                                <button className="btn btn-p" onClick={save} disabled={saving}>{saving ? <><span className="spin"/>Salvando...</> : 'Salvar'}</button>
-                                <button className="btn" onClick={() => setShow(false)}>Cancelar</button>
-                            </div>
+                            <div className="field"><label>Descrição</label><textarea value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+                            <div className="field"><label>RD Marketing</label><div style={{display:'flex',gap:8}}><input type="password" style={{flex:1}} value={rdToken} onChange={e => setRdToken(e.target.value)} placeholder="Token fixo (opcional)" />{editing && <a href={`/oauth/authorize/${editing}`} target="_blank" className="btn btn-sm btn-ik" style={{textDecoration:'none'}}>🔌 Conectar OAuth</a>}</div></div>
+                            <div style={{display:'flex',gap:10}}><button className="btn btn-p" onClick={save} disabled={saving}>{saving ? <span className="spin"/> : 'Salvar'}</button><button className="btn" onClick={() => setShow(false)}>Cancelar</button></div>
                         </div>
                     )}
+                    <div className="card">{clients.map(c => (<div key={c.id} className="crow"><div className="av" style={{background:'#EEEDFE',color:'#3C3489'}}>{c.name[0].toUpperCase()}</div><div style={{flex:1}}><div style={{fontWeight:500}}>{c.name}</div><div style={{fontSize:11,color:'var(--ink3)'}}>{c.segment}</div></div><div style={{display:'flex',gap:8}}><button className="btn btn-sm" onClick={() => open(c)}>Editar</button><button className="btn btn-sm btn-d" onClick={() => del(c.id)}>Excluir</button></div></div>))}</div>
+                </div>
+            );
+        }
+
+        function AIAnalysisPage({ clients }) {
+            const [cid, setCid] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [res, setRes] = useState('');
+            const run = async (type) => {
+                if (!cid) return alert('Selecione um cliente');
+                setLoading(true); setRes('');
+                try { const d = await api('POST', '/api/analysis/run', { client_id: parseInt(cid), type }); setRes(d.result); }
+                catch (e) { alert(e.message); } finally { setLoading(false); }
+            };
+            return (
+                <div>
+                    <div className="ph"><h1>Análise IA</h1><p className="sub">Diagnósticos estratégicos profundos</p></div>
                     <div className="card">
-                        {clients.length === 0 && <p style={{color: 'var(--ink3)', fontSize: 13}}>Nenhum cliente cadastrado.</p>}
-                        {clients.map(c => (
-                            <div key={c.id} className="crow">
-                                <div className="av" style={{background: '#EEEDFE', color: '#3C3489', width: 36, height: 36}}>{c.name[0].toUpperCase()}</div>
-                                <div style={{flex: 1}}><div style={{fontWeight: 500, fontSize: 13}}>{c.name}</div><div style={{fontSize: 11, color: 'var(--ink3)'}}>{c.segment} | {c.website || 'Sem site'}</div></div>
-                                <div style={{display: 'flex', gap: 8}}><button className="btn btn-sm" onClick={() => open(c)}>Editar</button><button className="btn btn-sm btn-d" onClick={() => del(c.id)}>Excluir</button></div>
-                            </div>
-                        ))}
+                        <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                            <button className="btn btn-p" onClick={() => run('complete')} disabled={loading}>Análise 360°</button>
+                            <button className="btn" onClick={() => run('seo')} disabled={loading}>SEO & Visibilidade</button>
+                            <button className="btn" onClick={() => run('cro')} disabled={loading}>CRO & Conversão</button>
+                        </div>
                     </div>
+                    {loading && <div className="card"><span className="spin spin-d"/>Gerando análise...</div>}
+                    {res && <div className="card"><div className="res">{res}</div></div>}
+                </div>
+            );
+        }
+
+        function EmailPage({ clients }) {
+            const [cid, setCid] = useState('');
+            const [type, setType] = useState('nurturing');
+            const [loading, setLoading] = useState(false);
+            const [res, setRes] = useState('');
+            const generate = async () => {
+                if (!cid) return alert('Selecione um cliente');
+                setLoading(true); setRes('');
+                try { const d = await api('POST', '/api/emails/generate', { client_id: parseInt(cid), type }); setRes(d.result); }
+                catch (e) { alert(e.message); } finally { setLoading(false); }
+            };
+            return (
+                <div>
+                    <div className="ph"><h1>E-mails IA</h1><p className="sub">Copywriting de alta conversão</p></div>
+                    <div className="card">
+                        <div className="two">
+                            <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
+                            <div className="field"><label>Tipo de E-mail</label>
+                                <select value={type} onChange={e => setType(e.target.value)}>
+                                    <option value="nurturing">Nutrição</option>
+                                    <option value="welcome">Boas-vindas</option>
+                                    <option value="promo">Promocional</option>
+                                    <option value="reengagement">Reengajamento</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button className="btn btn-p" onClick={generate} disabled={loading}>Gerar E-mail</button>
+                    </div>
+                    {loading && <div className="card"><span className="spin spin-d"/>Escrevendo copy...</div>}
+                    {res && <div className="card"><div className="res">{res}</div></div>}
+                </div>
+            );
+        }
+
+        function CampaignPage({ clients }) {
+            const [cid, setCid] = useState('');
+            const [obj, setObj] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [res, setRes] = useState('');
+            const plan = async () => {
+                if (!cid || !obj) return alert('Preencha os campos');
+                setLoading(true); setRes('');
+                try { const d = await api('POST', '/api/campaign/plan', { client_id: parseInt(cid), objective: obj }); setRes(d.result); }
+                catch (e) { alert(e.message); } finally { setLoading(false); }
+            };
+            return (
+                <div>
+                    <div className="ph"><h1>Campanhas</h1><p className="sub">Planejamento tático de marketing</p></div>
+                    <div className="card">
+                        <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
+                        <div className="field"><label>Objetivo da Campanha</label><input value={obj} onChange={e => setObj(e.target.value)} placeholder="Ex: Lançamento de novo produto" /></div>
+                        <button className="btn btn-p" onClick={plan} disabled={loading}>Criar Plano</button>
+                    </div>
+                    {loading && <div className="card"><span className="spin spin-d"/>Planejando...</div>}
+                    {res && <div className="card"><div className="res">{res}</div></div>}
                 </div>
             );
         }
@@ -363,76 +321,45 @@
             const [cid, setCid] = useState('');
             const [res, setRes] = useState(null);
             const [loading, setLoading] = useState(false);
-            const [analyzing, setAnalyzing] = useState(false);
-            const [analysis, setAnalysis] = useState('');
-
             const sync = async () => {
-                if (!cid) return alert('Selecione um cliente');
+                if (!cid) return alert('Selecione');
                 setLoading(true);
-                try {
-                    const d = await api('GET', `/api/crm/sync/${cid}`);
-                    setRes(d.data);
-                } catch (e) { alert(e.message); }
-                finally { setLoading(false); }
+                try { const d = await api('GET', `/api/crm/sync/${cid}`); setRes(d.data); }
+                catch (e) { alert(e.message); } finally { setLoading(false); }
             };
-
-            const analyze = async () => {
-                if (!cid) return alert('Selecione um cliente');
-                setAnalyzing(true);
-                try {
-                    const d = await api('POST', '/api/crm/analyze', { client_id: parseInt(cid) });
-                    setAnalysis(d.result);
-                } catch (e) { alert(e.message); }
-                finally { setAnalyzing(false); }
-            };
-
             return (
                 <div>
-                    <div className="ph"><h1>RD CRM</h1><p className="sub">Gestão de Vendas e Pipeline</p></div>
+                    <div className="ph"><h1>RD CRM</h1><p className="sub">Pipeline de Vendas</p></div>
                     <div className="card">
                         <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
-                        <div style={{display: 'flex', gap: 10}}>
-                            <button className="btn btn-p" onClick={sync} disabled={loading || !cid}>{loading ? <span className="spin"/> : 'Sincronizar CRM'}</button>
-                            <button className="btn" onClick={analyze} disabled={analyzing || !cid}>{analyzing ? <span className="spin spin-d"/> : 'Análise Estratégica IA'}</button>
-                        </div>
+                        <button className="btn btn-p" onClick={sync} disabled={loading}>Sincronizar CRM</button>
                     </div>
                     {res && (
                         <div className="mg">
                             <div className="mc"><div className="ml">Negócios</div><div className="mv">{res.total_deals}</div></div>
-                            <div className="mc"><div className="ml">Ganhos</div><div className="mv" style={{color: 'var(--g)'}}>{res.won_deals}</div></div>
-                            <div className="mc"><div className="ml">Receita</div><div className="mv">R$ {res.total_revenue.toLocaleString('pt-BR')}</div></div>
+                            <div className="mc"><div className="ml">Ganhos</div><div className="mv" style={{color:'var(--g)'}}>{res.won_deals}</div></div>
                         </div>
                     )}
-                    {analysis && <div className="card"><div className="ct">Análise IA</div><div className="res">{analysis}</div></div>}
                 </div>
             );
         }
 
         function SyncPage({ clients }) {
             const [cid, setCid] = useState('');
-            const [res, setRes] = useState(null);
             const [loading, setLoading] = useState(false);
-
-            const syncRD = async () => {
-                if (!cid) return alert('Selecione um cliente');
+            const sync = async () => {
+                if (!cid) return alert('Selecione');
                 setLoading(true);
-                try {
-                    const d = await api('GET', `/api/rd/sync/${cid}`);
-                    setRes(d);
-                } catch (e) { alert(e.message); }
-                finally { setLoading(false); }
+                try { await api('GET', `/api/rd/sync/${cid}`); alert('Sincronizado!'); }
+                catch (e) { alert(e.message); } finally { setLoading(false); }
             };
-
             return (
                 <div>
-                    <div className="ph"><h1>Sincronização</h1><p className="sub">Atualize os dados do RD Marketing</p></div>
+                    <div className="ph"><h1>Sincronizar</h1><p className="sub">Atualizar dados do RD Marketing</p></div>
                     <div className="card">
                         <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
-                        <button className="btn btn-p" onClick={syncRD} disabled={loading || !cid}>
-                            {loading ? <><span className="spin"/>Sincronizando...</> : 'Sincronizar RD Station'}
-                        </button>
+                        <button className="btn btn-p" onClick={sync} disabled={loading}>Sincronizar Agora</button>
                     </div>
-                    {res && <div className="card"><div className="ct">Resultado</div><div className="res">{JSON.stringify(res.data || res, null, 2)}</div></div>}
                 </div>
             );
         }
@@ -442,68 +369,49 @@
             const [page, setPage] = useState('dashboard');
             const [clients, setClients] = useState([]);
             const [loading, setLoading] = useState(true);
-
-            const refreshClients = useCallback(async () => {
-                try {
-                    const d = await api('GET', '/api/clients/');
-                    setClients(d);
-                } catch (e) { console.error(e); }
-            }, []);
-
+            const refresh = useCallback(async () => { try { const d = await api('GET', '/api/clients/'); setClients(d); } catch(e){} }, []);
             useEffect(() => {
                 const token = getToken();
-                if (token) {
-                    api('GET', '/api/auth/me')
-                        .then(u => {
-                            setUser(u);
-                            refreshClients();
-                        })
-                        .catch(() => setToken(null))
-                        .finally(() => setLoading(false));
-                } else {
-                    setLoading(false);
-                }
-            }, [refreshClients]);
-
-            if (loading) return (
-                <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh'}}>
-                    <span className="spin spin-d" style={{width:30,height:30}}/>
-                </div>
-            );
-
-            if (!user) return <Login onLogin={u => { setUser(u); refreshClients(); }} />;
-
-            const renderPage = () => {
+                if (token) { api('GET', '/api/auth/me').then(u => { setUser(u); refresh(); }).catch(() => setToken(null)).finally(() => setLoading(false)); }
+                else { setLoading(false); }
+            }, [refresh]);
+            if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh'}}><span className="spin spin-d" style={{width:30,height:30}}/></div>;
+            if (!user) return <Login onLogin={u => { setUser(u); refresh(); }} />;
+            const render = () => {
                 switch(page) {
                     case 'dashboard': return <Dashboard clients={clients} />;
-                    case 'clients': return <Clients clients={clients} onRefresh={refreshClients} />;
+                    case 'clients': return <Clients clients={clients} onRefresh={refresh} />;
+                    case 'analysis': return <AIAnalysisPage clients={clients} />;
+                    case 'emails': return <EmailPage clients={clients} />;
+                    case 'campaigns': return <CampaignPage clients={clients} />;
                     case 'crm': return <CRMPage clients={clients} />;
                     case 'sync': return <SyncPage clients={clients} />;
-                    default: return <div className="card"><h1>{page}</h1><p>Página em desenvolvimento.</p></div>;
+                    default: return <div>Página não encontrada</div>;
                 }
             };
-
             return (
-                <div style={{display: 'flex'}}>
+                <div style={{display:'flex'}}>
                     <nav className="sb">
                         <div className="sb-logo"><div className="logo"><div className="logo-m">RD</div>RD Manager IA</div></div>
-                        <div className="sb-user"><span>{user.username}</span>{user.is_admin && <span className="badge badge-g">Admin</span>}</div>
+                        <div className="sb-user"><span>{user.username}</span></div>
                         <div className="sb-body">
                             <div className="ns">Principal</div>
-                            <button className={`nb ${page === 'dashboard' ? 'active' : ''}`} onClick={() => setPage('dashboard')}><span className="ni">📊</span>Dashboard</button>
-                            <button className={`nb ${page === 'clients' ? 'active' : ''}`} onClick={() => setPage('clients')}><span className="ni">👥</span>Clientes</button>
-                            <div className="ns">Dados & Integrações</div>
-                            <button className={`nb ${page === 'crm' ? 'active' : ''}`} onClick={() => setPage('crm')}><span className="ni">💼</span>RD CRM</button>
-                            <button className={`nb ${page === 'sync' ? 'active' : ''}`} onClick={() => setPage('sync')}><span className="ni">🔄</span>Sincronizar</button>
+                            <button className={`nb ${page==='dashboard'?'active':''}`} onClick={()=>setPage('dashboard')}><span className="ni">📊</span>Dashboard</button>
+                            <button className={`nb ${page==='clients'?'active':''}`} onClick={()=>setPage('clients')}><span className="ni">👥</span>Clientes</button>
+                            <div className="ns">Inteligência IA</div>
+                            <button className={`nb ${page==='analysis'?'active':''}`} onClick={()=>setPage('analysis')}><span className="ni">🧠</span>Análise IA</button>
+                            <button className={`nb ${page==='emails'?'active':''}`} onClick={()=>setPage('emails')}><span className="ni">✉️</span>E-mails IA</button>
+                            <button className={`nb ${page==='campaigns'?'active':''}`} onClick={()=>setPage('campaigns')}><span className="ni">🚀</span>Campanhas</button>
+                            <div className="ns">Dados</div>
+                            <button className={`nb ${page==='crm'?'active':''}`} onClick={()=>setPage('crm')}><span className="ni">💼</span>RD CRM</button>
+                            <button className={`nb ${page==='sync'?'active':''}`} onClick={()=>setPage('sync')}><span className="ni">🔄</span>Sincronizar</button>
                         </div>
                     </nav>
-                    <div className="main">{renderPage()}</div>
+                    <div className="main">{render()}</div>
                 </div>
             );
         }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>
