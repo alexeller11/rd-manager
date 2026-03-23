@@ -1,5 +1,5 @@
 """
-Serviço de IA — OpenAI (Principal) com Fallback para Gemini e Groq.
+Serviço de IA — Groq (Prioridade Atual) com Fallback para OpenAI e Gemini.
 """
 import os
 import httpx
@@ -8,36 +8,65 @@ import google.generativeai as genai
 from typing import Optional
 
 # Configurações das APIs
-# Prioridade: OpenAI > Gemini > Groq
+# No seu Railway, apenas GROQ_API_KEY está configurada (groq_key_set: true)
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 # URLs para Fallback
-OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 
 # Configura o SDK do Gemini se a chave estiver presente
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+    except Exception as e:
+        print(f"Erro ao configurar Gemini: {e}")
 
 async def call_ai(prompt: str, system: str = None, max_tokens: int = 2000) -> str:
     """
-    Chama a API da OpenAI como principal. 
-    Se falhar, tenta Gemini e Groq como fallback.
+    Tenta as IAs na ordem de disponibilidade das chaves.
+    Atualmente no seu Railway: Groq > OpenAI > Gemini.
     """
     
-    # Mensagens para o formato OpenAI
+    # Mensagens para o formato OpenAI/Groq
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt[:20000]})
 
-    # 1. Tentar OpenAI primeiro (Mais estável no Manus)
+    # 1. Tentar Groq (Única chave presente no seu diagnóstico)
+    if GROQ_API_KEY:
+        try:
+            payload = {
+                "model": GROQ_MODEL,
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": 0.7,
+            }
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(
+                    GROQ_URL,
+                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                    json=payload,
+                )
+                if resp.status_code == 200:
+                    return resp.json()["choices"][0]["message"]["content"]
+                
+                # Se der 401 (Unauthorized), a chave Groq está errada ou expirou
+                if resp.status_code == 401:
+                    print(f"⚠️ Erro 401 na Groq: Chave inválida ou expirada.")
+                else:
+                    print(f"Erro Groq: {resp.status_code} - {resp.text}")
+        except Exception as e:
+            print(f"Erro ao chamar Groq: {e}")
+
+    # 2. Tentar OpenAI (Fallback 1)
     if OPENAI_API_KEY:
         try:
             payload = {
@@ -54,11 +83,11 @@ async def call_ai(prompt: str, system: str = None, max_tokens: int = 2000) -> st
                 )
                 if resp.status_code == 200:
                     return resp.json()["choices"][0]["message"]["content"]
-                print(f"Erro OpenAI: {resp.status_code} - {resp.text}")
+                print(f"Erro OpenAI: {resp.status_code}")
         except Exception as e:
             print(f"Erro OpenAI: {e}")
 
-    # 2. Tentar Gemini Pro (Fallback 1)
+    # 3. Tentar Gemini (Fallback 2)
     if GEMINI_API_KEY:
         try:
             model = genai.GenerativeModel(
@@ -77,28 +106,12 @@ async def call_ai(prompt: str, system: str = None, max_tokens: int = 2000) -> st
                 return response.text
         except Exception as e:
             print(f"Erro Gemini: {e}")
-
-    # 3. Tentar Groq (Fallback 2)
-    if GROQ_API_KEY:
-        try:
-            payload = {
-                "model": GROQ_MODEL,
-                "messages": messages,
-                "max_tokens": max_tokens,
-                "temperature": 0.7,
-            }
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                resp = await client.post(
-                    GROQ_URL,
-                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-                    json=payload,
-                )
-                if resp.status_code == 200:
-                    return resp.json()["choices"][0]["message"]["content"]
-        except Exception as e:
-            print(f"Erro Groq: {e}")
     
-    return "❌ IA Indisponível. Verifique suas chaves de API (OpenAI, Gemini ou Groq) no Railway."
+    # Se chegamos aqui, nada funcionou
+    if not GROQ_API_KEY and not OPENAI_API_KEY and not GEMINI_API_KEY:
+        return "❌ Nenhuma chave de IA configurada. Adicione OPENAI_API_KEY ou corrija a GROQ_API_KEY no Railway."
+    
+    return "❌ Erro na IA. A chave Groq presente no seu Railway pode estar expirada ou inválida (Erro 401). Verifique-a ou adicione uma OPENAI_API_KEY."
 
 
 # --- Personas ---
