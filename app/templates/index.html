@@ -357,7 +357,7 @@ function Flows({clients}){
 }
 
 function CRM({clients}){
-    const [cid,setCid]=useState('');const [snap,setSnap]=useState(null);const [res,setRes]=useState('');const [loading,setLoading]=useState('');
+    const [cid,setCid]=useState('');const [snap,setSnap]=useState(null);const [res,setRes]=useState('');const [loading,setLoading]=useState('');const [showDeals,setShowDeals]=useState(false);
     const load=async()=>{if(!cid)return;const d=await api('GET',`/api/crm/snapshot/${cid}`);setSnap(d.data||{});};
     useEffect(()=>{if(cid)load();},[cid]);
     const analyze=async()=>{if(!cid)return;setLoading('a');try{const d=await api('POST','/api/crm/analyze',{client_id:parseInt(cid)});setRes(d.result);}catch(e){alert(e.message);}setLoading('');};
@@ -370,11 +370,17 @@ function CRM({clients}){
                 <button className="btn btn-ik btn-sm" onClick={syncCRM} disabled={!!loading}>{loading==='s'?<><span className="spin"/>...</>:'Sync CRM'}</button>
                 <button className="btn btn-p btn-sm" onClick={analyze} disabled={!!loading}>{loading==='a'?<><span className="spin"/>...</>:'Analisar IA'}</button>
             </div>
-            {snap&&snap.total_deals>0&&<div className="mg">
+            {snap&&snap.total_deals>0&&<div>
+            <div className="mg">
                 <div className="mc"><div className="ml">Total deals</div><div className="mv">{snap.total_deals}</div></div>
                 <div className="mc"><div className="ml">Ganhos</div><div className="mv" style={{color:'var(--g)'}}>{snap.won_deals||0}</div></div>
                 <div className="mc"><div className="ml">Perdidos</div><div className="mv" style={{color:'var(--danger)'}}>{snap.lost_deals||0}</div></div>
+                <div className="mc"><div className="ml">Taxa de vitoria</div><div className="mv" style={{color:Math.round((snap.won_deals||0)/(snap.total_deals||1)*100)>=50?'var(--g)':'var(--warn)'}}>{Math.round((snap.won_deals||0)/(snap.total_deals||1)*100)}%</div></div>
                 <div className="mc"><div className="ml">Receita</div><div className="mv" style={{fontSize:16}}>R$ {(snap.total_revenue||0).toLocaleString('pt-BR',{maximumFractionDigits:0})}</div></div>
+            </div>
+            {snap.recent_deals&&snap.recent_deals.length>0&&<div style={{marginTop:'1rem'}}><button className="btn btn-sm" onClick={()=>setShowDeals(!showDeals)}>Deals Recentes ({snap.recent_deals.length})</button>
+            {showDeals&&<div className="card" style={{marginTop:'1rem'}}><div className="ct">Deals Recentes</div>{snap.recent_deals.slice(0,10).map((d,i)=><div key={i} className="crow"><div className="av" style={{background:d.win?'#E1F5EE':'#FCEBEB',color:d.win?'#0F6E56':'#A32D2D'}}>💰</div><div style={{flex:1}}><div style={{fontWeight:500,fontSize:13}}>{d.name||'Deal'}</div><div style={{fontSize:11,color:'var(--ink3)'}}>R$ {(d.amount||0).toLocaleString('pt-BR',{maximumFractionDigits:0})}</div></div><span className={`badge badge-${d.win?'g':'r'}`}>{d.win?'Ganho':'Perdido'}</span></div>)}</div>}
+            </div>}
             </div>}
             {res&&<div className="res">{res}</div>}
             {!snap?.total_deals&&!res&&cid&&<p style={{fontSize:13,color:'var(--ink3)'}}>Configure o Token CRM nas configurações do cliente e clique em Sync CRM.</p>}
