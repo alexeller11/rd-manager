@@ -46,10 +46,9 @@ app.include_router(scheduler.router,   prefix="/api/scheduler", tags=["scheduler
 app.include_router(campaign.router,    prefix="/api/campaign",  tags=["campaign"])
 app.include_router(oauth.router,       prefix="/oauth",         tags=["oauth"])
 
-# Debug router: apenas se DEBUG_MODE=true
-if os.environ.get("DEBUG_MODE", "").lower() == "true":
-    from app.routers import debug
-    app.include_router(debug.router, prefix="/api/debug", tags=["debug"])
+# Debug router: habilitado temporariamente para diagnóstico
+from app.routers import debug
+app.include_router(debug.router, prefix="/api/debug", tags=["debug"])
 
 # ─── Static files ─────────────────────────────────────────────────────────────
 os.makedirs("app/static", exist_ok=True)

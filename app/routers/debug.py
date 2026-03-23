@@ -22,7 +22,9 @@ async def debug_info():
             "gemini_key_set": bool(GEMINI_API_KEY),
             "groq_key_set": bool(GROQ_API_KEY),
             "openai_key_preview": f"{OPENAI_API_KEY[:6]}...{OPENAI_API_KEY[-4:]}" if OPENAI_API_KEY and len(OPENAI_API_KEY) > 10 else None,
-            "gemini_key_preview": f"{GEMINI_API_KEY[:6]}...{GEMINI_API_KEY[-4:]}" if GEMINI_API_KEY and len(GEMINI_API_KEY) > 10 else None
+            "gemini_key_preview": f"{GEMINI_API_KEY[:6]}...{GEMINI_API_KEY[-4:]}" if GEMINI_API_KEY and len(GEMINI_API_KEY) > 10 else None,
+            "openai_model": os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+            "gemini_model": os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
         },
         "env_vars": {
             "PORT": os.environ.get("PORT"),
