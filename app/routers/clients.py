@@ -1,3 +1,4 @@
+import json
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -25,12 +26,18 @@ class ClientUpdate(ClientCreate):
 
 
 def _sanitize(client: dict) -> dict:
-    """Remove token bruto da resposta pública."""
-    has_token = bool((client.get("rd_token") or "").strip())
+    """Remove token bruto e adiciona flags de status."""
+    has_mkt = bool((client.get("rd_token") or "").strip())
+    has_crm = bool((client.get("rd_crm_token") or "").strip())
+    
     client = dict(client)
-    client["rd_token_set"] = has_token
+    client["rd_token_set"] = has_mkt
+    client["crm_token_set"] = has_crm
+    
+    # Limpa dados sensíveis
     client["rd_token"] = ""
     client["rd_refresh_token"] = ""
+    client["rd_crm_token"] = ""
     return client
 
 
@@ -118,3 +125,44 @@ async def set_rd_token(client_id: int, payload: dict):
         token, "", client_id
     )
     return {"success": True}
+
+
+@router.post("/suggest-data")
+async def suggest_client_data(payload: dict):
+    """Analisa o site do cliente via IA e sugere dados de cadastro."""
+    from app.ai_service import call_ai, SYSTEM_STRATEGIST
+    
+    url = payload.get("website", "").strip()
+    if not url:
+        raise HTTPException(400, "URL do site não informada")
+        
+    if not url.startswith("http"):
+        url = "https://" + url
+        
+    prompt = f"""Analise o site deste cliente e sugira dados para preenchimento de cadastro de marketing.
+    URL: {url}
+    
+    Sugira os seguintes campos em Português do Brasil:
+    1. Segmento (Escolha um: E-commerce, SaaS, Servicos, Educacao, Saude, Varejo, Industria, Outro)
+    2. Descrição curta (máx 200 caracteres)
+    3. Persona/ICP (Público-alvo ideal)
+    4. Tom de voz (Ex: Profissional, Descontraído, Autoritativo)
+    5. Principal dor (O que o cliente resolve?)
+    6. Objeções comuns (Por que não comprariam?)
+    
+    Responda EXCLUSIVAMENTE em formato JSON:
+    {{
+      "segment": "...",
+      "description": "...",
+      "persona": "...",
+      "tone": "...",
+      "main_pain": "...",
+      "objections": "..."
+    }}
+    """
+    result = await call_ai(prompt, system=SYSTEM_STRATEGIST)
+    try:
+        clean_res = result.strip().replace("```json", "").replace("```", "")
+        return json.loads(clean_res)
+    except:
+        return {"error": "IA falhou ao analisar o site", "raw": result}

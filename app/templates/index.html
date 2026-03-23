@@ -137,9 +137,20 @@ function Clients({clients,onRefresh}){
     const SEG=['E-commerce','SaaS','Servicos','Educacao','Saude','Varejo','Industria','Outro'];
     const EMPTY={name:'',segment:'E-commerce',website:'',description:'',persona:'',tone:'',main_pain:'',objections:'',rd_crm_token:''};
     const [show,setShow]=useState(false);const [form,setForm]=useState(EMPTY);const [editing,setEditing]=useState(null);
-    const [rdToken,setRdToken]=useState('');const [saving,setSaving]=useState(false);
-    const open=(c=null)=>{setForm(c?{...c}:EMPTY);setEditing(c?.id||null);setRdToken('');setShow(true);};
-    const save=async()=>{setSaving(true);try{
+	    const [rdToken,setRdToken]=useState('');const [saving,setSaving]=useState(false);
+	    const [suggesting,setSuggesting]=useState(false);
+	    const open=(c=null)=>{setForm(c?{...c}:EMPTY);setEditing(c?.id||null);setRdToken('');setShow(true);};
+	    const suggest=async()=>{
+	        if(!form.website) return alert('Informe o site primeiro');
+	        setSuggesting(true);
+	        try {
+	            const d = await api('POST', '/api/clients/suggest-data', {website: form.website});
+	            if(d.error) throw new Error(d.error);
+	            setForm(prev => ({...prev, ...d}));
+	        } catch(e) { alert('Erro na IA: ' + e.message); }
+	        setSuggesting(false);
+	    };
+	    const save=async()=>{setSaving(true);try{
         const payload={...form};if(rdToken.trim())payload.rd_token=rdToken.trim();
         const res=await api(editing?'PUT':'POST',editing?`/api/clients/${editing}`:'/api/clients/',payload);
         if(!editing)setEditing(res.id);await onRefresh();alert(editing?'Atualizado com sucesso!':'Cliente criado!');
@@ -154,7 +165,12 @@ function Clients({clients,onRefresh}){
             <div className="ct">{editing?'Editar':'Novo'} Cliente</div>
             <div className="two"><div className="field"><label>Nome *</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></div>
             <div className="field"><label>Segmento</label><select value={form.segment} onChange={e=>setForm({...form,segment:e.target.value})}>{SEG.map(s=><option key={s}>{s}</option>)}</select></div></div>
-            <div className="two"><div className="field"><label>Website</label><input value={form.website||''} onChange={e=>setForm({...form,website:e.target.value})} placeholder="https://"/></div>
+	            <div className="two"><div className="field"><label>Website</label>
+	                <div style={{display:'flex',gap:8}}>
+	                    <input style={{flex:1}} value={form.website||''} onChange={e=>setForm({...form,website:e.target.value})} placeholder="https://"/>
+	                    <button className="btn btn-sm" onClick={suggest} disabled={suggesting}>{suggesting ? <span className="spin spin-d"/> : '🪄 Sugerir com IA'}</button>
+	                </div>
+	            </div>
             <div className="field"><label>Token CRM RD Station</label><input type="password" value={form.rd_crm_token||''} onChange={e=>setForm({...form,rd_crm_token:e.target.value})} placeholder="Token do CRM (opcional)"/></div></div>
             <div className="field"><label>Descrição do negócio</label><textarea value={form.description||''} onChange={e=>setForm({...form,description:e.target.value})} rows={3}/></div>
             <div className="field"><label>Persona / ICP</label><textarea value={form.persona||''} onChange={e=>setForm({...form,persona:e.target.value})} rows={2} placeholder="Quem é o cliente ideal?"/></div>
@@ -180,13 +196,19 @@ function Clients({clients,onRefresh}){
             <div style={{display:'flex',gap:10}}><button className="btn btn-p" onClick={save} disabled={saving}>{saving?<><span className="spin"/>Salvando...</>:'Salvar'}</button><button className="btn" onClick={()=>setShow(false)}>Cancelar</button></div>
         </div>}
         <div className="card">{clients.length===0&&<p style={{color:'var(--ink3)',fontSize:13}}>Nenhum cliente cadastrado.</p>}
-            {clients.map(c=><div key={c.id} className="crow">
-                <div className="av" style={{background:'#EEEDFE',color:'#3C3489',width:36,height:36}}>{c.name[0].toUpperCase()}</div>
-                <div style={{flex:1}}><div style={{fontWeight:500,fontSize:13}}>{c.name}</div>
-                <div style={{fontSize:11,color:'var(--ink3)'}}>{c.segment||''} {c.rd_token_set&&<span className="tag">RD MKT</span>}{c.rd_crm_token&&<span className="tag">CRM</span>}</div></div>
-                <button className="btn btn-sm" onClick={()=>open(c)}>Editar</button>
-                <button className="btn btn-sm btn-d" onClick={()=>del(c.id)}>Excluir</button>
-            </div>)}
+	            {clients.map(c=><div key={c.id} className="crow">
+	                <div className="av" style={{background:'#EEEDFE',color:'#3C3489',width:36,height:36}}>{c.name[0].toUpperCase()}</div>
+	                <div style={{flex:1}}><div style={{fontWeight:600,fontSize:13,display:'flex',alignItems:'center',gap:8}}>
+	                    {c.name}
+	                    <div style={{display:'flex',gap:4}}>
+	                        <span title={c.rd_token_set ? 'RD Marketing Ativo' : 'RD Marketing Ausente'} style={{fontSize:12, color: c.rd_token_set ? 'var(--g)' : 'var(--danger)'}}>{c.rd_token_set ? '●' : '○'}</span>
+	                        <span title={c.crm_token_set ? 'CRM Ativo' : 'CRM Ausente'} style={{fontSize:12, color: c.crm_token_set ? 'var(--info)' : 'var(--danger)'}}>{c.crm_token_set ? '■' : '□'}</span>
+	                    </div>
+	                </div>
+	                <div style={{fontSize:11,color:'var(--ink3)'}}>{c.segment||''} {c.website}</div></div>
+	                <button className="btn btn-sm" onClick={()=>open(c)}>Editar</button>
+	                <button className="btn btn-sm btn-d" onClick={()=>del(c.id)}>Excluir</button>
+	            </div>)}
         </div>
     </div>);
 }
