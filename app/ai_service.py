@@ -1,5 +1,5 @@
 """
-Serviço de IA — Google Gemini Pro (Principal) com Fallback.
+Serviço de IA — OpenAI (Principal) com Fallback para Gemini e Groq.
 """
 import os
 import httpx
@@ -8,17 +8,18 @@ import google.generativeai as genai
 from typing import Optional
 
 # Configurações das APIs
+# Prioridade: OpenAI > Gemini > Groq
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-pro")
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
 GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
-OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o")
 
 # URLs para Fallback
-GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 # Configura o SDK do Gemini se a chave estiver presente
 if GEMINI_API_KEY:
@@ -26,11 +27,38 @@ if GEMINI_API_KEY:
 
 async def call_ai(prompt: str, system: str = None, max_tokens: int = 2000) -> str:
     """
-    Chama a API do Gemini Pro como principal. 
-    Se falhar, tenta Groq e OpenAI como fallback.
+    Chama a API da OpenAI como principal. 
+    Se falhar, tenta Gemini e Groq como fallback.
     """
     
-    # 1. Tentar Gemini Pro primeiro (se configurado)
+    # Mensagens para o formato OpenAI
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": prompt[:20000]})
+
+    # 1. Tentar OpenAI primeiro (Mais estável no Manus)
+    if OPENAI_API_KEY:
+        try:
+            payload = {
+                "model": OPENAI_MODEL,
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": 0.7,
+            }
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(
+                    OPENAI_URL,
+                    headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"},
+                    json=payload,
+                )
+                if resp.status_code == 200:
+                    return resp.json()["choices"][0]["message"]["content"]
+                print(f"Erro OpenAI: {resp.status_code} - {resp.text}")
+        except Exception as e:
+            print(f"Erro OpenAI: {e}")
+
+    # 2. Tentar Gemini Pro (Fallback 1)
     if GEMINI_API_KEY:
         try:
             model = genai.GenerativeModel(
@@ -41,9 +69,6 @@ async def call_ai(prompt: str, system: str = None, max_tokens: int = 2000) -> st
                 max_output_tokens=max_tokens,
                 temperature=0.7
             )
-            # Nota: O SDK do Google AI Studio é síncrono para chamadas simples, 
-            # mas usamos a versão assíncrona se disponível ou rodamos em thread se necessário.
-            # Aqui usamos a versão simplificada para garantir funcionamento.
             response = model.generate_content(
                 prompt[:30000], 
                 generation_config=generation_config
@@ -53,44 +78,27 @@ async def call_ai(prompt: str, system: str = None, max_tokens: int = 2000) -> st
         except Exception as e:
             print(f"Erro Gemini: {e}")
 
-    # 2. Lista de Fallbacks
-    fallbacks = []
+    # 3. Tentar Groq (Fallback 2)
     if GROQ_API_KEY:
-        fallbacks.append({"name": "Groq", "key": GROQ_API_KEY, "url": GROQ_URL, "model": GROQ_MODEL})
-    if OPENAI_API_KEY:
-        fallbacks.append({"name": "OpenAI", "key": OPENAI_API_KEY, "url": OPENAI_URL, "model": OPENAI_MODEL})
-
-    if not GEMINI_API_KEY and not fallbacks:
-        return "⚠️ Erro: Configure GEMINI_API_KEY no Railway para habilitar a IA."
-
-    # 3. Executar Fallbacks
-    messages = []
-    if system:
-        messages.append({"role": "system", "content": system})
-    messages.append({"role": "user", "content": prompt[:20000]})
-
-    last_error = "Gemini falhou"
-    for api_config in fallbacks:
         try:
             payload = {
-                "model": api_config["model"],
+                "model": GROQ_MODEL,
                 "messages": messages,
                 "max_tokens": max_tokens,
                 "temperature": 0.7,
             }
             async with httpx.AsyncClient(timeout=60.0) as client:
                 resp = await client.post(
-                    api_config["url"],
-                    headers={"Authorization": f"Bearer {api_config['key']}", "Content-Type": "application/json"},
+                    GROQ_URL,
+                    headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
                     json=payload,
                 )
                 if resp.status_code == 200:
                     return resp.json()["choices"][0]["message"]["content"]
-                last_error = f"{api_config['name']} ({resp.status_code})"
         except Exception as e:
-            last_error = f"Erro {api_config['name']}: {str(e)[:50]}"
+            print(f"Erro Groq: {e}")
     
-    return f"❌ IA Indisponível. Erro: {last_error}. Verifique GEMINI_API_KEY."
+    return "❌ IA Indisponível. Verifique suas chaves de API (OpenAI, Gemini ou Groq) no Railway."
 
 
 # --- Personas ---

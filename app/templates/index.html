@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>RD Manager IA v4.5 - Full Edition</title>
+    <title>RD Manager IA v4.6 - Enterprise</title>
     <script>
         (function() {
             const noop = () => {};
@@ -63,6 +63,8 @@
         .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
         .login-box{background:var(--paper);border:1px solid var(--bd);border-radius:18px;padding:2.5rem 2.25rem;width:100%;max-width:370px}
         .err{background:#FCEBEB;border:1px solid #f7c1c1;color:#A32D2D;border-radius:8px;padding:9px 13px;font-size:13px;margin-bottom:1rem}
+        .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
+        .dot-g{background:var(--g)}.dot-r{background:var(--danger)}
     </style>
 </head>
 <body>
@@ -215,7 +217,27 @@
                             <div style={{display:'flex',gap:10}}><button className="btn btn-p" onClick={save} disabled={saving}>{saving ? <span className="spin"/> : 'Salvar'}</button><button className="btn" onClick={() => setShow(false)}>Cancelar</button></div>
                         </div>
                     )}
-                    <div className="card">{clients.map(c => (<div key={c.id} className="crow"><div className="av" style={{background:'#EEEDFE',color:'#3C3489'}}>{c.name[0].toUpperCase()}</div><div style={{flex:1}}><div style={{fontWeight:500}}>{c.name}</div><div style={{fontSize:11,color:'var(--ink3)'}}>{c.segment}</div></div><div style={{display:'flex',gap:8}}><button className="btn btn-sm" onClick={() => open(c)}>Editar</button><button className="btn btn-sm btn-d" onClick={() => del(c.id)}>Excluir</button></div></div>))}</div>
+                    <div className="card">
+                        {clients.map(c => (
+                            <div key={c.id} className="crow">
+                                <div className="av" style={{background:'#EEEDFE',color:'#3C3489'}}>{c.name[0].toUpperCase()}</div>
+                                <div style={{flex:1}}>
+                                    <div style={{fontWeight:500, display:'flex', alignItems:'center'}}>
+                                        {c.name}
+                                        <span style={{marginLeft:8, fontSize:10, display:'flex', alignItems:'center'}}>
+                                            <span className={`dot ${c.rd_token_set ? 'dot-g' : 'dot-r'}`}></span>
+                                            {c.rd_token_set ? 'RD Conectado' : 'RD Desconectado'}
+                                        </span>
+                                    </div>
+                                    <div style={{fontSize:11,color:'var(--ink3)'}}>{c.segment} | {c.website || 'Sem site'}</div>
+                                </div>
+                                <div style={{display:'flex',gap:8}}>
+                                    <button className="btn btn-sm" onClick={() => open(c)}>Editar</button>
+                                    <button className="btn btn-sm btn-d" onClick={() => del(c.id)}>Excluir</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             );
         }
@@ -241,7 +263,7 @@
                             <button className="btn" onClick={() => run('cro')} disabled={loading}>CRO & Conversão</button>
                         </div>
                     </div>
-                    {loading && <div className="card"><span className="spin spin-d"/>Gerando análise...</div>}
+                    {loading && <div className="card"><span className="spin spin-d"/>Gerando análise estratégica...</div>}
                     {res && <div className="card"><div className="res">{res}</div></div>}
                 </div>
             );
@@ -275,7 +297,7 @@
                         </div>
                         <button className="btn btn-p" onClick={generate} disabled={loading}>Gerar E-mail</button>
                     </div>
-                    {loading && <div className="card"><span className="spin spin-d"/>Escrevendo copy...</div>}
+                    {loading && <div className="card"><span className="spin spin-d"/>Escrevendo copy persuasiva...</div>}
                     {res && <div className="card"><div className="res">{res}</div></div>}
                 </div>
             );
@@ -300,7 +322,7 @@
                         <div className="field"><label>Objetivo da Campanha</label><input value={obj} onChange={e => setObj(e.target.value)} placeholder="Ex: Lançamento de novo produto" /></div>
                         <button className="btn btn-p" onClick={plan} disabled={loading}>Criar Plano</button>
                     </div>
-                    {loading && <div className="card"><span className="spin spin-d"/>Planejando...</div>}
+                    {loading && <div className="card"><span className="spin spin-d"/>Planejando campanha...</div>}
                     {res && <div className="card"><div className="res">{res}</div></div>}
                 </div>
             );
@@ -327,7 +349,7 @@
                             <button className="btn" onClick={() => run('competitor/analyze')} disabled={loading}>Análise Concorrentes</button>
                         </div>
                     </div>
-                    {loading && <div className="card"><span className="spin spin-d"/>Processando inteligência...</div>}
+                    {loading && <div className="card"><span className="spin spin-d"/>Processando inteligência de dados...</div>}
                     {res && <div className="card"><div className="res">{res}</div></div>}
                 </div>
             );
@@ -352,7 +374,7 @@
                         <div className="field"><label>Objetivo do Fluxo</label><input value={obj} onChange={e => setObj(e.target.value)} placeholder="Ex: Recuperação de carrinho" /></div>
                         <button className="btn btn-p" onClick={generate} disabled={loading}>Gerar Fluxo</button>
                     </div>
-                    {loading && <div className="card"><span className="spin spin-d"/>Desenhando fluxo...</div>}
+                    {loading && <div className="card"><span className="spin spin-d"/>Desenhando jornada...</div>}
                     {res && (
                         <div className="card">
                             <div className="ct">{res.name}</div>
@@ -391,7 +413,7 @@
                         </div>
                         <button className="btn btn-p" onClick={generate} disabled={loading}>Gerar Relatório</button>
                     </div>
-                    {loading && <div className="card"><span className="spin spin-d"/>Compilando dados...</div>}
+                    {loading && <div className="card"><span className="spin spin-d"/>Compilando dados executivos...</div>}
                     {res && <div className="card"><div className="res">{res}</div></div>}
                 </div>
             );

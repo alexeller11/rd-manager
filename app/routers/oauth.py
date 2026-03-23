@@ -105,10 +105,16 @@ async def oauth_callback(code: str = None, state: str = None, error: str = None)
 
     if client_id and access_token:
         try:
+            print(f"DEBUG OAuth: Salvando token para cliente {client_id}")
             await save_mkt_token(client_id, access_token, refresh_token)
+            print(f"DEBUG OAuth: Token salvo com sucesso!")
         except Exception as e:
             import traceback
             err_stack = traceback.format_exc()
+            print(f"DEBUG OAuth: ERRO ao salvar token: {e}")
             return HTMLResponse(_error_html(f"Erro ao salvar token no banco: {str(e)}<br><pre>{err_stack}</pre>"))
+    else:
+        print(f"DEBUG OAuth: Falha - client_id={client_id}, access_token={'presente' if access_token else 'ausente'}")
+        return HTMLResponse(_error_html(f"Falha na identificação do cliente ou token vazio. client_id={client_id}"))
 
     return HTMLResponse(_success_html(client_id, "RD Marketing"))
