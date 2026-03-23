@@ -7,7 +7,7 @@ RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 COPY . /code
 
-# Railway fornece a variável PORT automaticamente
-CMD sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --timeout-keep-alive 65"
+# O Railway injeta a variável PORT. Usamos 0.0.0.0 para aceitar conexões externas.
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
 
 # Healthcheck é gerenciado pelo railway.json ou plataforma de deploy

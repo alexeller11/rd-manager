@@ -97,6 +97,7 @@ async def call_ai(prompt: str, system: str = None, max_tokens: int = 2000) -> st
 SYSTEM_EXPERT = "Você é um Consultor de Marketing Estratégico Sênior. Responda em Português do Brasil com foco em resultados reais."
 SYSTEM_STRATEGIST = "Você é um Estrategista de Growth focado em funil de vendas e CRM. Responda em Português do Brasil."
 SYSTEM_SEO = "Você é um Especialista em SEO Técnico e Estratégico (AEO/GEO). Responda em Português do Brasil com foco em visibilidade e autoridade."
+SYSTEM_COPYWRITER = "Você é um Copywriter de Resposta Direta focado em conversão e persuasão. Responda em Português do Brasil com foco em vendas."
 
 def build_client_context(client: dict) -> str:
     """Constrói contexto do cliente para a IA."""
