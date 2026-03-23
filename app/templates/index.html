@@ -376,6 +376,14 @@ function CRM({clients}){
     </div>);
 }
 
+function Leads({clients}){
+    const [cid,setCid]=useState('');const [leads,setLeads]=useState([]);const [segId,setSegId]=useState('');const [segs,setSegs]=useState([]);const [loading,setLoading]=useState(false);const [page,setPage]=useState(1);
+    const loadSegs=async()=>{if(!cid)return;try{const d=await api('GET',`/api/rd/snapshot/${cid}`);setSegs(d.data?.segmentations||[]);}catch(e){}};
+    const loadLeads=async()=>{if(!cid)return;setLoading(true);try{const d=await api('GET',`/api/rd/leads-analysis/${cid}?page=${page}&seg_id=${segId}`);setLeads(d.leads||[]);}catch(e){alert(e.message);}setLoading(false);};
+    useEffect(()=>{loadSegs();},[cid]);useEffect(()=>{loadLeads();},[cid,segId,page]);
+    return(<div><div className="ph"><h1>Leads e Segmentacoes</h1><p className="sub">Visualize e analise sua base de leads</p></div><div className="card"><div className="two" style={{marginBottom:'1rem'}}><div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div><div className="field"><label>Segmentacao (opcional)</label><select value={segId} onChange={e=>setSegId(e.target.value)}><option value="">Todos os leads</option>{segs.map(s=><option key={s.id} value={s.id}>{s.name} ({s.contacts})</option>)}</select></div></div>{leads.length>0&&<div><div className="mg"><div className="mc"><div className="ml">Total de Leads</div><div className="mv">{leads.length}</div></div><div className="mc"><div className="ml">Alto Potencial</div><div className="mv" style={{color:'var(--g)'}}>{leads.filter(l=>l.potential==='alto').length}</div></div><div className="mc"><div className="ml">Medio Potencial</div><div className="mv" style={{color:'var(--warn)'}}>{leads.filter(l=>l.potential==='medio').length}</div></div><div className="mc"><div className="ml">Baixo Potencial</div><div className="mv" style={{color:'var(--danger)'}}>{leads.filter(l=>l.potential==='baixo').length}</div></div></div><div className="card" style={{marginTop:'1rem'}}><div className="ct">Leads ({leads.length})</div>{leads.map((l,i)=><div key={i} className="crow"><div className="av" style={{background:l.potential==='alto'?'#E1F5EE':l.potential==='medio'?'#FFF3D6':'#FCEBEB',color:l.potential==='alto'?'#0F6E56':l.potential==='medio'?'#8B5A00':'#A32D2D'}}>{l.score}</div><div style={{flex:1}}><div style={{fontWeight:500,fontSize:13}}>{l.name||'Sem nome'}</div><div style={{fontSize:11,color:'var(--ink3)'}}>{l.email}</div></div><span className={`badge badge-${l.potential==='alto'?'g':l.potential==='medio'?'y':'r'}`}>{l.potential}</span></div>)}</div></div>}</div></div>);
+}
+
 function Sync({clients}){
     const [cid,setCid]=useState('');const [res,setRes]=useState(null);const [loading,setLoading]=useState('');
     const syncRD=async()=>{if(!cid)return alert('Selecione um cliente');setLoading('rd');try{const d=await api('GET',`/api/rd/sync/${cid}`);setRes(d);}catch(e){alert(e.message);}setLoading('');};
@@ -406,11 +414,11 @@ function App(){
     if(!user)return<Login onLogin={u=>setUser(u)}/>;
     const NAV=[
         {s:'Visão Geral',items:[{id:'dashboard',i:'◉',l:'Dashboard'},{id:'clients',i:'◎',l:'Clientes'}]},
-        {s:'RD Marketing',items:[{id:'health',i:'♥',l:'Health Score'},{id:'analysis',i:'◆',l:'Análise Estratégica'},{id:'emails',i:'✉',l:'Email IA'},{id:'flows',i:'⟶',l:'Fluxos'},{id:'intelligence',i:'★',l:'Inteligência'},{id:'reports',i:'≡',l:'Relatórios'},{id:'campaign',i:'⚑',l:'Campanhas'}]},
+        {s:'RD Marketing',items:[{id:'health',i:'♥',l:'Health Score'},{id:'leads',i:'👥',l:'Leads'},{id:'analysis',i:'◆',l:'Análise Estratégica'},{id:'emails',i:'✉',l:'Email IA'},{id:'flows',i:'⟶',l:'Fluxos'},{id:'intelligence',i:'★',l:'Inteligência'},{id:'reports',i:'≡',l:'Relatórios'},{id:'campaign',i:'⚑',l:'Campanhas'}]},
         {s:'RD CRM',items:[{id:'crm',i:'$',l:'CRM & Vendas'}]},
         {s:'Ferramentas',items:[{id:'sync',i:'⟳',l:'Sincronização'}]},
     ];
-    const PAGES={dashboard:<Dashboard clients={clients}/>,clients:<Clients clients={clients} onRefresh={loadClients}/>,health:<Health clients={clients}/>,analysis:<Analysis clients={clients}/>,emails:<Emails clients={clients}/>,flows:<Flows clients={clients}/>,intelligence:<Intelligence clients={clients}/>,reports:<Reports clients={clients}/>,campaign:<Campaign clients={clients}/>,crm:<CRM clients={clients}/>,sync:<Sync clients={clients}/>};
+    const PAGES={dashboard:<Dashboard clients={clients}/>,clients:<Clients clients={clients} onRefresh={loadClients}/>,health:<Health clients={clients}/>,leads:<Leads clients={clients}/>,analysis:<Analysis clients={clients}/>,emails:<Emails clients={clients}/>,flows:<Flows clients={clients}/>,intelligence:<Intelligence clients={clients}/>,reports:<Reports clients={clients}/>,campaign:<Campaign clients={clients}/>,crm:<CRM clients={clients}/>,sync:<Sync clients={clients}/>};
     return(<div>
         <nav className="sb">
             <div className="sb-logo"><div className="logo"><div className="logo-m">RD</div>RD Manager IA v4</div></div>
