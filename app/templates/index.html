@@ -323,26 +323,76 @@ function Flows({clients}){
     const run=async()=>{if(!cid||!obj)return alert('Preencha cliente e objetivo');setLoading(true);setRes(null);
         try{const d=await api('POST','/api/flows/generate',{client_id:parseInt(cid),objective:obj,flow_type:ftype,email_count:emailCount});setRes(d);}catch(e){alert(e.message);}setLoading(false);};
     const generateEmailCopy=async(node)=>{if(!cid||!node)return;setEmailLoading(true);try{const d=await api('POST','/api/emails/generate',{client_id:parseInt(cid),type:'flow',theme:node.label});setGenEmail({node:node.label,copy:d.result});}catch(e){alert(e.message);}setEmailLoading(false)};
-    const NODE_COLOR={trigger:'badge-g',condition:'badge-y',end:'badge-r',email:'badge-b',wait:'',tag:''};
-    return(<div>
-        <div className="ph"><h1>Fluxos de Automação</h1><p className="sub">Crie fluxos de automação com IA</p></div>
-        <div className="card">
-            <div className="three" style={{marginBottom:'1rem'}}>
-                <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>
-                <div className="field"><label>Tipo</label><select value={ftype} onChange={e=>setFtype(e.target.value)}>{FT.map(t=><option key={t.id} value={t.id}>{t.l}</option>)}</select></div>
-                <div className="field"><label>Objetivo</label><input value={obj} onChange={e=>setObj(e.target.value)} placeholder="Ex: Converter leads em 21 dias"/></div>
-            </div>
-            <div className="field" style={{marginBottom:'1rem'}}><label>Quantidade de emails no fluxo</label><input type="number" min="1" max="10" value={emailCount} onChange={e=>setEmailCount(parseInt(e.target.value))}/></div>
-            <button className="btn btn-p" onClick={run} disabled={loading||!cid||!obj}>{loading?<><span className="spin"/>Gerando...</>:'Gerar fluxo'}</button>
-            {res&&<div style={{marginTop:'1.25rem'}}>
-                <div className="ct">{res.name}</div>
-                <p style={{fontSize:13,color:'var(--ink2)',marginBottom:'1rem'}}>{res.description}</p>
-                <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:'1rem'}}>
-	                    {(res.nodes||[]).map((n,i)=><div key={i} style={{border:'1.5px solid var(--bd)',borderRadius:9,padding:'7px 12px',fontSize:12,display:'flex',alignItems:'center',gap:8}}>
-	                        <div style={{flex:1}}><div style={{fontWeight:600,marginBottom:3}}>{n.label}</div><span className={`badge ${NODE_COLOR[n.type]||'badge-b'}`}>{n.type}</span></div>
-	                        {n.type==='email' && <button className="btn btn-sm" onClick={()=>generateEmailCopy(n)} disabled={emailLoading}>Gerar Copy</button>}
-	                    </div>)}
-                </div>
+	    const NODE_COLOR={trigger:'badge-g',condition:'badge-y',end:'badge-r',email:'badge-b',wait:'badge-b',tag:'badge-b'};
+	    return(<div>
+	        <div className="ph"><h1>Fluxos de Automação</h1><p className="sub">Crie fluxos de automação com IA</p></div>
+	        <div className="card">
+	            <div className="three" style={{marginBottom:'1rem'}}>
+	                <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>
+	                <div className="field"><label>Tipo</label><select value={ftype} onChange={e=>setFtype(e.target.value)}>{FT.map(t=><option key={t.id} value={t.id}>{t.l}</option>)}</select></div>
+	                <div className="field"><label>Objetivo</label><input value={obj} onChange={e=>setObj(e.target.value)} placeholder="Ex: Converter leads em 21 dias"/></div>
+	            </div>
+	            <div className="field" style={{marginBottom:'1rem'}}><label>Quantidade de emails no fluxo</label><input type="number" min="1" max="10" value={emailCount} onChange={e=>setEmailCount(parseInt(e.target.value))}/></div>
+	            <button className="btn btn-p" onClick={run} disabled={loading||!cid||!obj}>{loading?<><span className="spin"/>Gerando...</>:'Gerar fluxo'}</button>
+	            {res&&<div style={{marginTop:'2rem'}}>
+	                <div className="ct" style={{fontSize:18,marginBottom:5}}>{res.name}</div>
+	                <p style={{fontSize:13,color:'var(--ink2)',marginBottom:'2rem'}}>{res.description}</p>
+	                
+	                <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:0,maxWidth:600,margin:'0 auto'}}>
+	                    {(res.nodes||[]).map((n,i)=>(
+	                        <React.Fragment key={i}>
+	                            <div style={{
+	                                width:'100%',
+	                                maxWidth:400,
+	                                background:'var(--paper)',
+	                                border:'2px solid var(--bd)',
+	                                borderRadius:12,
+	                                padding:'15px 20px',
+	                                position:'relative',
+	                                boxShadow:'0 4px 6px rgba(0,0,0,0.02)',
+	                                zIndex:2
+	                            }}>
+	                                <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:15}}>
+	                                    <div style={{flex:1}}>
+	                                        <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.05em',color:'var(--ink3)',marginBottom:4,fontWeight:700}}>{n.type}</div>
+	                                        <div style={{fontWeight:700,fontSize:14,color:'var(--ink)'}}>{n.label}</div>
+	                                    </div>
+	                                    <span className={`badge ${NODE_COLOR[n.type]||'badge-b'}`} style={{fontSize:10}}>{n.type==='trigger'?'INÍCIO':n.type==='end'?'FIM':n.type.toUpperCase()}</span>
+	                                </div>
+	                                {n.type==='email' && (
+	                                    <button 
+	                                        className="btn btn-sm btn-p" 
+	                                        style={{marginTop:12,width:'100%',justifyContent:'center'}} 
+	                                        onClick={()=>generateEmailCopy(n)} 
+	                                        disabled={emailLoading}
+	                                    >
+	                                        {emailLoading && genEmail?.node === n.label ? <span className="spin"/> : '✉ Gerar Copy do Email'}
+	                                    </button>
+	                                )}
+	                            </div>
+	                            {i < (res.nodes.length - 1) && (
+	                                <div style={{
+	                                    width:2,
+	                                    height:40,
+	                                    background:'var(--bd2)',
+	                                    position:'relative',
+	                                    zIndex:1
+	                                }}>
+	                                    <div style={{
+	                                        position:'absolute',
+	                                        bottom:-5,
+	                                        left:-4,
+	                                        width:0,
+	                                        height:0,
+	                                        borderLeft:'5px solid transparent',
+	                                        borderRight:'5px solid transparent',
+	                                        borderTop:'8px solid var(--bd2)'
+	                                    }}></div>
+	                                </div>
+	                            )}
+	                        </React.Fragment>
+	                    ))}
+	                </div>
                 {genEmail&&<div style={{background:'var(--gl)',borderRadius:10,padding:'12px 15px',marginTop:'1rem'}}>
                     <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>Email: {genEmail.node}</div>
                     <div className="res" style={{fontSize:12}}>{genEmail.copy}</div>

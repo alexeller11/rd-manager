@@ -6,15 +6,27 @@ import os
 import httpx
 import json
 
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY") or os.environ.get("OPENAI_API_KEY", "")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 
 
 async def call_ai(prompt: str, system: str = None, max_tokens: int = 2000) -> str:
-    """Chama a API do Groq. Retorna string de erro em caso de falha."""
-    if not GROQ_API_KEY:
-        return "Erro: GROQ_API_KEY não configurada. Adicione nas variáveis de ambiente do Railway."
+    """Chama a API do Groq ou OpenAI. Retorna string de erro em caso de falha."""
+    api_key = GROQ_API_KEY
+    url = GROQ_URL
+    model = GROQ_MODEL
+
+    # Fallback para OpenAI se Groq não estiver configurado
+    if not api_key and OPENAI_API_KEY:
+        api_key = OPENAI_API_KEY
+        url = OPENAI_URL
+        model = "gpt-4o"
+
+    if not api_key:
+        return "Erro: Nenhuma chave de API (GROQ ou OPENAI) configurada. Adicione nas variáveis de ambiente do Railway."
 
     messages = []
     if system:

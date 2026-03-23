@@ -42,17 +42,20 @@ async def rd_get(token: str, path: str, params: dict = None, retries: int = 3) -
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
     for attempt in range(retries):
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
                 r = await client.get(f"{RD_API}{path}", headers=headers, params=params or {})
                 if r.status_code == 200:
                     return r.json(), 200, None
-                if r.status_code in (500, 429):
-                    await asyncio.sleep((2 ** attempt) * 1.5)
+                if r.status_code in (500, 502, 503, 504, 429):
+                    await asyncio.sleep((2 ** attempt) * 2)
                     continue
+                # Se for 404 em segmentação, pode ser que a segmentação não exista mais
+                if r.status_code == 404 and "/segmentations/" in path:
+                    return {"contacts": [], "total": 0}, 200, None
                 return None, r.status_code, f"HTTP {r.status_code}: {r.text[:100]}"
         except Exception as e:
             if attempt < retries - 1:
-                await asyncio.sleep(1)
+                await asyncio.sleep(2)
             else:
                 return None, 0, str(e)
     return None, 500, "API RD instável após retries"
@@ -220,19 +223,34 @@ async def diagnose_token(client_id: int):
 async def get_leads_analysis(client_id: int, page: int = 1, page_size: int = 50,
                               seg_id: str = ""):
     token = await get_valid_mkt_token(client_id)
+    if not token:
+        raise HTTPException(400, "Token RD não configurado")
+        
+    # Limpar seg_id se for string vazia ou nula
+    seg_id = str(seg_id).strip() if seg_id else ""
+    if seg_id == "null" or seg_id == "undefined": seg_id = ""
+
     path = f"/platform/segmentations/{seg_id}/contacts" if seg_id else "/platform/contacts"
     data, st, err = await rd_get(token, path, {"page": page, "page_size": page_size})
+    
+    if st != 200:
+        # Fallback para lista geral se a segmentação falhar
+        if seg_id:
+            data, st, err = await rd_get(token, "/platform/contacts", {"page": page, "page_size": page_size})
+            
     if st != 200:
         raise HTTPException(st or 500, f"Erro API RD: {err}")
+        
     contacts_raw = safe_list(data, "contacts", "items")
     leads = []
     for c in contacts_raw:
         convs = safe_int(c.get("conversions") or c.get("conversion_count", 0))
-        score = min(convs * 10, 50)
-        pot = "alto" if score >= 40 else "medio" if score >= 20 else "baixo"
+        # Lógica de score mais robusta
+        score = min(convs * 15, 100) 
+        pot = "alto" if score >= 70 else "medio" if score >= 30 else "baixo"
         leads.append({
             "uuid": c.get("uuid"),
-            "name": c.get("name", "Sem Nome"),
+            "name": c.get("name") or c.get("email", "Lead Sem Nome").split("@")[0],
             "email": c.get("email"),
             "score": score,
             "potential": pot,
