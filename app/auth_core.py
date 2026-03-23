@@ -120,19 +120,25 @@ async def save_mkt_token(client_id: int, access_token: str, refresh_token: str):
     acc = (access_token or "").strip()
     ref = (refresh_token or "").strip()
     
-    # Para PostgreSQL, usamos datetime.utcnow() diretamente em vez de string ISO
-    # O driver asyncpg cuida da conversão para TIMESTAMPTZ
+    print(f"DEBUG save_mkt_token: Iniciando salvamento para cliente {client_id}")
+    print(f"DEBUG save_mkt_token: Token length: {len(acc)}, Refresh length: {len(ref)}")
+    
     from app.database import _is_sqlite
     if _is_sqlite():
         now = datetime.utcnow().isoformat()
     else:
-        # No Postgres, enviamos como datetime objeto para o asyncpg
         now = datetime.utcnow()
     
-    await db_execute(
-        "UPDATE clients SET rd_token=$1, rd_refresh_token=$2, updated_at=$3 WHERE id=$4",
-        acc, ref, now, client_id
-    )
+    try:
+        await db_execute(
+            "UPDATE clients SET rd_token=$1, rd_refresh_token=$2, updated_at=$3 WHERE id=$4",
+            acc, ref, now, client_id
+        )
+        print(f"DEBUG save_mkt_token: UPDATE executado com sucesso para cliente {client_id}")
+    except Exception as e:
+        print(f"DEBUG save_mkt_token: ERRO CRÍTICO ao executar UPDATE: {e}")
+        traceback.print_exc()
+        raise e
 
 
 async def _refresh_mkt_token(client_id: int) -> str:
