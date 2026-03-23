@@ -133,7 +133,8 @@ async def _refresh_mkt_token(client_id: int) -> str:
             r = await http.post(RD_TOKEN_URL, json={
                 "client_id": MKT_CLIENT_ID,
                 "client_secret": MKT_CLIENT_SECRET,
-                "refresh_token": refresh_tok
+                "refresh_token": refresh_tok,
+                "grant_type": "refresh_token"
             })
             if r.status_code == 200:
                 data = r.json()

@@ -64,6 +64,7 @@ async def oauth_callback(code: str = None, state: str = None, error: str = None)
             "client_secret": MKT_CLIENT_SECRET,
             "redirect_uri": REDIRECT_URI,
             "code": code,
+            "grant_type": "authorization_code"
         })
 
     if r.status_code != 200:

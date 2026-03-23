@@ -80,8 +80,13 @@ async def update_client(client_id: int, data: ClientUpdate):
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
     # Preserva token existente se não foi passado novo
-    rd_token = (data.rd_token or "").strip() or existing.get("rd_token")
-    crm_token = (data.rd_crm_token or "").strip() or existing.get("rd_crm_token")
+    rd_token = (data.rd_token or "").strip()
+    if not rd_token:
+        rd_token = existing.get("rd_token")
+    
+    crm_token = (data.rd_crm_token or "").strip()
+    if not crm_token:
+        crm_token = existing.get("rd_crm_token")
 
     await db_execute(
         """UPDATE clients SET

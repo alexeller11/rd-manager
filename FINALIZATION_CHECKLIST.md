@@ -47,6 +47,10 @@
 - [x] **Protocolo HTTPS em OAuth**: URLs de callback agora incluem `https://` para Railway
 - [x] **CORS com Railway**: Variável `RAILWAY_STATIC_URL` prefixada com `https://`
 - [x] **Commits no GitHub**: Todas as correções enviadas para `main`
+- [x] **Grant Type em OAuth**: Adicionado `grant_type` nas trocas de token do RD Station.
+- [x] **BackgroundTasks no Scheduler**: Corrigido o disparo de tarefas em segundo plano.
+- [x] **Mapeamento do Frontend**: Corrigido erro de sintaxe no carregamento das páginas no `index.html`.
+- [x] **Preservação de Tokens**: Corrigida a lógica de atualização de clientes para não perder tokens existentes.
 
 ---
 

@@ -198,7 +198,7 @@ async def get_snapshot(client_id: int):
 
 
 @router.get("/diagnose/{client_id}")
-async def diagnose(client_id: int):
+async def diagnose_token(client_id: int):
     token = await get_valid_mkt_token(client_id)
     if not token:
         return [{"name": "Token", "status": 0, "ok": False, "error": "Token não configurado"}]
@@ -210,7 +210,8 @@ async def diagnose(client_id: int):
     ]
     results = []
     for label, path in endpoints:
-        _, st, err = await rd_get(token, path, {"page_size": 1})
+        data, st, err = await rd_get(token, path, {"page_size": 1})
+        # Se retornar 200, está OK.
         results.append({"name": label, "status": st, "ok": st == 200, "error": err})
     return results
 

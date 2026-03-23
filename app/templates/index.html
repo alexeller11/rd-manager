@@ -432,7 +432,7 @@ function App(){
         {s:'RD CRM',items:[{id:'crm',i:'$',l:'CRM & Vendas'}]},
         {s:'Ferramentas',items:[{id:'sync',i:'⟳',l:'Sincronização'}]},
     ];
-    const PAGES={dashboard:<Dashboard clients={clients}/>,clients:<Clients clients={clients} onRefresh={loadClients}/>,health:<Health clients={clients}/>,leads:<Leads clients={clients}/>,\'landing-pages\':<LandingPages clients={clients}/>,analysis:<Analysis clients={clients}/>,emails:<Emails clients={clients}/>,flows:<Flows clients={clients}/>,intelligence:<Intelligence clients={clients}/>,reports:<Reports clients={clients}/>,campaign:<Campaign clients={clients}/>,crm:<CRM clients={clients}/>,sync:<Sync clients={clients}/>};
+    const PAGES={dashboard:<Dashboard clients={clients}/>,clients:<Clients clients={clients} onRefresh={loadClients}/>,health:<Health clients={clients}/>,leads:<Leads clients={clients}/>,'landing-pages':<LandingPages clients={clients}/>,analysis:<Analysis clients={clients}/>,emails:<Emails clients={clients}/>,flows:<Flows clients={clients}/>,intelligence:<Intelligence clients={clients}/>,reports:<Reports clients={clients}/>,campaign:<Campaign clients={clients}/>,crm:<CRM clients={clients}/>,sync:<Sync clients={clients}/>};
     return(<div>
         <nav className="sb">
             <div className="sb-logo"><div className="logo"><div className="logo-m">RD</div>RD Manager IA v4</div></div>

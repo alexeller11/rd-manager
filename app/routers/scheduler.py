@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 from app.database import db_fetchall
 
 router = APIRouter()
@@ -16,12 +16,10 @@ async def scheduler_status():
 
 
 @router.post("/run-weekly")
-async def trigger_weekly_all():
+async def trigger_weekly_all(background_tasks: BackgroundTasks):
     """Atalho para disparar análise semanal de todos os clientes."""
-    from fastapi import BackgroundTasks
     from app.routers.intelligence import run_weekly_analysis_job
     clients = await db_fetchall("SELECT id FROM clients")
     for c in clients:
-        import asyncio
-        asyncio.create_task(run_weekly_analysis_job(c["id"]))
+        background_tasks.add_task(run_weekly_analysis_job, c["id"])
     return {"message": f"Análise iniciada para {len(clients)} clientes."}
