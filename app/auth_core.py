@@ -119,9 +119,15 @@ async def save_mkt_token(client_id: int, access_token: str, refresh_token: str):
     # Garantir que os tokens não sejam None
     acc = (access_token or "").strip()
     ref = (refresh_token or "").strip()
+    
+    # Para PostgreSQL, usamos datetime.utcnow() diretamente em vez de string ISO
+    # O driver asyncpg cuida da conversão para TIMESTAMPTZ
+    from app.database import _is_sqlite
+    now = datetime.utcnow() if not _is_sqlite() else datetime.utcnow().isoformat()
+    
     await db_execute(
         "UPDATE clients SET rd_token=$1, rd_refresh_token=$2, updated_at=$3 WHERE id=$4",
-        acc, ref, datetime.utcnow().isoformat(), client_id
+        acc, ref, now, client_id
     )
 
 

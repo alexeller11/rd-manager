@@ -99,6 +99,11 @@ async def oauth_callback(code: str = None, state: str = None, error: str = None)
     refresh_token = data.get("refresh_token", "")
 
     if client_id and access_token:
-        await save_mkt_token(client_id, access_token, refresh_token)
+        try:
+            await save_mkt_token(client_id, access_token, refresh_token)
+        except Exception as e:
+            import traceback
+            err_stack = traceback.format_exc()
+            return HTMLResponse(_error_html(f"Erro ao salvar token no banco: {str(e)}<br><pre>{err_stack}</pre>"))
 
     return HTMLResponse(_success_html(client_id, "RD Marketing"))
