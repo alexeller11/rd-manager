@@ -148,7 +148,7 @@ function Clients({clients,onRefresh}){
             <button className="btn btn-p" onClick={()=>open()}>+ Novo Cliente</button>
         </div>
         {show&&<div className="card">
-            <div className="ct">{editing?'Editar':'Novo'} Cliente</div>
+            <div className="ct">{editing?'Editar Cliente':'Novo Cliente'}</div>
             <div className="two"><div className="field"><label>Nome *</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></div>
             <div className="field"><label>Segmento</label><select value={form.segment} onChange={e=>setForm({...form,segment:e.target.value})}>{SEG.map(s=><option key={s}>{s}</option>)}</select></div></div>
             <div className="two"><div className="field"><label>Website</label><div style={{display:'flex',gap:8}}><input style={{flex:1}} value={form.website||''} onChange={e=>setForm({...form,website:e.target.value})} placeholder="https://"/><button className="btn btn-sm" onClick={suggest} disabled={suggesting}>{suggesting?<span className="spin spin-d"/>:'🪄 Sugerir com IA'}</button></div></div>
@@ -260,7 +260,7 @@ function App(){
     return(<div style={{display:'flex'}}>
         <nav className="sb">
             <div className="sb-logo"><div className="logo"><div className="logo-m">RD</div>RD Manager IA</div></div>
-            <div className="sb-user"><span>{user.username}</span><button onClick={()=>{setToken(null);window.location.reload();}} style={{background:'none',border:'none',color:'inherit',cursor:'pointer'}}>Sair</button></div>
+            <div className="sb-user"><span>{user.username}</span>{user.is_admin&&<span className="badge badge-g">Admin</span>}</div>
             <div className="sb-body">
                 <div className="ns">Principal</div>
                 <button className={`nb ${page==='dashboard'?'active':''}`} onClick={()=>setPage('dashboard')}><span className="ni">📊</span>Dashboard</button>

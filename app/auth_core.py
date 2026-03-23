@@ -185,6 +185,11 @@ async def get_valid_mkt_token(client_id: int) -> str:
                     if new_token:
                         _token_cache[client_id] = new_token
                     return new_token
+            if r.status_code == 400:
+                # Token malformado ou revogado que não permite nem o check
+                await db_execute("UPDATE clients SET rd_token='', rd_refresh_token='' WHERE id=$1", client_id)
+                _token_cache.pop(client_id, None)
+                return ""
         except Exception as e:
             await _log_error(client_id, "check_token", "GET", e)
 

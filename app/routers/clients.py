@@ -63,14 +63,17 @@ async def get_client(client_id: int):
 async def create_client(data: ClientCreate):
     token = (data.rd_token or "").strip() or None
     crm_token = (data.rd_crm_token or "").strip() or None
+    
+    # Se um novo token for definido manualmente, limpamos o refresh token antigo
+    rd_refresh_token = "" if token else None
 
     client_id = await db_fetchval(
         """INSERT INTO clients
-           (name, segment, website, description, rd_token, rd_account_id,
+           (name, segment, website, description, rd_token, rd_refresh_token, rd_account_id,
             persona, tone, main_pain, objections, rd_crm_token)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id""",
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id""",
         data.name, data.segment, data.website, data.description,
-        token, data.rd_account_id,
+        token, rd_refresh_token, data.rd_account_id,
         data.persona, data.tone, data.main_pain, data.objections, crm_token
     )
     result = data.model_dump()
@@ -86,14 +89,20 @@ async def update_client(client_id: int, data: ClientUpdate):
     if not existing:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
-    # Preserva token existente se não foi passado novo
-    rd_token = (data.rd_token or "").strip()
-    if not rd_token:
+    # Se o token foi enviado (mesmo vazio), atualiza. Se não enviado (None), preserva.
+    rd_token = data.rd_token
+    if rd_token is None:
         rd_token = existing.get("rd_token")
-    
+    else:
+        rd_token = rd_token.strip()
+
     crm_token = (data.rd_crm_token or "").strip()
     if not crm_token:
         crm_token = existing.get("rd_crm_token")
+
+    # Se o rd_token mudou e foi fornecido um valor não nulo, limpamos o refresh_token
+    if data.rd_token is not None:
+        await db_execute("UPDATE clients SET rd_refresh_token = '' WHERE id = $1", client_id)
 
     await db_execute(
         """UPDATE clients SET
