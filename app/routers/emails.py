@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from app.database import db_fetchone, db_fetchall, db_fetchval, parse_json_field
-from app.ai_service import call_ai, build_client_context, SYSTEM_COPYWRITER, SYSTEM_STRATEGIST, get_benchmarks
+from app.ai_service import call_ai, build_client_context, SYSTEM_COPYWRITER, SYSTEM_STRATEGIST
 from app.routers.clients import fetch_client
 
 router = APIRouter()
@@ -44,7 +44,7 @@ async def generate_email(req: EmailRequest):
     rd_data = parse_json_field(snap_row["data"]) if snap_row else {}
     client["rd_data"] = rd_data
     context = build_client_context(client)
-    benchmarks = get_benchmarks(client.get("segment", "Outro"))
+    benchmarks = {"open_rate": 20, "click_rate": 2}
 
     if req.type == "strategy":
         return await _generate_strategy(req, client, context, benchmarks)
@@ -184,7 +184,7 @@ async def generate_segmentation(req: EmailRequest):
     rd_data = parse_json_field(snap_row["data"]) if snap_row else {}
     client["rd_data"] = rd_data
     context = build_client_context(client)
-    benchmarks = get_benchmarks(client.get("segment", "Outro"))
+    benchmarks = {"open_rate": 20, "click_rate": 2}
     segs_info = ""
     if rd_data.get("segmentations"):
         segs_info = "\n\nSEGMENTAÇÕES JA EXISTENTES:\n" + "\n".join(
