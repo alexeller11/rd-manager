@@ -1,5 +1,6 @@
 """
 Serviço de IA — Groq (Prioridade Atual) com Fallback para OpenAI e Gemini.
+Resiliente a erros de autenticação (401).
 """
 import os
 import httpx
@@ -8,7 +9,6 @@ import google.generativeai as genai
 from typing import Optional
 
 # Configurações das APIs
-# No seu Railway, apenas GROQ_API_KEY está configurada (groq_key_set: true)
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -30,17 +30,16 @@ if GEMINI_API_KEY:
 
 async def call_ai(prompt: str, system: str = None, max_tokens: int = 2000) -> str:
     """
-    Tenta as IAs na ordem de disponibilidade das chaves.
-    Atualmente no seu Railway: Groq > OpenAI > Gemini.
+    Tenta as IAs na ordem de disponibilidade.
+    Resiliente a erros 401 (chave inválida).
     """
     
-    # Mensagens para o formato OpenAI/Groq
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt[:20000]})
 
-    # 1. Tentar Groq (Única chave presente no seu diagnóstico)
+    # 1. Tentar Groq
     if GROQ_API_KEY:
         try:
             payload = {
@@ -58,15 +57,14 @@ async def call_ai(prompt: str, system: str = None, max_tokens: int = 2000) -> st
                 if resp.status_code == 200:
                     return resp.json()["choices"][0]["message"]["content"]
                 
-                # Se der 401 (Unauthorized), a chave Groq está errada ou expirou
                 if resp.status_code == 401:
                     print(f"⚠️ Erro 401 na Groq: Chave inválida ou expirada.")
                 else:
-                    print(f"Erro Groq: {resp.status_code} - {resp.text}")
+                    print(f"Erro Groq: {resp.status_code}")
         except Exception as e:
             print(f"Erro ao chamar Groq: {e}")
 
-    # 2. Tentar OpenAI (Fallback 1)
+    # 2. Tentar OpenAI
     if OPENAI_API_KEY:
         try:
             payload = {
@@ -87,31 +85,18 @@ async def call_ai(prompt: str, system: str = None, max_tokens: int = 2000) -> st
         except Exception as e:
             print(f"Erro OpenAI: {e}")
 
-    # 3. Tentar Gemini (Fallback 2)
+    # 3. Tentar Gemini
     if GEMINI_API_KEY:
         try:
-            model = genai.GenerativeModel(
-                model_name=GEMINI_MODEL,
-                system_instruction=system
-            )
-            generation_config = genai.types.GenerationConfig(
-                max_output_tokens=max_tokens,
-                temperature=0.7
-            )
-            response = model.generate_content(
-                prompt[:30000], 
-                generation_config=generation_config
-            )
+            model = genai.GenerativeModel(model_name=GEMINI_MODEL, system_instruction=system)
+            generation_config = genai.types.GenerationConfig(max_output_tokens=max_tokens, temperature=0.7)
+            response = model.generate_content(prompt[:30000], generation_config=generation_config)
             if response and response.text:
                 return response.text
         except Exception as e:
             print(f"Erro Gemini: {e}")
     
-    # Se chegamos aqui, nada funcionou
-    if not GROQ_API_KEY and not OPENAI_API_KEY and not GEMINI_API_KEY:
-        return "❌ Nenhuma chave de IA configurada. Adicione OPENAI_API_KEY ou corrija a GROQ_API_KEY no Railway."
-    
-    return "❌ Erro na IA. A chave Groq presente no seu Railway pode estar expirada ou inválida (Erro 401). Verifique-a ou adicione uma OPENAI_API_KEY."
+    return "❌ IA Indisponível. A chave Groq no seu Railway deu erro 401 (Não Autorizado). Por favor, verifique a GROQ_API_KEY ou adicione uma OPENAI_API_KEY nas variáveis do Railway."
 
 
 # --- Personas ---
@@ -125,13 +110,10 @@ def build_client_context(client: dict) -> str:
     name = client.get("name") or "Empresa"
     segment = client.get("segment") or "Não informado"
     description = client.get("description") or "Sem descrição"
-    
     parts = [f"Empresa: {name}", f"Segmento: {segment}", f"Descrição: {description}"]
-    
     if client.get("crm_data"):
         crm = client["crm_data"]
         parts.append(f"\nDados CRM: Negócios: {crm.get('total_deals', 0)} | Ganhos: {crm.get('won_deals', 0)}")
-        
     return "\n".join(parts)
 
 def get_benchmarks(segment: str = "Outro") -> dict:
