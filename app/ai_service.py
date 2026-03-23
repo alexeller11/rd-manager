@@ -17,24 +17,29 @@ OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 
 
 async def call_ai(prompt: str, system: str = None, max_tokens: int = 2000) -> str:
-    """Chama a API do Groq ou OpenAI. Retorna string de erro amigável em caso de falha."""
+    """Chama a API do Groq ou OpenAI com fallback automático. Retorna string de erro amigável em caso de falha."""
     
-    # 1. Determinar qual API usar
-    api_key = None
-    url = None
-    model = None
+    # 1. Lista de APIs a tentar (Groq primeiro, depois OpenAI)
+    apis_to_try = []
     
     if GROQ_API_KEY:
-        api_key = GROQ_API_KEY
-        url = GROQ_URL
-        model = GROQ_MODEL
-    elif OPENAI_API_KEY:
-        api_key = OPENAI_API_KEY
-        url = OPENAI_URL
-        model = OPENAI_MODEL
+        apis_to_try.append({
+            "name": "Groq",
+            "api_key": GROQ_API_KEY,
+            "url": GROQ_URL,
+            "model": GROQ_MODEL
+        })
     
-    if not api_key:
-        return "Erro: Nenhuma chave de API (GROQ_API_KEY ou OPENAI_API_KEY) foi encontrada nas variáveis de ambiente do Railway. Por favor, adicione uma delas para que a IA funcione."
+    if OPENAI_API_KEY:
+        apis_to_try.append({
+            "name": "OpenAI",
+            "api_key": OPENAI_API_KEY,
+            "url": OPENAI_URL,
+            "model": OPENAI_MODEL
+        })
+    
+    if not apis_to_try:
+        return "⚠️ Erro Crítico: Nenhuma chave de API (GROQ_API_KEY ou OPENAI_API_KEY) foi encontrada no Railway. Configure pelo menos uma delas para que a IA funcione."
 
     # 2. Preparar as mensagens
     messages = []
@@ -42,37 +47,48 @@ async def call_ai(prompt: str, system: str = None, max_tokens: int = 2000) -> st
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt[:20000]})
 
-    payload = {
-        "model": model,
-        "messages": messages,
-        "max_tokens": max_tokens,
-        "temperature": 0.7,
-    }
-
-    # 3. Executar a chamada com tratamento de erro detalhado
-    try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                url,
-                headers={
-                    "Authorization": f"Bearer {api_key}", 
-                    "Content-Type": "application/json"
-                },
-                json=payload,
-            )
+    # 3. Tentar cada API em sequência (fallback automático)
+    last_error = None
+    for api_config in apis_to_try:
+        try:
+            payload = {
+                "model": api_config["model"],
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": 0.7,
+            }
             
-            if resp.status_code == 401:
-                return f"Erro de Autenticação (401): A chave de API fornecida para o modelo {model} é inválida. Verifique se a chave em 'OPENAI_API_KEY' ou 'GROQ_API_KEY' está correta no Railway."
-            
-            resp.raise_for_status()
-            data = resp.json()
-            return data["choices"][0]["message"]["content"]
-            
-    except httpx.HTTPStatusError as e:
-        error_detail = e.response.text[:200]
-        return f"Erro na API de IA ({e.response.status_code}): {error_detail}"
-    except Exception as e:
-        return f"Erro inesperado na IA: {str(e)}"
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(
+                    api_config["url"],
+                    headers={
+                        "Authorization": f"Bearer {api_config['api_key']}", 
+                        "Content-Type": "application/json"
+                    },
+                    json=payload,
+                )
+                
+                if resp.status_code == 200:
+                    data = resp.json()
+                    return data["choices"][0]["message"]["content"]
+                elif resp.status_code == 401:
+                    last_error = f"Chave {api_config['name']} inválida (401). Tentando próxima..."
+                    continue
+                elif resp.status_code in (429, 500, 502, 503):
+                    last_error = f"API {api_config['name']} indisponível ({resp.status_code}). Tentando próxima..."
+                    continue
+                else:
+                    last_error = f"Erro {api_config['name']} ({resp.status_code}): {resp.text[:100]}"
+                    continue
+                    
+        except Exception as e:
+            last_error = f"Erro ao conectar em {api_config['name']}: {str(e)[:100]}"
+            continue
+    
+    # 4. Se todas as APIs falharem, retornar erro informativo
+    if last_error:
+        return f"❌ Todas as APIs de IA falharam. Último erro: {last_error}. Configure GROQ_API_KEY ou OPENAI_API_KEY válidas no Railway."
+    return "❌ Erro inesperado ao chamar IA. Verifique as variáveis de ambiente no Railway."
 
 
 # ─── Personas de IA ──────────────────────────────────────────────────────────
