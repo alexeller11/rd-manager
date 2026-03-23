@@ -300,17 +300,22 @@ CREATE TABLE IF NOT EXISTS weekly_analyses (
 
 
 async def init_db():
-    """Inicializa o banco e cria as tabelas."""
-    if _is_sqlite():
-        path = DATABASE_URL.replace("sqlite:///", "")
-        async with aiosqlite.connect(path) as db:
-            await db.executescript(SCHEMA_SQLITE)
-            await db.commit()
-    else:
-        pool = await get_pg_pool()
-        async with pool.acquire() as conn:
-            # Executa cada statement individualmente
-            for stmt in SCHEMA_PG.strip().split(";"):
-                stmt = stmt.strip()
-                if stmt:
-                    await conn.execute(stmt)
+    """Inicializa o banco e cria as tabelas com tratamento de erro."""
+    try:
+        if _is_sqlite():
+            path = DATABASE_URL.replace("sqlite:///", "")
+            async with aiosqlite.connect(path) as db:
+                await db.executescript(SCHEMA_SQLITE)
+                await db.commit()
+            print("✅ SQLite initialized")
+        else:
+            pool = await get_pg_pool()
+            async with pool.acquire() as conn:
+                for stmt in SCHEMA_PG.strip().split(";"):
+                    stmt = stmt.strip()
+                    if stmt:
+                        await conn.execute(stmt)
+            print("✅ PostgreSQL initialized")
+    except Exception as e:
+        print(f"⚠️ Erro ao inicializar banco de dados: {e}")
+        print("A aplicação continuará rodando, mas funcionalidades de persistência podem falhar.")
