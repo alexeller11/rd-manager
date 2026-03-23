@@ -10,21 +10,32 @@ from app.ai_service import call_ai, build_client_context, SYSTEM_STRATEGIST
 from app.routers.clients import fetch_client
 
 router = APIRouter()
-RD_CRM = "https://api.rd.services/crm/v1"
+# A URL correta para a API pública do RD CRM é crm.rdstation.com/api/v1
+RD_CRM = "https://crm.rdstation.com/api/v1"
 
 async def crm_get(token: str, path: str, params: dict = None, limit: int = 200):
     """Auxiliar para chamadas GET à API do CRM."""
-    headers = {"Authorization": f"Token token={token}", "Accept": "application/json"}
+    # O RD CRM usa 'token' como parâmetro de query ou header. Vamos usar query para maior compatibilidade.
+    headers = {"Accept": "application/json"}
     p = dict(params or {})
-    p.setdefault("limit", limit)
+    p["token"] = token
+    if limit:
+        p["limit"] = limit
+        
+    url = f"{RD_CRM}{path}"
+    print(f"DEBUG CRM: Chamando {url} com params {list(p.keys())}")
+    
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            r = await client.get(f"{RD_CRM}{path}", headers=headers, params=p)
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            r = await client.get(url, headers=headers, params=p)
+            print(f"DEBUG CRM: Status {r.status_code} para {path}")
             if r.status_code == 200:
                 return r.json(), 200
             return None, r.status_code
     except Exception as e:
         print(f"Erro CRM GET: {e}")
+        import traceback
+        traceback.print_exc()
         return None, 0
 
 async def _get_crm_token(client_id: int) -> str | None:
@@ -52,17 +63,34 @@ async def sync_crm(client_id: int):
         "synced_at": datetime.now().isoformat(), "errors": {}
     }
 
-    raw, st = await crm_get(crm_token, "/deals", {"page": 1}, limit=500)
-    if st == 200 and raw:
-        deals = raw.get("deals", []) if isinstance(raw, dict) else raw
-        snap["total_deals"] = raw.get("total", len(deals)) if isinstance(raw, dict) else len(deals)
+    # A API do CRM retorna uma lista direta em /deals ou um objeto com 'deals'
+    raw, st = await crm_get(crm_token, "/deals", {"page": 1}, limit=100)
+    if st == 200 and raw is not None:
+        deals = []
+        if isinstance(raw, dict):
+            deals = raw.get("deals", [])
+            snap["total_deals"] = raw.get("total", len(deals))
+        elif isinstance(raw, list):
+            deals = raw
+            snap["total_deals"] = len(deals)
+            
         for d in deals:
-            amt = float(d.get("amount") or d.get("value") or 0)
-            if d.get("win") or d.get("mark_as_won"):
-                snap["won_deals"] += 1; snap["total_revenue"] += amt
-            elif d.get("win") is False or d.get("mark_as_lost"):
+            # RD CRM v1 usa 'amount' ou 'value'
+            val = d.get("amount") or d.get("value") or 0
+            try:
+                amt = float(val)
+            except:
+                amt = 0.0
+                
+            # Status no CRM v1: 'won', 'lost', 'open'
+            status = str(d.get("status", "")).lower()
+            if status == "won" or d.get("win") is True:
+                snap["won_deals"] += 1
+                snap["total_revenue"] += amt
+            elif status == "lost" or d.get("win") is False:
                 snap["lost_deals"] += 1
-        snap["recent_deals"] = deals[:20]
+                
+        snap["recent_deals"] = deals[:10] # Reduzido para economizar espaço no banco
         
         # Salva o snapshot no banco
         await db_fetchval(
