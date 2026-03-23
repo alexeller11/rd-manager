@@ -74,14 +74,19 @@ async def oauth_callback(code: str = None, state: str = None, error: str = None)
         client_id = 0
 
     current_redirect = get_redirect_uri()
+    # RD Station exige Content-Type: application/x-www-form-urlencoded para o token exchange
     async with httpx.AsyncClient(timeout=20.0) as http:
-        r = await http.post(RD_TOKEN_URL, json={
+        payload = {
             "client_id": MKT_CLIENT_ID,
             "client_secret": MKT_CLIENT_SECRET,
             "redirect_uri": current_redirect,
             "code": code,
             "grant_type": "authorization_code"
-        })
+        }
+        print(f"DEBUG OAuth: Trocando code por token para cliente {client_id}")
+        print(f"DEBUG OAuth: Redirect URI usada: {current_redirect}")
+        
+        r = await http.post(RD_TOKEN_URL, data=payload)
 
     if r.status_code != 200:
         try:
