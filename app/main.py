@@ -64,9 +64,15 @@ async def startup():
 
 
 # ─── Rotas HTML ───────────────────────────────────────────────────────────────
+# Caminho base do projeto
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    with open("app/templates/index.html", "r") as f:
+    path = os.path.join(BASE_DIR, "app", "templates", "index.html")
+    if not os.path.exists(path):
+        return HTMLResponse(content="<h1>Erro: Arquivo index.html não encontrado</h1>", status_code=500)
+    with open(path, "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
 
 
@@ -78,6 +84,9 @@ async def health_check():
 
 @app.get("/dashboard/{client_id}", response_class=HTMLResponse)
 async def public_dashboard(client_id: int):
-    with open("app/templates/public_dashboard.html", "r") as f:
+    path = os.path.join(BASE_DIR, "app", "templates", "public_dashboard.html")
+    if not os.path.exists(path):
+        return HTMLResponse(content="<h1>Erro: Arquivo dashboard não encontrado</h1>", status_code=500)
+    with open(path, "r", encoding="utf-8") as f:
         html = f.read().replace("{{CLIENT_ID}}", str(client_id))
     return HTMLResponse(content=html)
