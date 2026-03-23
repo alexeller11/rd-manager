@@ -9,11 +9,21 @@ from app.auth_core import save_mkt_token, MKT_CLIENT_ID, MKT_CLIENT_SECRET, RD_T
 router = APIRouter()
 
 # Constrói a URL de redirecionamento dinamicamente
-# Prioridade: RD_REDIRECT_URI > RAILWAY_STATIC_URL > fallback para localhost
-REDIRECT_URI = os.environ.get(
-    "RD_REDIRECT_URI",
-    ("https://" + os.environ.get("RAILWAY_STATIC_URL") if os.environ.get("RAILWAY_STATIC_URL") else "http://localhost:8000") + "/oauth/callback"
-)
+# Prioridade: RD_REDIRECT_URI > RAILWAY_PUBLIC_DOMAIN > RAILWAY_STATIC_URL > fallback para localhost
+def get_redirect_uri():
+    if manual := os.environ.get("RD_REDIRECT_URI"):
+        return manual
+    
+    # Railway fornece RAILWAY_PUBLIC_DOMAIN ou RAILWAY_STATIC_URL
+    domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN") or os.environ.get("RAILWAY_STATIC_URL")
+    if domain:
+        # Garante que tenha https:// e termine em /oauth/callback
+        base = domain if domain.startswith("http") else f"https://{domain}"
+        return f"{base.rstrip('/')}/oauth/callback"
+    
+    return "http://localhost:8000/oauth/callback"
+
+REDIRECT_URI = get_redirect_uri()
 RD_AUTH_URL = "https://api.rd.services/auth/dialog"
 
 
@@ -39,10 +49,12 @@ h1{{color:#dc3545;}}a{{color:#007bff;}}</style></head>
 async def start_oauth(client_id: int):
     if not MKT_CLIENT_ID:
         return HTMLResponse(_error_html("RD_CLIENT_ID não configurado nas variáveis de ambiente do Railway."))
+    
+    current_redirect = get_redirect_uri()
     url = (
         f"{RD_AUTH_URL}?response_type=code"
         f"&client_id={MKT_CLIENT_ID}"
-        f"&redirect_uri={REDIRECT_URI}"
+        f"&redirect_uri={current_redirect}"
         f"&state=mkt:{client_id}"
         f"&scope=contacts-read+landing-pages-read+emails-read+segmentations-read"
     )
@@ -61,11 +73,12 @@ async def oauth_callback(code: str = None, state: str = None, error: str = None)
     except:
         client_id = 0
 
+    current_redirect = get_redirect_uri()
     async with httpx.AsyncClient(timeout=20.0) as http:
         r = await http.post(RD_TOKEN_URL, json={
             "client_id": MKT_CLIENT_ID,
             "client_secret": MKT_CLIENT_SECRET,
-            "redirect_uri": REDIRECT_URI,
+            "redirect_uri": current_redirect,
             "code": code,
             "grant_type": "authorization_code"
         })

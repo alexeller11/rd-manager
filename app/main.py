@@ -59,8 +59,22 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 # ─── Startup ──────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 async def startup():
-    await init_db()
-    await ensure_admin_exists()
+    print("🚀 Iniciando aplicação...")
+    try:
+        print("📦 Inicializando banco de dados...")
+        await init_db()
+        print("✅ Banco de dados pronto.")
+        
+        print("👤 Verificando usuário admin...")
+        await ensure_admin_exists()
+        print("✅ Usuário admin verificado.")
+        
+        print(f"🌐 Origens permitidas (CORS): {ALLOWED_ORIGINS}")
+        print("🚀 Aplicação pronta para receber conexões!")
+    except Exception as e:
+        print(f"❌ ERRO CRÍTICO NO STARTUP: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 # ─── Rotas HTML ───────────────────────────────────────────────────────────────
