@@ -1,94 +1,95 @@
 """
-Serviço de IA — Groq/Llama e OpenAI com suporte robusto e tratamento de erros.
+Serviço de IA — Google Gemini Pro (Principal), Groq e OpenAI como Fallback.
 """
 import os
 import httpx
 import json
+import google.generativeai as genai
+from typing import Optional
 
-# Prioridade: GROQ_API_KEY, se não houver, usa OPENAI_API_KEY
+# Configurações das APIs
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-1.5-pro")
 GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o")
 
+# URLs para Fallback
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 
+# Configura o SDK do Gemini se a chave estiver presente
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 
 async def call_ai(prompt: str, system: str = None, max_tokens: int = 2000) -> str:
-    """Chama a API do Groq ou OpenAI com fallback automático. Retorna string de erro amigável em caso de falha."""
+    """
+    Chama a API do Gemini Pro como principal. 
+    Se falhar, tenta Groq e OpenAI como fallback.
+    """
     
-    # 1. Lista de APIs a tentar (Groq primeiro, depois OpenAI)
-    apis_to_try = []
-    
-    if GROQ_API_KEY:
-        apis_to_try.append({
-            "name": "Groq",
-            "api_key": GROQ_API_KEY,
-            "url": GROQ_URL,
-            "model": GROQ_MODEL
-        })
-    
-    if OPENAI_API_KEY:
-        apis_to_try.append({
-            "name": "OpenAI",
-            "api_key": OPENAI_API_KEY,
-            "url": OPENAI_URL,
-            "model": OPENAI_MODEL
-        })
-    
-    if not apis_to_try:
-        return "⚠️ Erro Crítico: Nenhuma chave de API (GROQ_API_KEY ou OPENAI_API_KEY) foi encontrada no Railway. Configure pelo menos uma delas para que a IA funcione."
+    # 1. Tentar Gemini Pro primeiro (se configurado)
+    if GEMINI_API_KEY:
+        try:
+            model = genai.GenerativeModel(
+                model_name=GEMINI_MODEL,
+                system_instruction=system
+            )
+            # Gemini usa um formato diferente de max_tokens
+            generation_config = genai.types.GenerationConfig(
+                max_output_tokens=max_tokens,
+                temperature=0.7
+            )
+            response = await model.generate_content_async(
+                prompt[:30000], 
+                generation_config=generation_config
+            )
+            if response and response.text:
+                return response.text
+        except Exception as e:
+            print(f"Erro Gemini: {e}")
+            # Se falhar, continua para os fallbacks
 
-    # 2. Preparar as mensagens
+    # 2. Lista de Fallbacks (Groq e OpenAI)
+    fallbacks = []
+    if GROQ_API_KEY:
+        fallbacks.append({"name": "Groq", "key": GROQ_API_KEY, "url": GROQ_URL, "model": GROQ_MODEL})
+    if OPENAI_API_KEY:
+        fallbacks.append({"name": "OpenAI", "key": OPENAI_API_KEY, "url": OPENAI_URL, "model": OPENAI_MODEL})
+
+    if not GEMINI_API_KEY and not fallbacks:
+        return "⚠️ Erro: Nenhuma chave de IA (GEMINI_API_KEY, GROQ_API_KEY ou OPENAI_API_KEY) configurada."
+
+    # 3. Executar Fallbacks
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt[:20000]})
 
-    # 3. Tentar cada API em sequência (fallback automático)
-    last_error = None
-    for api_config in apis_to_try:
+    last_error = "Gemini falhou ou não configurado"
+    for api in fallbacks:
         try:
             payload = {
-                "model": api_config["model"],
+                "model": api["model"],
                 "messages": messages,
                 "max_tokens": max_tokens,
                 "temperature": 0.7,
             }
-            
             async with httpx.AsyncClient(timeout=60.0) as client:
                 resp = await client.post(
-                    api_config["url"],
-                    headers={
-                        "Authorization": f"Bearer {api_config['api_key']}", 
-                        "Content-Type": "application/json"
-                    },
+                    api["url"],
+                    headers={"Authorization": f"Bearer {api['key']}", "Content-Type": "application/json"},
                     json=payload,
                 )
-                
                 if resp.status_code == 200:
-                    data = resp.json()
-                    return data["choices"][0]["message"]["content"]
-                elif resp.status_code == 401:
-                    last_error = f"Chave {api_config['name']} inválida (401). Tentando próxima..."
-                    continue
-                elif resp.status_code in (429, 500, 502, 503):
-                    last_error = f"API {api_config['name']} indisponível ({resp.status_code}). Tentando próxima..."
-                    continue
-                else:
-                    last_error = f"Erro {api_config['name']} ({resp.status_code}): {resp.text[:100]}"
-                    continue
-                    
+                    return resp.json()["choices"][0]["message"]["content"]
+                last_error = f"{api['name']} ({resp.status_code})"
         except Exception as e:
-            last_error = f"Erro ao conectar em {api_config['name']}: {str(e)[:100]}"
-            continue
+            last_error = f"Erro {api['name']}: {str(e)[:50]}"
     
-    # 4. Se todas as APIs falharem, retornar erro informativo
-    if last_error:
-        return f"❌ Todas as APIs de IA falharam. Último erro: {last_error}. Configure GROQ_API_KEY ou OPENAI_API_KEY válidas no Railway."
-    return "❌ Erro inesperado ao chamar IA. Verifique as variáveis de ambiente no Railway."
+    return f"❌ Falha total na IA. Verifique GEMINI_API_KEY no Railway. (Erro: {last_error})"
 
 
 # ─── Personas de IA ──────────────────────────────────────────────────────────
@@ -154,6 +155,10 @@ def build_client_context(client: dict) -> str:
     if client.get("rd_data"):
         rd = client["rd_data"]
         parts.append(f"\nDados RD Marketing: Leads: {rd.get('total_leads', 0)} | Open Rate: {rd.get('avg_open_rate', 0)}%")
+    
+    if client.get("crm_data"):
+        crm = client["crm_data"]
+        parts.append(f"\nDados RD CRM: Negócios: {crm.get('total_deals', 0)} | Ganhos: {crm.get('won_deals', 0)} | Receita: R$ {crm.get('total_revenue', 0):.2f}")
         
     return "\n".join(parts)
 

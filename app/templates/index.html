@@ -68,16 +68,24 @@ const TOKEN_KEY='rdm_v4_token';
 const getToken=()=>localStorage.getItem(TOKEN_KEY);
 const setToken=t=>t?localStorage.setItem(TOKEN_KEY,t):localStorage.removeItem(TOKEN_KEY);
 
+// Prevenção contra erros de extensões (Ethereum/MetaMask) que quebram o React
+window.ethereum = window.ethereum || { isFake: true, request: () => Promise.resolve() };
+
 async function api(method,path,body,isForm=false){
     const h={};const tok=getToken();
     if(tok) h['Authorization']=`Bearer ${tok}`;
     let fb=null;
     if(body){if(isForm){h['Content-Type']='application/x-www-form-urlencoded';fb=new URLSearchParams(body).toString();}else{h['Content-Type']='application/json';fb=JSON.stringify(body);}}
-    const r=await fetch(path,{method,headers:h,body:fb});
-    if(r.status===401){setToken(null);window.location.reload();return;}
-    const txt=await r.text();
-    try{const d=JSON.parse(txt);if(!r.ok)throw new Error(d.detail||'Erro na API');return d;}
-    catch(e){if(e.message.startsWith('Erro'))throw e;throw new Error('Erro do servidor: '+txt.substring(0,150));}
+    try {
+        const r=await fetch(path,{method,headers:h,body:fb});
+        if(r.status===401){setToken(null);window.location.reload();return;}
+        const txt=await r.text();
+        try{const d=JSON.parse(txt);if(!r.ok)throw new Error(d.detail||'Erro na API');return d;}
+        catch(e){if(e.message.startsWith('Erro'))throw e;throw new Error('Erro do servidor: '+txt.substring(0,150));}
+    } catch(err) {
+        console.error("Fetch error:", err);
+        throw err;
+    }
 }
 
 function Login({onLogin}){
@@ -228,6 +236,26 @@ function Flows({clients}){
     </div>);
 }
 
+function CRM({clients}){
+    const [cid,setCid]=useState('');const [res,setRes]=useState(null);const [loading,setLoading]=useState(false);const [analyzing,setAnalyzing]=useState(false);const [analysis,setAnalysis]=useState('');
+    const sync=async()=>{if(!cid)return alert('Selecione um cliente');setLoading(true);try{const d=await api('GET',`/api/crm/sync/${cid}`);setRes(d.data);}catch(e){alert(e.message);}setLoading(false);};
+    const analyze=async()=>{if(!cid)return alert('Selecione um cliente');setAnalyzing(true);try{const d=await api('POST','/api/crm/analyze',{client_id:parseInt(cid)});setAnalysis(d.result);}catch(e){alert(e.message);}setAnalyzing(false);};
+    return(<div>
+        <div className="ph"><h1>RD CRM</h1><p className="sub">Gestão de Vendas e Pipeline</p></div>
+        <div className="card">
+            <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid}/></div>
+            <div style={{display:'flex',gap:10}}><button className="btn btn-p" onClick={sync} disabled={loading||!cid}>{loading?<span className="spin"/>:'Sincronizar CRM'}</button><button className="btn" onClick={analyze} disabled={analyzing||!cid}>{analyzing?<span className="spin spin-d"/>:'Análise Estratégica IA'}</button></div>
+        </div>
+        {res&&<div className="mg">
+            <div className="mc"><div className="ml">Negócios</div><div className="mv">{res.total_deals}</div></div>
+            <div className="mc"><div className="ml">Ganhos</div><div className="mv" style={{color:'var(--g)'}}>{res.won_deals}</div></div>
+            <div className="mc"><div className="ml">Perdidos</div><div className="mv" style={{color:'var(--danger)'}}>{res.lost_deals}</div></div>
+            <div className="mc"><div className="ml">Receita Total</div><div className="mv">R$ {res.total_revenue.toLocaleString('pt-BR')}</div></div>
+        </div>}
+        {analysis&&<div className="card"><div className="ct">Análise de Vendas IA</div><div className="res">{analysis}</div></div>}
+    </div>);
+}
+
 function Leads({clients}){
     const [cid,setCid]=useState('');const [segs,setSegs]=useState([]);const [segId,setSegId]=useState('');const [leads,setLeads]=useState([]);
     const loadSegs=async()=>{if(!cid)return;try{const d=await api('GET',`/api/rd/sync/${cid}`);setSegs(d.data?.segmentations||[]);}catch(e){}};
@@ -256,7 +284,7 @@ function App(){
     useEffect(()=>{const tok=getToken();if(tok) api('GET','/api/auth/me').then(u=>{setUser(u);refreshClients();}).catch(()=>setToken(null)).finally(()=>setLoading(false));else setLoading(false);},[refreshClients]);
     if(loading)return <div className="login-wrap"><span className="spin spin-d" style={{width:30,height:30}}/></div>;
     if(!user)return <Login onLogin={u=>{setUser(u);refreshClients();}}/>;
-    const PAGES={dashboard:<Dashboard clients={clients}/>,clients:<Clients clients={clients} onRefresh={refreshClients}/>,intel:<Intelligence clients={clients}/>,emails:<Emails clients={clients}/>,flows:<Flows clients={clients}/>,leads:<Leads clients={clients}/>,lps:<LandingPages clients={clients}/>,sync:<Sync clients={clients}/>};
+    const PAGES={dashboard:<Dashboard clients={clients}/>,clients:<Clients clients={clients} onRefresh={refreshClients}/>,intel:<Intelligence clients={clients}/>,emails:<Emails clients={clients}/>,flows:<Flows clients={clients}/>,leads:<Leads clients={clients}/>,lps:<LandingPages clients={clients}/>,sync:<Sync clients={clients}/>,crm:<CRM clients={clients}/>};
     return(<div style={{display:'flex'}}>
         <nav className="sb">
             <div className="sb-logo"><div className="logo"><div className="logo-m">RD</div>RD Manager IA</div></div>
@@ -272,6 +300,7 @@ function App(){
                 <div className="ns">Dados RD</div>
                 <button className={`nb ${page==='leads'?'active':''}`} onClick={()=>setPage('leads')}><span className="ni">🎯</span>Leads</button>
                 <button className={`nb ${page==='lps'?'active':''}`} onClick={()=>setPage('lps')}><span className="ni">📄</span>Landing Pages</button>
+                <button className={`nb ${page==='crm'?'active':''}`} onClick={()=>setPage('crm')}><span className="ni">💼</span>CRM</button>
                 <button className={`nb ${page==='sync'?'active':''}`} onClick={()=>setPage('sync')}><span className="ni">🔄</span>Sincronizar</button>
             </div>
         </nav>
