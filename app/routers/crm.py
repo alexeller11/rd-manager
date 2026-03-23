@@ -11,20 +11,23 @@ from app.ai_service import call_ai, build_client_context, SYSTEM_STRATEGIST, SYS
 from app.routers.clients import fetch_client
 
 router = APIRouter()
-RD_CRM = "https://crm.rdstation.com.br/api/v1"
+RD_CRM = "https://api.rd.services/crm/v1"
 RD_MKT = "https://api.rd.services"
 
 
 async def crm_get(token: str, path: str, params: dict = None, limit: int = 200):
+    headers = {"Authorization": f"Token token={token}", "Accept": "application/json"}
     p = dict(params or {})
-    p["token"] = token
     p.setdefault("limit", limit)
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            r = await client.get(f"{RD_CRM}{path}", params=p)
-            return (r.json(), r.status_code) if r.status_code == 200 else (None, r.status_code)
-    except Exception:
-        return (None, 0)
+            r = await client.get(f"{RD_CRM}{path}", headers=headers, params=p)
+            if r.status_code == 200:
+                return r.json(), 200
+            return None, r.status_code
+    except Exception as e:
+        print(f"Erro CRM GET: {e}")
+        return None, 0
 
 
 async def mkt_get(token: str, path: str, params: dict = None):

@@ -163,7 +163,20 @@ function Clients({clients,onRefresh}){
             <div className="field"><label>Objeções comuns</label><input value={form.objections||''} onChange={e=>setForm({...form,objections:e.target.value})}/></div></div>
             <div className="field"><label>Token RD Marketing (fixo — alternativa ao OAuth)</label>
             <input type="password" value={rdToken} onChange={e=>setRdToken(e.target.value)} placeholder="Cole o access_token aqui para salvar"/></div>
-            {editing&&<div style={{marginBottom:'1rem'}}><a href={`/oauth/authorize/${editing}`} target="_blank" rel="noreferrer"><button className="btn btn-p btn-sm">🔗 Conectar via OAuth RD Marketing</button></a></div>}
+            <div style={{display:'flex',gap:10,marginBottom:'1rem'}}>
+    {editing ? (
+        <a href={`/oauth/authorize/${editing}`} target="_blank" rel="noreferrer">
+            <button className="btn btn-p btn-sm">🔗 Conectar via OAuth RD Marketing</button>
+        </a>
+    ) : (
+        <button className="btn btn-p btn-sm" onClick={() => alert('Salve o cliente primeiro para habilitar o OAuth.')} title="Salve o cliente para habilitar o OAuth">
+            🔗 Conectar via OAuth RD Marketing
+        </button>
+    )}
+    <button className="btn btn-sm" onClick={() => alert('O Token do CRM deve ser inserido manualmente no campo acima.')}>
+        🔗 Conectar RD CRM
+    </button>
+</div>
             <div style={{display:'flex',gap:10}}><button className="btn btn-p" onClick={save} disabled={saving}>{saving?<><span className="spin"/>Salvando...</>:'Salvar'}</button><button className="btn" onClick={()=>setShow(false)}>Cancelar</button></div>
         </div>}
         <div className="card">{clients.length===0&&<p style={{color:'var(--ink3)',fontSize:13}}>Nenhum cliente cadastrado.</p>}
