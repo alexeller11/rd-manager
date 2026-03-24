@@ -156,3 +156,27 @@ async def migrate_plaintext_rd_credentials():
             row.get("rd_token") or "",
             row.get("rd_refresh_token") or "",
         )
+# =========================
+# CLEAR CRM CREDENTIALS (FIX)
+# =========================
+
+async def clear_crm_credentials(client_id: int):
+    """
+    Remove credenciais de CRM de um cliente
+    """
+
+    query = """
+    UPDATE rd_credentials
+    SET
+        access_token = NULL,
+        refresh_token = NULL,
+        expires_at = NULL,
+        updated_at = $2
+    WHERE client_id = $1
+    """
+
+    await db_execute(
+        query,
+        client_id,
+        datetime.now(timezone.utc),
+    )
