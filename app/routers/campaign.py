@@ -1,7 +1,9 @@
+from typing import Optional
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
-from app.ai_service import call_ai, build_client_context, SYSTEM_STRATEGIST, get_benchmarks
+
+from app.ai_service import SYSTEM_STRATEGIST, build_client_context, call_ai
 from app.database import db_fetchone, parse_json_field
 from app.routers.clients import fetch_client
 
@@ -17,67 +19,67 @@ class CampaignRequest(BaseModel):
     extra: Optional[str] = None
 
 
+def get_benchmarks(segment: str = "Outro") -> dict:
+    data = {
+        "E-commerce": {"open_rate": 15.0, "click_rate": 2.1, "conversion": 1.5},
+        "SaaS": {"open_rate": 21.0, "click_rate": 2.4, "conversion": 3.0},
+        "Servicos": {"open_rate": 19.0, "click_rate": 2.5, "conversion": 5.0},
+        "Educacao": {"open_rate": 24.0, "click_rate": 2.8, "conversion": 4.0},
+        "Saude": {"open_rate": 22.0, "click_rate": 2.3, "conversion": 6.0},
+        "Varejo": {"open_rate": 14.0, "click_rate": 1.9, "conversion": 1.2},
+        "Industria": {"open_rate": 18.0, "click_rate": 2.2, "conversion": 2.5},
+        "Outro": {"open_rate": 18.0, "click_rate": 2.0, "conversion": 2.0},
+    }
+    return data.get(segment, data["Outro"])
+
+
 @router.post("/plan")
 async def plan_campaign(req: CampaignRequest):
     client = await fetch_client(req.client_id)
     if not client:
-        raise HTTPException(404, "Cliente não encontrado")
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
     snap_row = await db_fetchone(
-        "SELECT data FROM rd_snapshots WHERE client_id=$1 ORDER BY created_at DESC LIMIT 1", req.client_id
+        "SELECT data FROM rd_snapshots WHERE client_id = $1 ORDER BY created_at DESC LIMIT 1",
+        req.client_id,
     )
     rd_data = parse_json_field(snap_row["data"]) if snap_row else {}
     client["rd_data"] = rd_data
+
     context = build_client_context(client)
     benchmarks = get_benchmarks(client.get("segment", "Outro"))
 
-    prompt = f"""Crie um PLANO DE CAMPANHA completo e executável.
+    prompt = f"""
+Crie um plano de campanha executável e realista.
 
 OBJETIVO: {req.objective}
 DURAÇÃO: {req.duration}
 CANAIS: {req.channels}
-{f'ORÇAMENTO: {req.budget}' if req.budget else ''}
-{f'INSTRUÇÕES EXTRAS: {req.extra}' if req.extra else ''}
+ORÇAMENTO: {req.budget or "não informado"}
+INSTRUÇÕES EXTRAS: {req.extra or "nenhuma"}
 
-DADOS DO CLIENTE:
+CONTEXTO DO CLIENTE:
 {context}
 
-BENCHMARKS DO SETOR ({client.get('segment','Outro')}):
-- Taxa de abertura ideal: {benchmarks['open_rate']}%
+BENCHMARKS DO SETOR:
+- Abertura ideal: {benchmarks['open_rate']}%
 - CTR ideal: {benchmarks['click_rate']}%
 - Conversão ideal: {benchmarks['conversion']}%
 
-## Visão Geral da Campanha
-[Nome, conceito criativo e mensagem central]
+Estruture a resposta em:
+1. Visão geral
+2. Público-alvo
+3. Cronograma
+4. Estratégia por canal
+5. Configuração no RD Station
+6. KPIs e metas
+7. Contingência
+"""
 
-## Público-Alvo
-[Segmento específico, tamanho estimado, critério de seleção no RD Station]
-
-## Cronograma de Execução
-[Semana a semana — o que acontece, quando e por quem]
-
-## Estratégia por Canal
-
-### Email Marketing
-[Sequência de emails: quantos, timing, assuntos, objetivos]
-
-### Landing Page
-[Headline, proposta de valor, CTA, elementos de conversão]
-
-### Segmentação e Tags
-[Como segmentar a base e tagear os leads ao longo da campanha]
-
-## Configuração no RD Station
-[Passo a passo: fluxos, automações, formulários, segmentações]
-
-## KPIs e Metas
-[Métricas específicas com metas numéricas baseadas nos benchmarks]
-
-## Orçamento e ROI Esperado
-[Estimativa de retorno baseada nas métricas históricas do cliente]
-
-## Plano de Contingência
-[O que fazer se a campanha não atingir 50% das metas na primeira semana]"""
-
-    result = await call_ai(prompt, system=SYSTEM_STRATEGIST, max_tokens=3000)
+    result = await call_ai(
+        prompt=prompt,
+        system=SYSTEM_STRATEGIST,
+        max_tokens=2500,
+        temperature=0.3,
+    )
     return {"result": result}
