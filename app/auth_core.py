@@ -1,72 +1,57 @@
 """
-Autenticação real com JWT + bcrypt.
-- Tokens JWT com expiração configurável
-- Password hash via bcrypt
-- Usuário admin criado automaticamente no primeiro boot
-- get_current_user como dependency do FastAPI
+Autenticação, autorização e gerenciamento seguro de credenciais RD.
 """
-import os
+import json
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import bcrypt
+import httpx
+from cryptography.fernet import Fernet, InvalidToken
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-import bcrypt
 
-from app.database import db_execute, db_fetchone, db_fetchval
+from app.core.settings import get_settings
+from app.database import db_execute, db_fetchall, db_fetchone
 
-# ─── Configurações ────────────────────────────────────────────────────────────
+settings = get_settings()
 
-SECRET_KEY = os.environ.get("SECRET_KEY", "TROQUE_ISTO_POR_UMA_CHAVE_SEGURA_EM_PRODUCAO")
+SECRET_KEY = settings.secret_key
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("TOKEN_EXPIRE_MINUTES", "1440"))  # 24h
-
-ADMIN_USER = os.environ.get("ADMIN_USERNAME", "admin")
-ADMIN_PASS = os.environ.get("ADMIN_PASSWORD", "admin123")
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.token_expire_minutes
+ADMIN_USER = settings.admin_username
+ADMIN_PASS = settings.admin_password
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
-# ─── RD Station OAuth ─────────────────────────────────────────────────────────
-
-import httpx
-import asyncio
-
 RD_TOKEN_URL = "https://api.rd.services/auth/token"
-MKT_CLIENT_ID = os.environ.get("RD_CLIENT_ID", "")
-MKT_CLIENT_SECRET = os.environ.get("RD_CLIENT_SECRET", "")
+MKT_CLIENT_ID = settings.rd_client_id
+MKT_CLIENT_SECRET = settings.rd_client_secret
 
-_refresh_locks: dict[int, asyncio.Lock] = {}
-# Cache simples de token em memória para evitar calls desnecessárias à API RD
-_token_cache: dict[int, str] = {}
+_cipher = Fernet(settings.token_encryption_key.encode("utf-8"))
 
 
-# ─── Funções de senha ─────────────────────────────────────────────────────────
+def utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
 
 def hash_password(password: str) -> str:
-    """Hash de senha usando bcrypt diretamente."""
-    # bcrypt tem limite de 72 bytes, então truncamos
-    pwd_bytes = password[:72].encode('utf-8')
-    salt = bcrypt.gensalt()
-    return bcrypt.hashpw(pwd_bytes, salt).decode('utf-8')
+    pwd_bytes = password[:72].encode("utf-8")
+    return bcrypt.hashpw(pwd_bytes, bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    """Verifica senha contra hash bcrypt."""
     try:
-        pwd_bytes = plain[:72].encode('utf-8')
-        hashed_bytes = hashed.encode('utf-8') if isinstance(hashed, str) else hashed
-        return bcrypt.checkpw(pwd_bytes, hashed_bytes)
+        return bcrypt.checkpw(plain[:72].encode("utf-8"), hashed.encode("utf-8"))
     except Exception:
         return False
 
 
-# ─── JWT ─────────────────────────────────────────────────────────────────────
-
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode["exp"] = expire
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -79,173 +64,274 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        username = payload.get("sub")
+        if not username:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
 
-    user = await db_fetchone("SELECT id, username, is_admin FROM users WHERE username = $1", username)
-    if user is None:
+    user = await db_fetchone(
+        "SELECT id, username, is_admin FROM users WHERE username = $1",
+        username,
+    )
+    if not user:
         raise credentials_exception
     return user
 
 
-# ─── Criação do admin no boot ─────────────────────────────────────────────────
+async def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
+    if not current_user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Acesso restrito a administradores")
+    return current_user
 
-async def ensure_admin_exists():
-    """Cria o usuário admin padrão se não existir nenhum usuário."""
+
+async def ensure_admin_exists() -> None:
     existing = await db_fetchone("SELECT id FROM users LIMIT 1")
-    if not existing:
-        hashed = hash_password(ADMIN_PASS)
-        await db_execute(
-            "INSERT INTO users (username, password_hash, is_admin) VALUES ($1, $2, $3)",
-            ADMIN_USER, hashed, True
-        )
-
-
-# ─── Tokens RD Station ───────────────────────────────────────────────────────
-
-async def get_tokens_from_db(client_id: int) -> dict:
-    row = await db_fetchone(
-        "SELECT rd_token, rd_refresh_token, rd_crm_token FROM clients WHERE id = $1",
-        client_id
+    if existing:
+        return
+    await db_execute(
+        "INSERT INTO users (username, password_hash, is_admin) VALUES ($1, $2, $3)",
+        ADMIN_USER,
+        hash_password(ADMIN_PASS),
+        True,
     )
-    return row or {}
 
 
-async def save_mkt_token(client_id: int, access_token: str, refresh_token: str):
-    _token_cache.pop(client_id, None)  # invalida cache
-    # Garantir que os tokens não sejam None
-    acc = (access_token or "").strip()
-    ref = (refresh_token or "").strip()
-    
-    print(f"DEBUG save_mkt_token: Iniciando salvamento para cliente {client_id}")
-    print(f"DEBUG save_mkt_token: Token length: {len(acc)}, Refresh length: {len(ref)}")
-    
-    from app.database import _is_sqlite
-    if _is_sqlite():
-        now = datetime.utcnow().isoformat()
-    else:
-        now = datetime.utcnow()
-    
+def encrypt_secret(value: str | None) -> str:
+    if not value:
+        return ""
+    return _cipher.encrypt(value.encode("utf-8")).decode("utf-8")
+
+
+def decrypt_secret(value: str | None) -> str:
+    if not value:
+        return ""
     try:
+        return _cipher.decrypt(value.encode("utf-8")).decode("utf-8")
+    except InvalidToken:
+        return ""
+    except Exception:
+        return ""
+
+
+async def _upsert_credentials(
+    client_id: int,
+    encrypted_mkt_token: str | None = None,
+    encrypted_mkt_refresh_token: str | None = None,
+    encrypted_crm_token: str | None = None,
+    token_status: str | None = None,
+    touch_refresh: bool = False,
+) -> None:
+    current = await db_fetchone("SELECT * FROM rd_credentials WHERE client_id = $1", client_id)
+    now = utcnow().isoformat()
+
+    if current:
         await db_execute(
-            "UPDATE clients SET rd_token=$1, rd_refresh_token=$2, updated_at=$3 WHERE id=$4",
-            acc, ref, now, client_id
+            """
+            UPDATE rd_credentials
+               SET encrypted_mkt_token = COALESCE($1, encrypted_mkt_token),
+                   encrypted_mkt_refresh_token = COALESCE($2, encrypted_mkt_refresh_token),
+                   encrypted_crm_token = COALESCE($3, encrypted_crm_token),
+                   token_status = COALESCE($4, token_status),
+                   last_refresh_at = CASE WHEN $5 THEN $6 ELSE last_refresh_at END,
+                   updated_at = $6
+             WHERE client_id = $7
+            """,
+            encrypted_mkt_token,
+            encrypted_mkt_refresh_token,
+            encrypted_crm_token,
+            token_status,
+            touch_refresh,
+            now,
+            client_id,
         )
-        print(f"DEBUG save_mkt_token: UPDATE executado com sucesso para cliente {client_id}")
-    except Exception as e:
-        print(f"DEBUG save_mkt_token: ERRO CRÍTICO ao executar UPDATE: {e}")
-        traceback.print_exc()
-        raise e
+        return
+
+    await db_execute(
+        """
+        INSERT INTO rd_credentials
+            (client_id, encrypted_mkt_token, encrypted_mkt_refresh_token, encrypted_crm_token, token_status, last_refresh_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $6)
+        """,
+        client_id,
+        encrypted_mkt_token,
+        encrypted_mkt_refresh_token,
+        encrypted_crm_token,
+        token_status or "unknown",
+        now if touch_refresh else None,
+    )
 
 
-async def _refresh_mkt_token(client_id: int) -> str:
-    tokens = await get_tokens_from_db(client_id)
-    refresh_tok = (tokens.get("rd_refresh_token") or "").strip()
-    if not refresh_tok:
-        return ""
-
-    # RD Station exige Content-Type: application/x-www-form-urlencoded para o refresh também
-    async with httpx.AsyncClient(timeout=15.0) as http:
-        try:
-            payload = {
-                "client_id": MKT_CLIENT_ID,
-                "client_secret": MKT_CLIENT_SECRET,
-                "refresh_token": refresh_tok,
-                "grant_type": "refresh_token"
-            }
-            r = await http.post(RD_TOKEN_URL, data=payload)
-            if r.status_code == 200:
-                data = r.json()
-                new_acc = data.get("access_token", "")
-                new_ref = data.get("refresh_token", refresh_tok)
-                if new_acc:
-                    await save_mkt_token(client_id, new_acc, new_ref)
-                    _token_cache[client_id] = new_acc
-                return new_acc
-            # log silencioso
-            await _log_error(client_id, "/auth/token", "POST", f"Refresh falhou: HTTP {r.status_code}")
-        except Exception as e:
-            await _log_error(client_id, "/auth/token", "POST", e)
-    return ""
+async def save_mkt_token(client_id: int, access_token: str, refresh_token: str = "") -> None:
+    await _upsert_credentials(
+        client_id=client_id,
+        encrypted_mkt_token=encrypt_secret(access_token),
+        encrypted_mkt_refresh_token=encrypt_secret(refresh_token) if refresh_token else None,
+        token_status="valid",
+        touch_refresh=bool(refresh_token),
+    )
 
 
-async def get_valid_mkt_token(client_id: int) -> str:
-    """
-    Retorna token válido. Usa cache em memória para evitar verificação a cada request.
-    Só bate na API RD quando o token expira (401).
-    """
-    # Usa cache se disponível
-    if client_id in _token_cache:
-        return _token_cache[client_id]
-
-    tokens = await get_tokens_from_db(client_id)
-    token = (tokens.get("rd_token") or "").strip()
-    if not token:
-        return ""
-
-    # Verifica token rapidamente
-    if client_id not in _refresh_locks:
-        _refresh_locks[client_id] = asyncio.Lock()
-
-    async with httpx.AsyncClient(timeout=15.0) as http:
-        try:
-            # Tenta um endpoint universal para validar o token (Contatos)
-            # Se falhar com 404 ou 403, pode ser que o usuário não tenha permissão, mas o token ainda é válido para outros fins.
-            r = await http.get(
-                "https://api.rd.services/platform/contacts",
-                headers={"Authorization": f"Bearer {token}"},
-                params={"page": 1, "page_size": 1}
-            )
-            
-            # 200 OK ou 404/403 em endpoints específicos podem significar que o token é válido, mas sem acesso a este recurso.
-            # No entanto, se o token estiver expirado, ele retornará 401.
-            if r.status_code == 200:
-                _token_cache[client_id] = token
-                return token
-            
-            # Se o token expirou (401), tenta refresh obrigatoriamente
-            if r.status_code == 401:
-                async with _refresh_locks[client_id]:
-                    # Tenta novamente o cache (pode ter sido atualizado por outro processo enquanto esperava o lock)
-                    if client_id in _token_cache and _token_cache[client_id] != token:
-                        return _token_cache[client_id]
-                        
-                    new_token = await _refresh_mkt_token(client_id)
-                    if new_token:
-                        _token_cache[client_id] = new_token
-                        return new_token
-                    else:
-                        # Se o refresh falhou, o token está morto
-                        await db_execute("UPDATE clients SET rd_token='', rd_refresh_token='' WHERE id=$1", client_id)
-                        _token_cache.pop(client_id, None)
-                        return ""
-            
-            # Se for 403 (Proibido), o token é válido mas não tem escopo para este endpoint.
-            # Não limpamos o token aqui, pois ele pode ser útil para outros endpoints (ex: emails).
-            if r.status_code == 403:
-                _token_cache[client_id] = token
-                return token
-
-            # Erro 400 (Bad Request) pode ser erro de parâmetro ou token revogado.
-            # Em vez de apagar imediatamente, vamos apenas não retornar como válido e deixar o cache vazio.
-            if r.status_code == 400:
-                _token_cache.pop(client_id, None)
-                return ""
-                
-        except Exception as e:
-            await _log_error(client_id, "check_token", "GET", e)
-
-    return token
+async def save_crm_token(client_id: int, crm_token: str) -> None:
+    await _upsert_credentials(
+        client_id=client_id,
+        encrypted_crm_token=encrypt_secret(crm_token),
+        token_status="valid",
+    )
 
 
-async def _log_error(client_id, endpoint, method, error):
+async def clear_mkt_credentials(client_id: int) -> None:
+    await db_execute(
+        """
+        UPDATE rd_credentials
+           SET encrypted_mkt_token = '',
+               encrypted_mkt_refresh_token = '',
+               token_status = 'cleared',
+               updated_at = $1
+         WHERE client_id = $2
+        """,
+        utcnow().isoformat(),
+        client_id,
+    )
+
+
+async def clear_crm_credentials(client_id: int) -> None:
+    await db_execute(
+        """
+        UPDATE rd_credentials
+           SET encrypted_crm_token = '',
+               updated_at = $1
+         WHERE client_id = $2
+        """,
+        utcnow().isoformat(),
+        client_id,
+    )
+
+
+async def get_rd_credentials(client_id: int) -> dict:
+    cred = await db_fetchone("SELECT * FROM rd_credentials WHERE client_id = $1", client_id)
+    if cred:
+        return {
+            "rd_token": decrypt_secret(cred.get("encrypted_mkt_token")),
+            "rd_refresh_token": decrypt_secret(cred.get("encrypted_mkt_refresh_token")),
+            "rd_crm_token": decrypt_secret(cred.get("encrypted_crm_token")),
+            "token_status": cred.get("token_status") or "unknown",
+            "last_validated_at": cred.get("last_validated_at"),
+            "last_refresh_at": cred.get("last_refresh_at"),
+        }
+
+    legacy = await db_fetchone(
+        "SELECT rd_token, rd_refresh_token, rd_crm_token FROM clients WHERE id = $1",
+        client_id,
+    )
+    if not legacy:
+        return {}
+
+    return {
+        "rd_token": legacy.get("rd_token") or "",
+        "rd_refresh_token": legacy.get("rd_refresh_token") or "",
+        "rd_crm_token": legacy.get("rd_crm_token") or "",
+        "token_status": "legacy",
+        "last_validated_at": None,
+        "last_refresh_at": None,
+    }
+
+
+async def migrate_plaintext_rd_credentials() -> None:
+    rows = await db_fetchall(
+        """
+        SELECT id, rd_token, rd_refresh_token, rd_crm_token
+          FROM clients
+         WHERE COALESCE(rd_token, '') <> ''
+            OR COALESCE(rd_refresh_token, '') <> ''
+            OR COALESCE(rd_crm_token, '') <> ''
+        """
+    )
+    for row in rows:
+        client_id = row["id"]
+        if row.get("rd_token") or row.get("rd_refresh_token"):
+            await save_mkt_token(client_id, row.get("rd_token") or "", row.get("rd_refresh_token") or "")
+        if row.get("rd_crm_token"):
+            await save_crm_token(client_id, row["rd_crm_token"])
+
+        await db_execute(
+            """
+            UPDATE clients
+               SET rd_token = '',
+                   rd_refresh_token = '',
+                   rd_crm_token = '',
+                   updated_at = $1
+             WHERE id = $2
+            """,
+            utcnow().isoformat(),
+            client_id,
+        )
+
+
+async def _log_error(client_id: int | None, endpoint: str, method: str, error: str) -> None:
     try:
         await db_execute(
-            "INSERT INTO error_logs (client_id, endpoint, method, error_message, stack_trace) VALUES ($1,$2,$3,$4,$5)",
-            client_id, endpoint, method, str(error), traceback.format_exc()
+            """
+            INSERT INTO error_logs (client_id, endpoint, method, error_message, stack_trace)
+            VALUES ($1, $2, $3, $4, $5)
+            """,
+            client_id,
+            endpoint,
+            method,
+            error,
+            traceback.format_exc(),
         )
     except Exception:
         pass
+
+
+async def get_valid_mkt_token(client_id: int) -> str:
+    creds = await get_rd_credentials(client_id)
+    token = (creds.get("rd_token") or "").strip()
+    if token:
+        return token
+
+    refresh = (creds.get("rd_refresh_token") or "").strip()
+    if refresh:
+        return await refresh_mkt_token(client_id)
+    return ""
+
+
+async def refresh_mkt_token(client_id: int) -> str:
+    creds = await get_rd_credentials(client_id)
+    refresh_token = (creds.get("rd_refresh_token") or "").strip()
+    if not refresh_token:
+        return ""
+
+    if not MKT_CLIENT_ID or not MKT_CLIENT_SECRET:
+        await _log_error(client_id, "/auth/token", "POST", "RD_CLIENT_ID/RD_CLIENT_SECRET ausentes")
+        return ""
+
+    payload = {
+        "client_id": MKT_CLIENT_ID,
+        "client_secret": MKT_CLIENT_SECRET,
+        "refresh_token": refresh_token,
+        "grant_type": "refresh_token",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as http:
+            response = await http.post(RD_TOKEN_URL, data=payload)
+
+        if response.status_code != 200:
+            await _log_error(client_id, "/auth/token", "POST", f"Refresh falhou: {response.status_code} | {response.text[:300]}")
+            return ""
+
+        data = response.json()
+        new_access = data.get("access_token", "").strip()
+        new_refresh = data.get("refresh_token", refresh_token).strip()
+        if not new_access:
+            await _log_error(client_id, "/auth/token", "POST", "Refresh retornou sem access_token")
+            return ""
+
+        await save_mkt_token(client_id, new_access, new_refresh)
+        return new_access
+
+    except Exception as e:
+        await _log_error(client_id, "/auth/token", "POST", str(e))
+        return ""
