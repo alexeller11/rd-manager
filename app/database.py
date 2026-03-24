@@ -1,126 +1,135 @@
 """
 Camada de banco de dados unificada.
-Usa PostgreSQL (produção) via DATABASE_URL ou SQLite (fallback local).
-Toda a lógica de dual-driver fica aqui — routers não precisam saber qual banco estão usando.
+- PostgreSQL em produção
+- SQLite opcional para dev local
+- Fail-fast no boot
+- Schema com separação de credenciais
 """
 import os
+import re
 import json
 import asyncio
 import aiosqlite
 import asyncpg
-from contextlib import asynccontextmanager
+from typing import Any
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./rd_manager.db")
+from app.core.settings import get_settings
+
+settings = get_settings()
+DATABASE_URL = settings.database_url
 
 _pg_pool: asyncpg.Pool | None = None
 _pg_lock = asyncio.Lock()
-
-
-# ─── Pool PostgreSQL (lazy init) ────────────────────────────────────────────
-
-async def get_pg_pool() -> asyncpg.Pool:
-    global _pg_pool
-    if _pg_pool is None:
-        async with _pg_lock:
-            if _pg_pool is None:
-                _pg_pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=10)
-    return _pg_pool
 
 
 def _is_sqlite() -> bool:
     return DATABASE_URL.startswith("sqlite")
 
 
-# ─── Helpers de query ────────────────────────────────────────────────────────
+def _sqlite_path() -> str:
+    return DATABASE_URL.replace("sqlite:///", "")
+
+
+def _to_sqlite_params(query: str) -> str:
+    return re.sub(r"\$\d+", "?", query)
+
+
+async def get_pg_pool() -> asyncpg.Pool:
+    global _pg_pool
+    if _pg_pool is None:
+        async with _pg_lock:
+            if _pg_pool is None:
+                _pg_pool = await asyncpg.create_pool(
+                    DATABASE_URL,
+                    min_size=1,
+                    max_size=10,
+                    command_timeout=30,
+                )
+    return _pg_pool
+
+
+async def close_db() -> None:
+    global _pg_pool
+    if _pg_pool is not None:
+        await _pg_pool.close()
+        _pg_pool = None
+
 
 async def db_fetchone(query: str, *args) -> dict | None:
-    """Retorna uma linha como dict ou None."""
     if _is_sqlite():
-        sq = query.replace("$1", "?").replace("$2", "?").replace("$3", "?") \
-                  .replace("$4", "?").replace("$5", "?").replace("$6", "?") \
-                  .replace("$7", "?").replace("$8", "?").replace("$9", "?").replace("$10", "?").replace("$11", "?")
-        path = DATABASE_URL.replace("sqlite:///", "")
-        async with aiosqlite.connect(path) as db:
+        sq = _to_sqlite_params(query)
+        async with aiosqlite.connect(_sqlite_path()) as db:
             db.row_factory = aiosqlite.Row
             async with db.execute(sq, args) as cur:
                 row = await cur.fetchone()
                 return dict(row) if row else None
-    else:
-        pool = await get_pg_pool()
-        async with pool.acquire() as conn:
-            row = await conn.fetchrow(query, *args)
-            return dict(row) if row else None
+
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(query, *args)
+        return dict(row) if row else None
 
 
 async def db_fetchall(query: str, *args) -> list[dict]:
-    """Retorna lista de dicts."""
     if _is_sqlite():
         sq = _to_sqlite_params(query)
-        path = DATABASE_URL.replace("sqlite:///", "")
-        async with aiosqlite.connect(path) as db:
+        async with aiosqlite.connect(_sqlite_path()) as db:
             db.row_factory = aiosqlite.Row
             async with db.execute(sq, args) as cur:
-                return [dict(r) for r in await cur.fetchall()]
-    else:
-        pool = await get_pg_pool()
-        async with pool.acquire() as conn:
-            rows = await conn.fetch(query, *args)
-            return [dict(r) for r in rows]
+                rows = await cur.fetchall()
+                return [dict(r) for r in rows]
+
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(query, *args)
+        return [dict(r) for r in rows]
 
 
 async def db_execute(query: str, *args) -> None:
-    """Executa sem retorno."""
     if _is_sqlite():
         sq = _to_sqlite_params(query)
-        path = DATABASE_URL.replace("sqlite:///", "")
-        async with aiosqlite.connect(path) as db:
+        async with aiosqlite.connect(_sqlite_path()) as db:
             await db.execute(sq, args)
             await db.commit()
-    else:
-        pool = await get_pg_pool()
-        async with pool.acquire() as conn:
-            await conn.execute(query, *args)
+        return
+
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(query, *args)
 
 
 async def db_fetchval(query: str, *args):
-    """Executa e retorna o primeiro valor (útil para RETURNING id)."""
     if _is_sqlite():
         sq = _to_sqlite_params(query)
-        # Remove RETURNING clause for sqlite — we use lastrowid
-        sq_noret = sq.split(" RETURNING ")[0] if " RETURNING " in sq.upper() else sq
-        path = DATABASE_URL.replace("sqlite:///", "")
-        async with aiosqlite.connect(path) as db:
-            cur = await db.execute(sq_noret, args)
+        upper_sq = sq.upper()
+        sq_exec = sq
+        if " RETURNING " in upper_sq:
+            idx = upper_sq.index(" RETURNING ")
+            sq_exec = sq[:idx]
+        async with aiosqlite.connect(_sqlite_path()) as db:
+            cur = await db.execute(sq_exec, args)
             await db.commit()
             return cur.lastrowid
-    else:
-        pool = await get_pg_pool()
-        async with pool.acquire() as conn:
-            return await conn.fetchval(query, *args)
+
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        return await conn.fetchval(query, *args)
 
 
-async def db_executemany(query: str, args_list: list) -> None:
-    """Executa em batch."""
+async def db_executemany(query: str, args_list: list[tuple | list]) -> None:
     if _is_sqlite():
         sq = _to_sqlite_params(query)
-        path = DATABASE_URL.replace("sqlite:///", "")
-        async with aiosqlite.connect(path) as db:
+        async with aiosqlite.connect(_sqlite_path()) as db:
             await db.executemany(sq, args_list)
             await db.commit()
-    else:
-        pool = await get_pg_pool()
-        async with pool.acquire() as conn:
-            await conn.executemany(query, args_list)
+        return
+
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        await conn.executemany(query, args_list)
 
 
-def _to_sqlite_params(query: str) -> str:
-    """Converte $1..$N para ? no SQLite."""
-    import re
-    return re.sub(r'\$\d+', '?', query)
-
-
-def parse_json_field(val) -> dict | list:
-    """Parseia campo JSON de qualquer driver (string, dict, Record asyncpg)."""
+def parse_json_field(val: Any) -> dict | list:
     if val is None:
         return {}
     if isinstance(val, (dict, list)):
@@ -130,13 +139,8 @@ def parse_json_field(val) -> dict | list:
             return json.loads(val)
         except Exception:
             return {}
-    try:
-        return json.loads(json.dumps(dict(val)))
-    except Exception:
-        return {}
+    return {}
 
-
-# ─── Schema ─────────────────────────────────────────────────────────────────
 
 SCHEMA_SQLITE = """
 CREATE TABLE IF NOT EXISTS users (
@@ -146,6 +150,7 @@ CREATE TABLE IF NOT EXISTS users (
     is_admin INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
 CREATE TABLE IF NOT EXISTS clients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -163,6 +168,20 @@ CREATE TABLE IF NOT EXISTS clients (
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS rd_credentials (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER UNIQUE NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    encrypted_mkt_token TEXT,
+    encrypted_mkt_refresh_token TEXT,
+    encrypted_crm_token TEXT,
+    token_status TEXT DEFAULT 'unknown',
+    last_validated_at TEXT,
+    last_refresh_at TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS analyses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id INTEGER REFERENCES clients(id),
@@ -171,6 +190,7 @@ CREATE TABLE IF NOT EXISTS analyses (
     result TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
 CREATE TABLE IF NOT EXISTS error_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id INTEGER,
@@ -180,6 +200,7 @@ CREATE TABLE IF NOT EXISTS error_logs (
     stack_trace TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
 CREATE TABLE IF NOT EXISTS rd_snapshots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id INTEGER REFERENCES clients(id),
@@ -187,12 +208,14 @@ CREATE TABLE IF NOT EXISTS rd_snapshots (
     snapshot_type TEXT DEFAULT 'full_sync',
     created_at TEXT DEFAULT (datetime('now'))
 );
+
 CREATE TABLE IF NOT EXISTS crm_snapshots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id INTEGER REFERENCES clients(id),
     data TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
 CREATE TABLE IF NOT EXISTS email_strategies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id INTEGER REFERENCES clients(id),
@@ -201,6 +224,7 @@ CREATE TABLE IF NOT EXISTS email_strategies (
     body TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
 CREATE TABLE IF NOT EXISTS flows (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id INTEGER REFERENCES clients(id),
@@ -209,12 +233,23 @@ CREATE TABLE IF NOT EXISTS flows (
     flow_data TEXT,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
 CREATE TABLE IF NOT EXISTS weekly_analyses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     client_id INTEGER REFERENCES clients(id),
     result TEXT,
     week_ref TEXT,
     created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS sync_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER REFERENCES clients(id),
+    sync_type TEXT NOT NULL,
+    status TEXT NOT NULL,
+    details TEXT,
+    started_at TEXT DEFAULT (datetime('now')),
+    finished_at TEXT
 );
 """
 
@@ -226,6 +261,7 @@ CREATE TABLE IF NOT EXISTS users (
     is_admin BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
 CREATE TABLE IF NOT EXISTS clients (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
@@ -243,6 +279,20 @@ CREATE TABLE IF NOT EXISTS clients (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS rd_credentials (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER UNIQUE NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    encrypted_mkt_token TEXT,
+    encrypted_mkt_refresh_token TEXT,
+    encrypted_crm_token TEXT,
+    token_status TEXT DEFAULT 'unknown',
+    last_validated_at TIMESTAMPTZ,
+    last_refresh_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS analyses (
     id SERIAL PRIMARY KEY,
     client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
@@ -251,6 +301,7 @@ CREATE TABLE IF NOT EXISTS analyses (
     result TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
 CREATE TABLE IF NOT EXISTS error_logs (
     id SERIAL PRIMARY KEY,
     client_id INTEGER,
@@ -260,19 +311,22 @@ CREATE TABLE IF NOT EXISTS error_logs (
     stack_trace TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
 CREATE TABLE IF NOT EXISTS rd_snapshots (
     id SERIAL PRIMARY KEY,
     client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
-    data JSONB,
+    data TEXT,
     snapshot_type TEXT DEFAULT 'full_sync',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
 CREATE TABLE IF NOT EXISTS crm_snapshots (
     id SERIAL PRIMARY KEY,
     client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
-    data JSONB,
+    data TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
 CREATE TABLE IF NOT EXISTS email_strategies (
     id SERIAL PRIMARY KEY,
     client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
@@ -281,14 +335,16 @@ CREATE TABLE IF NOT EXISTS email_strategies (
     body TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
 CREATE TABLE IF NOT EXISTS flows (
     id SERIAL PRIMARY KEY,
     client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
     name TEXT,
     description TEXT,
-    flow_data JSONB,
+    flow_data TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
 CREATE TABLE IF NOT EXISTS weekly_analyses (
     id SERIAL PRIMARY KEY,
     client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
@@ -296,40 +352,40 @@ CREATE TABLE IF NOT EXISTS weekly_analyses (
     week_ref TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS sync_runs (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+    sync_type TEXT NOT NULL,
+    status TEXT NOT NULL,
+    details TEXT,
+    started_at TIMESTAMPTZ DEFAULT NOW(),
+    finished_at TIMESTAMPTZ
+);
 """
 
 
-async def init_db():
-    """Inicializa o banco e cria as tabelas com tratamento de erro."""
+async def _run_pg_schema() -> None:
+    pool = await get_pg_pool()
+    async with pool.acquire() as conn:
+        for stmt in [s.strip() for s in SCHEMA_PG.split(";") if s.strip()]:
+            await conn.execute(stmt)
+
+
+async def _run_sqlite_schema() -> None:
+    async with aiosqlite.connect(_sqlite_path()) as db:
+        await db.executescript(SCHEMA_SQLITE)
+        await db.commit()
+
+
+async def init_db() -> None:
     try:
         if _is_sqlite():
-            path = DATABASE_URL.replace("sqlite:///", "")
-            async with aiosqlite.connect(path) as db:
-                await db.executescript(SCHEMA_SQLITE)
-                await db.commit()
-            print("✅ SQLite initialized")
+            await _run_sqlite_schema()
+            print("✅ SQLite inicializado com sucesso.")
         else:
-            pool = await get_pg_pool()
-            async with pool.acquire() as conn:
-                # Migração forçada: garante que as colunas de token existam
-                try:
-                    await conn.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS rd_token TEXT")
-                    await conn.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS rd_refresh_token TEXT")
-                    await conn.execute("ALTER TABLE clients ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()")
-                except:
-                    pass
-                
-                # Tenta executar o schema em blocos para ser mais resiliente
-                for stmt in SCHEMA_PG.strip().split(";"):
-                    stmt = stmt.strip()
-                    if stmt:
-                        try:
-                            await conn.execute(stmt)
-                        except Exception as inner_e:
-                            # Ignora erros de "já existe" mas loga outros
-                            if "already exists" not in str(inner_e).lower():
-                                print(f"ℹ️ Info: stmt falhou ({stmt[:30]}...): {inner_e}")
-            print("✅ PostgreSQL initialized")
+            await _run_pg_schema()
+            print("✅ PostgreSQL inicializado com sucesso.")
     except Exception as e:
-        print(f"⚠️ Erro ao inicializar banco de dados: {e}")
-        print("A aplicação continuará rodando, mas funcionalidades de persistência podem falhar.")
+        print(f"❌ Falha crítica ao inicializar banco: {e}")
+        raise
