@@ -4,6 +4,7 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt
+from passlib.context import CryptContext
 
 from app.core.settings import get_settings
 from app.database import db_execute, db_fetch_one
@@ -11,8 +12,23 @@ from app.database import db_execute, db_fetch_one
 settings = get_settings()
 security = HTTPBearer()
 
-# 🔥 FIX GLOBAL (resolve erro atual)
+# 🔥 FIX GLOBAL
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.token_expire_minutes
+
+# 🔥 PASSWORD HASH
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+# =========================
+# PASSWORD
+# =========================
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
 
 
 # =========================
@@ -65,7 +81,7 @@ def require_admin(user=Depends(get_current_user)):
 # =========================
 
 async def ensure_admin_exists():
-    query = "SELECT id FROM users WHERE username = $1"
+    query = "SELECT id, password FROM users WHERE username = $1"
     user = await db_fetch_one(query, settings.admin_username)
 
     if user:
@@ -79,7 +95,7 @@ async def ensure_admin_exists():
     await db_execute(
         insert,
         settings.admin_username,
-        settings.admin_password,
+        hash_password(settings.admin_password),
         datetime.now(timezone.utc),
     )
 
@@ -97,25 +113,19 @@ async def save_mkt_token(
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(seconds=expires_in or 3600)
 
-    query = """
-    INSERT INTO rd_credentials (
-        client_id,
-        access_token,
-        refresh_token,
-        expires_at,
-        updated_at
-    )
-    VALUES ($1, $2, $3, $4, $5)
-    ON CONFLICT (client_id)
-    DO UPDATE SET
-        access_token = EXCLUDED.access_token,
-        refresh_token = EXCLUDED.refresh_token,
-        expires_at = EXCLUDED.expires_at,
-        updated_at = EXCLUDED.updated_at
-    """
-
     await db_execute(
-        query,
+        """
+        INSERT INTO rd_credentials (
+            client_id, access_token, refresh_token, expires_at, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (client_id)
+        DO UPDATE SET
+            access_token = EXCLUDED.access_token,
+            refresh_token = EXCLUDED.refresh_token,
+            expires_at = EXCLUDED.expires_at,
+            updated_at = EXCLUDED.updated_at
+        """,
         client_id,
         access_token,
         refresh_token,
@@ -133,25 +143,19 @@ async def save_crm_token(
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(seconds=expires_in or 3600)
 
-    query = """
-    INSERT INTO rd_credentials (
-        client_id,
-        access_token,
-        refresh_token,
-        expires_at,
-        updated_at
-    )
-    VALUES ($1, $2, $3, $4, $5)
-    ON CONFLICT (client_id)
-    DO UPDATE SET
-        access_token = EXCLUDED.access_token,
-        refresh_token = EXCLUDED.refresh_token,
-        expires_at = EXCLUDED.expires_at,
-        updated_at = EXCLUDED.updated_at
-    """
-
     await db_execute(
-        query,
+        """
+        INSERT INTO rd_credentials (
+            client_id, access_token, refresh_token, expires_at, updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5)
+        ON CONFLICT (client_id)
+        DO UPDATE SET
+            access_token = EXCLUDED.access_token,
+            refresh_token = EXCLUDED.refresh_token,
+            expires_at = EXCLUDED.expires_at,
+            updated_at = EXCLUDED.updated_at
+        """,
         client_id,
         access_token,
         refresh_token,
@@ -165,12 +169,14 @@ async def save_crm_token(
 # =========================
 
 async def get_rd_credentials(client_id: int) -> Optional[dict]:
-    query = """
-    SELECT access_token, refresh_token, expires_at
-    FROM rd_credentials
-    WHERE client_id = $1
-    """
-    return await db_fetch_one(query, client_id)
+    return await db_fetch_one(
+        """
+        SELECT access_token, refresh_token, expires_at
+        FROM rd_credentials
+        WHERE client_id = $1
+        """,
+        client_id,
+    )
 
 
 # =========================
