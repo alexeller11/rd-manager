@@ -12,16 +12,23 @@ from app.database import db_execute, db_fetch_one
 settings = get_settings()
 security = HTTPBearer()
 
-# 🔥 FIX GLOBAL
+# =========================
+# CONFIG GLOBAL
+# =========================
+
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.token_expire_minutes
 
-# 🔥 PASSWORD HASH
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+# 🔥 OAUTH RD
+MKT_CLIENT_ID = settings.rd_client_id
+MKT_CLIENT_SECRET = settings.rd_client_secret
+RD_TOKEN_URL = "https://api.rd.services/auth/token"
 
 # =========================
 # PASSWORD
 # =========================
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
@@ -81,19 +88,17 @@ def require_admin(user=Depends(get_current_user)):
 # =========================
 
 async def ensure_admin_exists():
-    query = "SELECT id, password FROM users WHERE username = $1"
+    query = "SELECT id FROM users WHERE username = $1"
     user = await db_fetch_one(query, settings.admin_username)
 
     if user:
         return
 
-    insert = """
-    INSERT INTO users (username, password, created_at)
-    VALUES ($1, $2, $3)
-    """
-
     await db_execute(
-        insert,
+        """
+        INSERT INTO users (username, password, created_at)
+        VALUES ($1, $2, $3)
+        """,
         settings.admin_username,
         hash_password(settings.admin_password),
         datetime.now(timezone.utc),
@@ -101,7 +106,7 @@ async def ensure_admin_exists():
 
 
 # =========================
-# TOKENS
+# TOKENS RD
 # =========================
 
 async def save_mkt_token(
