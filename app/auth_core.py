@@ -122,6 +122,20 @@ async def save_mkt_token(
 
 
 # =========================
+# GET RD CREDENTIALS (🔥 NOVO FIX)
+# =========================
+
+async def get_rd_credentials(client_id: int) -> Optional[dict]:
+    query = """
+    SELECT access_token, refresh_token, expires_at
+    FROM rd_credentials
+    WHERE client_id = $1
+    """
+
+    return await db_fetch_one(query, client_id)
+
+
+# =========================
 # MIGRAÇÃO
 # =========================
 
@@ -169,7 +183,7 @@ async def clear_crm_credentials(client_id: int):
 
 
 # =========================
-# CLEAR MKT CREDENTIALS (🔥 NOVO FIX)
+# CLEAR MKT CREDENTIALS
 # =========================
 
 async def clear_mkt_credentials(client_id: int):
