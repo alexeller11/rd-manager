@@ -5,7 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.auth_core import ensure_admin_exists, get_current_user, migrate_plaintext_rd_credentials, require_admin
+from app.auth_core import (
+    ensure_admin_exists,
+    get_current_user,
+    migrate_plaintext_rd_credentials,
+    require_admin,
+)
 from app.core.settings import get_settings
 from app.database import close_db, init_db
 from app.routers import (
@@ -39,12 +44,12 @@ app.add_middleware(
 os.makedirs("app/static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# Rotas públicas
+# Públicas
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(health.router, prefix="/api/health", tags=["health"])
 app.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
 
-# Rotas privadas
+# Privadas
 private_dependencies = [Depends(get_current_user)]
 
 app.include_router(clients.router, prefix="/api/clients", tags=["clients"], dependencies=private_dependencies)
@@ -58,7 +63,7 @@ app.include_router(crm.router, prefix="/api/crm", tags=["crm"], dependencies=pri
 app.include_router(scheduler.router, prefix="/api/scheduler", tags=["scheduler"], dependencies=private_dependencies)
 app.include_router(campaign.router, prefix="/api/campaign", tags=["campaign"], dependencies=private_dependencies)
 
-# Debug protegido e só carregado quando habilitado
+# Debug só se habilitado
 if settings.debug_mode:
     from app.routers import debug
     app.include_router(
@@ -72,9 +77,14 @@ if settings.debug_mode:
 @app.on_event("startup")
 async def startup() -> None:
     print("🚀 Iniciando RD Manager IA...")
+    print(f"🌍 Ambiente: {settings.app_env}")
+    print(f"🐞 Debug: {settings.debug_mode}")
+    print(f"🗄️ Banco configurado: {'sim' if settings.database_url else 'não'}")
+
     await init_db()
     await ensure_admin_exists()
     await migrate_plaintext_rd_credentials()
+
     print("✅ Aplicação pronta.")
 
 
@@ -98,7 +108,11 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "version": "5.0.0", "env": settings.app_env}
+    return {
+        "status": "ok",
+        "version": "5.0.0",
+        "env": settings.app_env,
+    }
 
 
 @app.get("/dashboard/{client_id}", response_class=HTMLResponse)
