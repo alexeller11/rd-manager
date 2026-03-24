@@ -1,14 +1,15 @@
 FROM python:3.11-slim
 
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /code
 
-RUN pip install fastapi uvicorn
+COPY ./requirements.txt /code/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-RUN printf '%s\n' \
-'from fastapi import FastAPI' \
-'app = FastAPI()' \
-'@app.get("/health")' \
-'async def health(): return {"ok": True}' \
-> main.py
+COPY . /code
 
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+EXPOSE 8080
+
+CMD ["sh", "-c", "python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --log-level info"]
