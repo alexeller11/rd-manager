@@ -11,6 +11,9 @@ from app.database import db_execute, db_fetch_one
 settings = get_settings()
 security = HTTPBearer()
 
+# 🔥 FIX GLOBAL (resolve erro atual)
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.token_expire_minutes
+
 
 # =========================
 # JWT
@@ -20,7 +23,7 @@ def create_access_token(data: dict, expires_minutes: int = None) -> str:
     to_encode = data.copy()
 
     expire = datetime.now(timezone.utc) + timedelta(
-        minutes=expires_minutes or settings.token_expire_minutes
+        minutes=expires_minutes or ACCESS_TOKEN_EXPIRE_MINUTES
     )
 
     to_encode.update({"exp": expire})
@@ -82,7 +85,7 @@ async def ensure_admin_exists():
 
 
 # =========================
-# SAVE TOKENS
+# TOKENS
 # =========================
 
 async def save_mkt_token(
@@ -121,16 +124,12 @@ async def save_mkt_token(
     )
 
 
-# 🔥 NOVO FIX
 async def save_crm_token(
     client_id: int,
     access_token: str,
     refresh_token: str,
     expires_in: Optional[int] = 3600,
 ):
-    """
-    Mesmo comportamento do marketing, separado por organização
-    """
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(seconds=expires_in or 3600)
 
@@ -179,36 +178,30 @@ async def get_rd_credentials(client_id: int) -> Optional[dict]:
 # =========================
 
 async def clear_crm_credentials(client_id: int):
-    query = """
-    UPDATE rd_credentials
-    SET
-        access_token = NULL,
-        refresh_token = NULL,
-        expires_at = NULL,
-        updated_at = $2
-    WHERE client_id = $1
-    """
-
     await db_execute(
-        query,
+        """
+        UPDATE rd_credentials
+        SET access_token = NULL,
+            refresh_token = NULL,
+            expires_at = NULL,
+            updated_at = $2
+        WHERE client_id = $1
+        """,
         client_id,
         datetime.now(timezone.utc),
     )
 
 
 async def clear_mkt_credentials(client_id: int):
-    query = """
-    UPDATE rd_credentials
-    SET
-        access_token = NULL,
-        refresh_token = NULL,
-        expires_at = NULL,
-        updated_at = $2
-    WHERE client_id = $1
-    """
-
     await db_execute(
-        query,
+        """
+        UPDATE rd_credentials
+        SET access_token = NULL,
+            refresh_token = NULL,
+            expires_at = NULL,
+            updated_at = $2
+        WHERE client_id = $1
+        """,
         client_id,
         datetime.now(timezone.utc),
     )
@@ -219,21 +212,17 @@ async def clear_mkt_credentials(client_id: int):
 # =========================
 
 async def migrate_plaintext_rd_credentials():
-    rows = await db_fetch_one("""
+    row = await db_fetch_one("""
         SELECT id, rd_token, rd_refresh_token
         FROM clients
         WHERE rd_token IS NOT NULL
     """)
 
-    if not rows:
+    if not row:
         return
 
-    if not isinstance(rows, list):
-        rows = [rows]
-
-    for row in rows:
-        await save_mkt_token(
-            row["id"],
-            row.get("rd_token") or "",
-            row.get("rd_refresh_token") or "",
-        )
+    await save_mkt_token(
+        row["id"],
+        row.get("rd_token") or "",
+        row.get("rd_refresh_token") or "",
+    )
