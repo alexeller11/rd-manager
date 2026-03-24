@@ -5,10 +5,18 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /code
 
-COPY ./requirements.txt /code/requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+RUN pip install --no-cache-dir fastapi==0.115.0 uvicorn[standard]==0.29.0
 
-COPY . /code
+RUN printf '%s\n' \
+'from fastapi import FastAPI' \
+'app = FastAPI()' \
+'@app.get("/health")' \
+'async def health():' \
+'    return {"status": "ok", "mode": "inline-fastapi"}' \
+'@app.get("/")' \
+'async def root():' \
+'    return {"message": "inline fastapi running"}' \
+> /code/main.py
 
 EXPOSE 8080
 
