@@ -82,7 +82,7 @@ async def ensure_admin_exists():
 
 
 # =========================
-# RD TOKENS (FIX PRINCIPAL)
+# RD TOKENS
 # =========================
 
 async def save_mkt_token(
@@ -91,10 +91,6 @@ async def save_mkt_token(
     refresh_token: str,
     expires_in: Optional[int] = 3600,
 ):
-    """
-    Salva tokens da RD com datetime correto (NÃO string)
-    """
-
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(seconds=expires_in or 3600)
 
@@ -120,21 +116,16 @@ async def save_mkt_token(
         client_id,
         access_token,
         refresh_token,
-        expires_at,  # ✅ datetime correto
+        expires_at,
         now,
     )
 
 
 # =========================
-# MIGRAÇÃO (FIX COMPLETO)
+# MIGRAÇÃO
 # =========================
 
 async def migrate_plaintext_rd_credentials():
-    """
-    Migra tokens antigos (se existirem)
-    Evita crash por datetime string
-    """
-
     rows = await db_fetch_one("""
         SELECT id, rd_token, rd_refresh_token
         FROM clients
@@ -144,27 +135,44 @@ async def migrate_plaintext_rd_credentials():
     if not rows:
         return
 
-    # garante lista
     if not isinstance(rows, list):
         rows = [rows]
 
     for row in rows:
-        client_id = row["id"]
-
         await save_mkt_token(
-            client_id,
+            row["id"],
             row.get("rd_token") or "",
             row.get("rd_refresh_token") or "",
         )
+
+
 # =========================
-# CLEAR CRM CREDENTIALS (FIX)
+# CLEAR CRM CREDENTIALS
 # =========================
 
 async def clear_crm_credentials(client_id: int):
-    """
-    Remove credenciais de CRM de um cliente
+    query = """
+    UPDATE rd_credentials
+    SET
+        access_token = NULL,
+        refresh_token = NULL,
+        expires_at = NULL,
+        updated_at = $2
+    WHERE client_id = $1
     """
 
+    await db_execute(
+        query,
+        client_id,
+        datetime.now(timezone.utc),
+    )
+
+
+# =========================
+# CLEAR MKT CREDENTIALS (🔥 NOVO FIX)
+# =========================
+
+async def clear_mkt_credentials(client_id: int):
     query = """
     UPDATE rd_credentials
     SET
