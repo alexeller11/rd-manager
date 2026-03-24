@@ -237,3 +237,68 @@ async def migrate_plaintext_rd_credentials():
         row.get("rd_token") or "",
         row.get("rd_refresh_token") or "",
     )
+import httpx
+
+
+# =========================
+# TOKEN VALIDATION RD (FINAL FIX)
+# =========================
+
+async def refresh_mkt_token(client_id: int, refresh_token: str) -> dict:
+    """
+    Faz refresh do token na RD Station
+    """
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            RD_TOKEN_URL,
+            data={
+                "grant_type": "refresh_token",
+                "client_id": MKT_CLIENT_ID,
+                "client_secret": MKT_CLIENT_SECRET,
+                "refresh_token": refresh_token,
+            },
+        )
+
+    if response.status_code != 200:
+        raise Exception("Erro ao renovar token RD")
+
+    data = response.json()
+
+    await save_mkt_token(
+        client_id,
+        data["access_token"],
+        data.get("refresh_token", refresh_token),
+        data.get("expires_in", 3600),
+    )
+
+    return data
+
+
+async def get_valid_mkt_token(client_id: int) -> str:
+    """
+    Retorna token válido, renovando se necessário
+    """
+
+    creds = await get_rd_credentials(client_id)
+
+    if not creds:
+        raise Exception("Cliente não possui credenciais RD")
+
+    access_token = creds.get("access_token")
+    refresh_token = creds.get("refresh_token")
+    expires_at = creds.get("expires_at")
+
+    # Se não tiver expiração, força refresh
+    if not expires_at:
+        new = await refresh_mkt_token(client_id, refresh_token)
+        return new["access_token"]
+
+    now = datetime.now(timezone.utc)
+
+    # Se expirou
+    if expires_at < now:
+        new = await refresh_mkt_token(client_id, refresh_token)
+        return new["access_token"]
+
+    return access_token
