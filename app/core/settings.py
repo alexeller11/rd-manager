@@ -15,7 +15,9 @@ def _get_env(*names: str, default: str = "") -> str:
 def _to_bool(value: str | None, default: bool = False) -> bool:
     if value is None:
         return default
-    return str(value).strip().lower() in {"1", "true", "yes", "on", "sim", "verdadeiro"}
+    return str(value).strip().lower() in {
+        "1", "true", "yes", "on", "sim", "verdadeiro"
+    }
 
 
 def _split_csv(value: str | None) -> list[str]:
@@ -59,9 +61,7 @@ class Settings:
             default=derived_key,
         )
 
-        self.token_expire_minutes = int(
-            _get_env("TOKEN_EXPIRE_MINUTES", default="720")
-        )
+        self.token_expire_minutes = int(_get_env("TOKEN_EXPIRE_MINUTES", default="720"))
 
         self.admin_username = _get_env(
             "ADMIN_USERNAME",
@@ -82,23 +82,11 @@ class Settings:
             default="sqlite:///./rd_manager.db",
         )
 
-        self.rd_client_id = _get_env(
-            "RD_CLIENT_ID",
-            "ID_DO_CLIENTE_RD",
-        )
+        self.rd_client_id = _get_env("RD_CLIENT_ID", "ID_DO_CLIENTE_RD")
+        self.rd_client_secret = _get_env("RD_CLIENT_SECRET")
 
-        self.rd_client_secret = _get_env(
-            "RD_CLIENT_SECRET",
-        )
-
-        self.rd_crm_client_id = _get_env(
-            "RD_CRM_CLIENT_ID",
-            "ID_DO_CLIENTE_RD_CRM",
-        )
-
-        self.rd_crm_client_secret = _get_env(
-            "RD_CRM_CLIENT_SECRET",
-        )
+        self.rd_crm_client_id = _get_env("RD_CRM_CLIENT_ID", "ID_DO_CLIENTE_RD_CRM")
+        self.rd_crm_client_secret = _get_env("RD_CRM_CLIENT_SECRET")
 
         self.rd_redirect_uri = _get_env("RD_REDIRECT_URI")
 
@@ -122,7 +110,11 @@ class Settings:
             _get_env("ALLOWED_ORIGINS", "ORIGENS_PERMITIDAS")
         ) or default_origins
 
-        self.invite_code = _get_env("INVITE_CODE", "CÓDIGO_DE_CONVITE", "CODIGO_DE_CONVITE")
+        self.invite_code = _get_env(
+            "INVITE_CODE",
+            "CÓDIGO_DE_CONVITE",
+            "CODIGO_DE_CONVITE",
+        )
 
         self.validate()
 
