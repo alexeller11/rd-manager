@@ -18,7 +18,6 @@ from app.routers import (
     auth,
     campaign,
     clients,
-    crm,
     emails,
     flows,
     health,
@@ -27,6 +26,11 @@ from app.routers import (
     rd_station,
     reports,
     scheduler,
+    flows_advanced,
+    landing_pages,
+    leads,
+    insights,
+    prospect,
 )
 
 settings = get_settings()
