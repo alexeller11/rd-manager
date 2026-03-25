@@ -1,6 +1,7 @@
 import httpx
 from fastapi import APIRouter
 from bs4 import BeautifulSoup
+from app.ai_service import generate_text
 
 router = APIRouter()
 
@@ -15,19 +16,58 @@ async def analyze_page(data: dict):
     html = response.text
     soup = BeautifulSoup(html, "html.parser")
 
-    title = soup.title.string if soup.title else "Sem title"
+    title = soup.title.string if soup.title else ""
     h1 = soup.find("h1")
+    text = soup.get_text()
 
-    issues = []
-    if not h1:
-        issues.append("Página sem H1")
-    if len(title) < 20:
-        issues.append("Title fraco")
+    prompt = f"""
+    Analise essa landing page:
+
+    URL: {url}
+    TITLE: {title}
+    H1: {h1.text if h1 else "sem h1"}
+    TEXTO: {text[:2000]}
+
+    Retorne:
+
+    {{
+      "seo_score": 0-100,
+      "copy_score": 0-100,
+      "conversion_score": 0-100,
+      "problems": [],
+      "quick_wins": [],
+      "strategic_suggestions": []
+    }}
+    """
+
+    ai = await generate_text(prompt)
 
     return {
-        "title": title,
-        "h1": h1.text if h1 else None,
-        "issues": issues,
-        "seo_score": 70,
-        "copy_score": 65
+        "basic": {
+            "title": title,
+            "h1": h1.text if h1 else None
+        },
+        "analysis": ai
     }
+
+
+@router.post("/generate-copy")
+async def generate_lp_copy(data: dict):
+    prompt = f"""
+    Crie uma landing page completa.
+
+    Produto: {data.get("product")}
+    Público: {data.get("audience")}
+    Objetivo: {data.get("goal")}
+
+    Inclua:
+    - Headline
+    - Subheadline
+    - Seções
+    - CTA
+    - Objeções
+    """
+
+    result = await generate_text(prompt)
+
+    return {"copy": result}
