@@ -103,9 +103,10 @@ async def oauth_callback(code: str = None, state: str = None, error: str = None)
 
     access_token = data.get("access_token", "").strip()
     refresh_token = data.get("refresh_token", "").strip()
+    expires_in = data.get("expires_in", 3600)
 
     if not client_id or not access_token:
         return HTMLResponse(_error_html("Falha na identificação do cliente ou token vazio."))
 
-    await save_mkt_token(client_id, access_token, refresh_token)
+    await save_mkt_token(client_id, access_token, refresh_token, expires_in)
     return HTMLResponse(_success_html(client_id, "RD Marketing"))
