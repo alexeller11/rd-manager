@@ -9,16 +9,27 @@ async def generate_flow(data: dict):
     prompt = f"""
     Crie um fluxo de email marketing profissional.
 
+    Contexto:
     Objetivo: {data.get("goal")}
     Produto: {data.get("product")}
     Público: {data.get("audience")}
+    Nível de consciência: {data.get("awareness")}
 
-    Retorne JSON com:
-    - nome do fluxo
-    - lista de emails
-    - objetivo de cada email
-    - motivo estratégico
-    - timing (D+1, D+3...)
+    Retorne JSON estruturado:
+
+    {{
+      "flow_name": "...",
+      "emails": [
+        {{
+          "step": 1,
+          "name": "...",
+          "timing": "D+1",
+          "objective": "...",
+          "reason": "...",
+          "cta": "..."
+        }}
+      ]
+    }}
     """
 
     result = await generate_text(prompt)
@@ -34,11 +45,14 @@ async def generate_email(data: dict):
     Contexto:
     {data.get("context")}
 
-    Inclua:
-    - assunto
-    - preheader
-    - copy completa
+    Estrutura obrigatória:
+    - Assunto
+    - Preheader
+    - Corpo do email
     - CTA
+    - Versão alternativa A/B
+
+    Seja persuasivo e natural.
     """
 
     result = await generate_text(prompt)
