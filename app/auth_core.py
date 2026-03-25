@@ -118,7 +118,7 @@ async def save_mkt_token(
 async def save_crm_token(
     client_id: int,
     access_token: str,
-    refresh_token: str,
+    refresh_token: str = "",
     expires_in: Optional[int] = 3600,
 ):
     now = datetime.now(timezone.utc)
@@ -187,7 +187,7 @@ async def clear_mkt_credentials(client_id: int):
 
 
 async def refresh_mkt_token(client_id: int, refresh_token: str) -> dict:
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=20.0) as client:
         response = await client.post(
             RD_TOKEN_URL,
             data={
@@ -199,7 +199,7 @@ async def refresh_mkt_token(client_id: int, refresh_token: str) -> dict:
         )
 
     if response.status_code != 200:
-        raise Exception("Erro ao renovar token RD")
+        raise Exception(f"Erro ao renovar token RD: {response.text}")
 
     data = response.json()
 
@@ -223,18 +223,21 @@ async def get_valid_mkt_token(client_id: int) -> str:
     refresh_token = creds.get("refresh_token")
     expires_at = creds.get("expires_at")
 
-    if not expires_at:
+    if not access_token and refresh_token:
         new = await refresh_mkt_token(client_id, refresh_token)
         return new["access_token"]
 
-    now = datetime.now(timezone.utc)
+    if not access_token:
+        raise Exception("Cliente sem token RD salvo")
 
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at:
+        now = datetime.now(timezone.utc)
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
 
-    if expires_at < now:
-        new = await refresh_mkt_token(client_id, refresh_token)
-        return new["access_token"]
+        if expires_at <= now and refresh_token:
+            new = await refresh_mkt_token(client_id, refresh_token)
+            return new["access_token"]
 
     return access_token
 
