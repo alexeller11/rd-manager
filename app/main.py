@@ -64,6 +64,11 @@ app.include_router(intelligence.router, prefix="/api/intel", tags=["intelligence
 app.include_router(crm.router, prefix="/api/crm", tags=["crm"], dependencies=private_dependencies)
 app.include_router(scheduler.router, prefix="/api/scheduler", tags=["scheduler"], dependencies=private_dependencies)
 app.include_router(campaign.router, prefix="/api/campaign", tags=["campaign"], dependencies=private_dependencies)
+app.include_router(flows_advanced.router, prefix="/api/flows-adv", tags=["flows_advanced"], dependencies=private_dependencies)
+app.include_router(landing_pages.router, prefix="/api/landing", tags=["landing_pages"], dependencies=private_dependencies)
+app.include_router(leads.router, prefix="/api/leads", tags=["leads"], dependencies=private_dependencies)
+app.include_router(insights.router, prefix="/api/insights", tags=["insights"], dependencies=private_dependencies)
+app.include_router(prospect.router, prefix="/api/prospect", tags=["prospect"], dependencies=private_dependencies)
 
 if settings.debug_mode:
     from app.routers import debug
