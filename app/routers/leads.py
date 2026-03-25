@@ -7,42 +7,32 @@ router = APIRouter()
 @router.post("/analyze-base")
 async def analyze_leads(data: dict):
     prompt = f"""
-    Analise essa base de leads:
+Analise esta base de leads como uma agência estratégica.
 
-    {data}
+Dados:
+{data}
 
-    Retorne:
-
-    {{
-      "segments": [
-        {{
-          "name": "...",
-          "description": "...",
-          "size": "...",
-          "action": "..."
-        }}
-      ],
-      "insights": [],
-      "opportunities": [],
-      "recommended_actions": []
-    }}
-    """
-
+Entregue:
+- segmentos identificados
+- oportunidades
+- gargalos
+- ações recomendadas
+- campanhas sugeridas
+- leads que merecem reativação
+"""
     result = await generate_text(prompt)
-
     return {"analysis": result}
 
 
 @router.post("/segment")
 async def segment_leads(data: dict):
     prompt = f"""
-    Crie segmentações inteligentes para essa base:
+Crie segmentações úteis e acionáveis para esta base.
 
-    {data}
+Dados:
+{data}
 
-    Retorne lista de segmentos acionáveis.
-    """
-
+Entregue uma segmentação que faça sentido para operação de marketing.
+"""
     result = await generate_text(prompt)
-
     return {"segments": result}
