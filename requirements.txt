@@ -18,3 +18,5 @@ pydantic
 pydantic-settings
 
 jinja2
+
+aiosqlite
