@@ -7,19 +7,17 @@ router = APIRouter()
 @router.post("/analyze-business")
 async def analyze_business(data: dict):
     prompt = f"""
-    Analise esse negócio:
+Analise este negócio para prospecção comercial de agência.
 
-    Nicho: {data.get("niche")}
-    Cidade: {data.get("city")}
-    Site: {data.get("site")}
+Nicho: {data.get("niche")}
+Cidade: {data.get("city")}
+Site: {data.get("site")}
 
-    Retorne:
-
-    - problemas de marketing
-    - oportunidades
-    - abordagem comercial pronta
-    """
-
+Entregue:
+- problemas percebidos
+- oportunidades
+- argumento comercial
+- abordagem pronta
+"""
     result = await generate_text(prompt)
-
     return {"analysis": result}
