@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+import httpx
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt
@@ -12,45 +13,30 @@ from app.database import db_execute, db_fetch_one
 settings = get_settings()
 security = HTTPBearer()
 
-# =========================
-# CONFIG GLOBAL
-# =========================
-
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.token_expire_minutes
-
-# 🔥 OAUTH RD
 MKT_CLIENT_ID = settings.rd_client_id
 MKT_CLIENT_SECRET = settings.rd_client_secret
 RD_TOKEN_URL = "https://api.rd.services/auth/token"
-
-# =========================
-# PASSWORD
-# =========================
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
+    password = (password or "")[:72]
     return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    plain_password = (plain_password or "")[:72]
     return pwd_context.verify(plain_password, hashed_password)
 
 
-# =========================
-# JWT
-# =========================
-
 def create_access_token(data: dict, expires_minutes: int = None) -> str:
     to_encode = data.copy()
-
     expire = datetime.now(timezone.utc) + timedelta(
         minutes=expires_minutes or ACCESS_TOKEN_EXPIRE_MINUTES
     )
-
     to_encode.update({"exp": expire})
-
     return jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
 
 
@@ -65,10 +51,6 @@ def verify_token(token: str) -> dict:
         )
 
 
-# =========================
-# AUTH DEPENDENCIES
-# =========================
-
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
@@ -78,18 +60,16 @@ async def get_current_user(
 
 
 def require_admin(user=Depends(get_current_user)):
-    if user.get("username") != settings.admin_username:
+    if user.get("sub") != settings.admin_username:
         raise HTTPException(status_code=403, detail="Acesso negado")
     return user
 
 
-# =========================
-# ADMIN
-# =========================
-
 async def ensure_admin_exists():
-    query = "SELECT id FROM users WHERE username = $1"
-    user = await db_fetch_one(query, settings.admin_username)
+    user = await db_fetch_one(
+        "SELECT id FROM users WHERE username = $1",
+        settings.admin_username,
+    )
 
     if user:
         return
@@ -104,10 +84,6 @@ async def ensure_admin_exists():
         datetime.now(timezone.utc),
     )
 
-
-# =========================
-# TOKENS RD
-# =========================
 
 async def save_mkt_token(
     client_id: int,
@@ -169,10 +145,6 @@ async def save_crm_token(
     )
 
 
-# =========================
-# GET
-# =========================
-
 async def get_rd_credentials(client_id: int) -> Optional[dict]:
     return await db_fetch_one(
         """
@@ -183,10 +155,6 @@ async def get_rd_credentials(client_id: int) -> Optional[dict]:
         client_id,
     )
 
-
-# =========================
-# CLEAR
-# =========================
 
 async def clear_crm_credentials(client_id: int):
     await db_execute(
@@ -218,37 +186,7 @@ async def clear_mkt_credentials(client_id: int):
     )
 
 
-# =========================
-# MIGRAÇÃO
-# =========================
-
-async def migrate_plaintext_rd_credentials():
-    row = await db_fetch_one("""
-        SELECT id, rd_token, rd_refresh_token
-        FROM clients
-        WHERE rd_token IS NOT NULL
-    """)
-
-    if not row:
-        return
-
-    await save_mkt_token(
-        row["id"],
-        row.get("rd_token") or "",
-        row.get("rd_refresh_token") or "",
-    )
-import httpx
-
-
-# =========================
-# TOKEN VALIDATION RD (FINAL FIX)
-# =========================
-
 async def refresh_mkt_token(client_id: int, refresh_token: str) -> dict:
-    """
-    Faz refresh do token na RD Station
-    """
-
     async with httpx.AsyncClient() as client:
         response = await client.post(
             RD_TOKEN_URL,
@@ -276,10 +214,6 @@ async def refresh_mkt_token(client_id: int, refresh_token: str) -> dict:
 
 
 async def get_valid_mkt_token(client_id: int) -> str:
-    """
-    Retorna token válido, renovando se necessário
-    """
-
     creds = await get_rd_credentials(client_id)
 
     if not creds:
@@ -289,16 +223,37 @@ async def get_valid_mkt_token(client_id: int) -> str:
     refresh_token = creds.get("refresh_token")
     expires_at = creds.get("expires_at")
 
-    # Se não tiver expiração, força refresh
     if not expires_at:
         new = await refresh_mkt_token(client_id, refresh_token)
         return new["access_token"]
 
     now = datetime.now(timezone.utc)
 
-    # Se expirou
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
     if expires_at < now:
         new = await refresh_mkt_token(client_id, refresh_token)
         return new["access_token"]
 
     return access_token
+
+
+async def migrate_plaintext_rd_credentials():
+    row = await db_fetch_one(
+        """
+        SELECT id, rd_token, rd_refresh_token
+        FROM clients
+        WHERE rd_token IS NOT NULL
+        LIMIT 1
+        """
+    )
+
+    if not row:
+        return
+
+    await save_mkt_token(
+        row["id"],
+        row.get("rd_token") or "",
+        row.get("rd_refresh_token") or "",
+    )
