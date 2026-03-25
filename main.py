@@ -1,4 +1,9 @@
-from fastapi import FastAPI
+
+@app.get("/test")
+async def test():
+    return {"msg": "esse é o main NOVO"}
+    
+    from fastapi import FastAPI
 
 from app.routers import (
     auth,
