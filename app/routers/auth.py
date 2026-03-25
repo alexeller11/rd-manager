@@ -9,33 +9,41 @@ from app.auth_core import (
     get_current_user,
     verify_password,
 )
-from app.database import db_fetchone
+from app.database import db_fetch_one
 
 router = APIRouter()
 
 
 @router.post("/login")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await db_fetchone(
-        "SELECT id, username, password_hash, is_admin FROM users WHERE username = $1",
+    user = await db_fetch_one(
+        "SELECT id, username, password FROM users WHERE username = $1",
         form_data.username,
     )
-    if not user or not verify_password(form_data.password, user["password_hash"]):
+
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciais inválidas",
+            detail="Usuário ou senha inválidos",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not verify_password(form_data.password, user["password"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuário ou senha inválidos",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
     access_token = create_access_token(
-        data={"sub": user["username"], "is_admin": user["is_admin"]},
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        data={"sub": user["username"]},
+        expires_minutes=ACCESS_TOKEN_EXPIRE_MINUTES,
     )
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
         "username": user["username"],
-        "is_admin": user["is_admin"],
     }
 
 
@@ -46,8 +54,8 @@ async def read_users_me(current_user: dict = Depends(get_current_user)):
 
 @router.get("/check")
 async def check_has_users():
-    existing = await db_fetchone("SELECT id FROM users LIMIT 1")
-    return {"has_users": bool(existing)}
+    user = await db_fetch_one("SELECT id FROM users LIMIT 1")
+    return {"has_users": bool(user)}
 
 
 @router.post("/logout")
