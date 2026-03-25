@@ -318,19 +318,43 @@ function LoginScreen({onLogin}) {
   const [loading, setLoading] = React.useState(false);
 
   async function handleLogin(e){
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try{
-      const form = new URLSearchParams();
-      form.append("username", username);
-      form.append("password", password);
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {"Content-Type":"application/x-www-form-urlencoded"},
-        body: form.toString()
-      });
+  try{
+    const form = new URLSearchParams();
+    form.append("username", username);
+    form.append("password", password);
+
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {"Content-Type":"application/x-www-form-urlencoded"},
+      body: form.toString()
+    });
+
+    const raw = await res.text();
+
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new Error(raw || "Erro ao entrar");
+    }
+
+    if(!res.ok){
+      throw new Error(data?.detail || "Erro ao entrar");
+    }
+
+    localStorage.setItem("rdm_token", data.access_token);
+    localStorage.setItem("rdm_user", data.username || username);
+    onLogin();
+  } catch(err){
+    setError(err.message || "Erro ao entrar");
+  } finally {
+    setLoading(false);
+  }
+}
 
       const data = await res.json();
       if(!res.ok) throw new Error(data?.detail || "Erro ao entrar");
