@@ -7,19 +7,16 @@ router = APIRouter()
 @router.post("/generate")
 async def generate_insights(data: dict):
     prompt = f"""
-    Analise os dados abaixo:
+Transforme estes dados em insights estratégicos.
 
-    {data}
+Dados:
+{data}
 
-    Gere insights estratégicos:
-
-    - problemas
-    - impactos
-    - ações recomendadas
-
-    Seja direto e prático.
-    """
-
+Entregue:
+- o que está acontecendo
+- por que importa
+- o que fazer agora
+- prioridade
+"""
     result = await generate_text(prompt)
-
     return {"insights": result}
