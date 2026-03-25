@@ -1,563 +1,922 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>RD Manager IA v4.8 - Enterprise</title>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{font-family:'DM Sans',sans-serif;background:#F2F0EB;color:#1C1C1A;min-height:100vh}
-        :root{--g:#1D9E75;--gd:#0F6E56;--gl:#E1F5EE;--ink:#1C1C1A;--ink2:#5A5A55;--ink3:#9A9A94;--paper:#FFF;--bg:#F2F0EB;--sf:#FAFAF7;--bd:#E4E2DA;--bd2:#D0CEC6;--warn:#EF9F27;--danger:#E24B4A;--info:#378ADD}
-        .sb{position:fixed;left:0;top:0;width:218px;height:100vh;background:var(--ink);display:flex;flex-direction:column;z-index:100;overflow-y:auto}
-        .sb-logo{padding:1.2rem 1rem .85rem;border-bottom:1px solid rgba(255,255,255,.08)}
-        .logo{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;display:flex;align-items:center;gap:8px}
-        .logo-m{width:26px;height:26px;background:var(--g);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
-        .sb-user{padding:.55rem 1rem;font-size:11px;color:rgba(255,255,255,.35);border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center}
-        .sb-body{padding:.5rem .6rem;flex:1}
-        .ns{font-size:9px;font-weight:600;color:rgba(255,255,255,.22);text-transform:uppercase;letter-spacing:.1em;padding:9px 8px 3px}
-        .nb{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px;border:none;background:transparent;color:rgba(255,255,255,.48);font-size:12.5px;cursor:pointer;width:100%;text-align:left;margin-bottom:1px;transition:all .12s}
-        .nb:hover{color:rgba(255,255,255,.82);background:rgba(255,255,255,.06)}
-        .nb.active{background:var(--g);color:#fff}
-        .ni{font-size:13px;width:16px;text-align:center;flex-shrink:0}
-        .main{margin-left:218px;padding:2.25rem 2rem;min-height:100vh}
-        .ph{margin-bottom:1.5rem}.ph h1{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:.2rem}
-        .ph .sub{font-size:13px;color:var(--ink2)}
-        .card{background:var(--paper);border:1px solid var(--bd);border-radius:14px;padding:1.35rem 1.5rem;margin-bottom:1rem}
-        .ct{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:.85rem}
-        .mg{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin-bottom:1.2rem}
-        .mc{background:var(--paper);border:1px solid var(--bd);border-radius:12px;padding:.85rem 1.1rem}
-        .ml{font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.4rem;font-weight:500}
-        .mv{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1}
-        .btn{padding:7px 15px;border-radius:9px;border:1.5px solid var(--bd);background:transparent;color:var(--ink);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
-        .btn:hover:not(:disabled){border-color:var(--bd2);background:#FAFAF7}
-        .btn-p{background:var(--g);color:#fff;border-color:var(--g)}.btn-p:hover:not(:disabled){background:var(--gd);border-color:var(--gd)}
-        .btn-ik{background:var(--ink);color:#fff;border-color:var(--ink)}
-        .btn-sm{padding:5px 11px;font-size:12px;border-radius:7px}
-        .btn-d{color:var(--danger);border-color:#f7c1c1}
-        .btn:disabled{opacity:.5;cursor:not-allowed}
-        input,textarea,select{width:100%;padding:8px 12px;border:1.5px solid var(--bd);border-radius:9px;background:var(--paper);color:var(--ink);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .15s}
-        input:focus,textarea:focus,select:focus{border-color:var(--g)}
-        textarea{min-height:75px;resize:vertical}
-        .field{margin-bottom:.8rem}.field label{display:block;font-size:12px;font-weight:500;color:var(--ink2);margin-bottom:.3rem}
-        .two{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-        .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
-        .crow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--bd)}.crow:last-child{border-bottom:none}
-        .av{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;font-family:'Syne',sans-serif}
-        .spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;margin-right:5px}
-        @keyframes sp{to{transform:rotate(360deg)}}
-        .spin-d{border-color:rgba(0,0,0,.1);border-top-color:var(--ink)}
-        .res{background:#F9F8F5;border:1px solid var(--bd);border-radius:10px;padding:1rem 1.25rem;font-size:13px;line-height:1.7;white-space:pre-wrap;margin-top:1rem;max-height:620px;overflow-y:auto}
-        .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
-        .badge-g{background:#E1F5EE;color:#0F6E56}.badge-y{background:#FFF3D6;color:#8B5A00}.badge-r{background:#FCEBEB;color:#A32D2D}.badge-b{background:#E6F1FB;color:#0C447C}
-        .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg)}
-        .login-box{background:var(--paper);border:1px solid var(--bd);border-radius:18px;padding:2.5rem 2.25rem;width:100%;max-width:370px}
-        .err{background:#FCEBEB;border:1px solid #f7c1c1;color:#A32D2D;border-radius:8px;padding:9px 13px;font-size:13px;margin-bottom:1rem}
-        .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px}
-        .dot-g{background:var(--g)}.dot-r{background:var(--danger)}
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RD Manager IA</title>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    :root{
+      --bg:#efede8;
+      --panel:#f8f7f4;
+      --card:#ffffff;
+      --text:#181818;
+      --muted:#6f6f6f;
+      --line:#ded8ce;
+      --green:#22a06b;
+      --green-dark:#16865a;
+      --red:#d84c4c;
+      --yellow:#d59a00;
+      --shadow:0 8px 24px rgba(0,0,0,.06);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .app{display:flex;min-height:100vh}
+    .sidebar{
+      width:270px;
+      background:#171717;
+      color:#fff;
+      padding:24px 18px;
+      display:flex;
+      flex-direction:column;
+      gap:24px;
+      border-right:1px solid rgba(255,255,255,.06);
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      font-weight:800;
+      font-size:18px;
+      line-height:1.1;
+    }
+    .brand-badge{
+      width:34px;height:34px;border-radius:10px;
+      background:var(--green);display:flex;align-items:center;justify-content:center;
+      font-weight:900;
+    }
+    .nav-group-title{
+      color:#7d7d7d;
+      font-size:12px;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+      margin:8px 4px;
+    }
+    .nav-btn{
+      width:100%;
+      border:0;
+      background:transparent;
+      color:#d4d4d4;
+      padding:12px 14px;
+      border-radius:14px;
+      text-align:left;
+      font-size:15px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .nav-btn.active{
+      background:var(--green);
+      color:#fff;
+      font-weight:700;
+    }
+    .nav-btn:hover{background:rgba(255,255,255,.06)}
+    .main{
+      flex:1;
+      padding:28px 32px 40px;
+      overflow:auto;
+    }
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:16px;
+      margin-bottom:22px;
+    }
+    .title{
+      font-size:28px;
+      font-weight:900;
+      margin:0 0 6px;
+    }
+    .subtitle{
+      color:var(--muted);
+      margin:0;
+      font-size:18px;
+    }
+    .grid{
+      display:grid;
+      gap:20px;
+    }
+    .grid.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .grid.two{grid-template-columns:1.2fr .8fr}
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:22px;
+    }
+    .card h3{
+      margin:0 0 14px;
+      font-size:20px;
+    }
+    .kpi-value{
+      font-size:34px;
+      font-weight:900;
+      margin-bottom:6px;
+    }
+    .muted{color:var(--muted)}
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:700;
+      background:#f4f3ef;
+      border:1px solid var(--line);
+    }
+    .pill.good{color:var(--green-dark)}
+    .pill.warn{color:#9a6a00}
+    .pill.bad{color:var(--red)}
+    .section-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .btn{
+      border:0;
+      background:var(--green);
+      color:#fff;
+      padding:12px 18px;
+      border-radius:14px;
+      font-weight:800;
+      cursor:pointer;
+      font-size:15px;
+    }
+    .btn:hover{background:var(--green-dark)}
+    .btn.secondary{
+      background:#fff;
+      color:var(--text);
+      border:1px solid var(--line);
+    }
+    .btn.red{
+      background:#fff;
+      color:var(--red);
+      border:1px solid #efc5c5;
+    }
+    .btn.small{padding:10px 14px;font-size:14px}
+    .stack{display:flex;flex-direction:column;gap:14px}
+    .client-item,.action-item,.lp-item,.flow-email{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
+      background:#fff;
+    }
+    .client-head,.row-between{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+    }
+    .client-name{
+      font-size:18px;
+      font-weight:800;
+    }
+    .small{font-size:13px}
+    .tag{
+      font-size:12px;
+      font-weight:800;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#f4f3ef;
+      border:1px solid var(--line);
+    }
+    .tag.disconnected{color:var(--red)}
+    .tag.connected{color:var(--green-dark)}
+    .alert-list{display:flex;flex-direction:column;gap:12px}
+    .alert{
+      padding:14px 16px;
+      border-radius:16px;
+      background:#fff;
+      border:1px solid var(--line);
+    }
+    .alert strong{display:block;margin-bottom:4px}
+    .module-bar{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin:10px 0 20px;
+    }
+    .module-btn{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:14px;
+      padding:12px 16px;
+      cursor:pointer;
+      font-weight:800;
+    }
+    .module-btn.active{
+      background:var(--green);
+      color:#fff;
+      border-color:var(--green);
+    }
+    select,input,textarea{
+      width:100%;
+      padding:14px 16px;
+      border-radius:14px;
+      border:1px solid #d9d3c8;
+      background:#fff;
+      font-size:16px;
+    }
+    textarea{min-height:120px;resize:vertical}
+    .form-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px;
+    }
+    .result-box{
+      margin-top:16px;
+      padding:18px;
+      border-radius:16px;
+      background:#f8f7f4;
+      border:1px solid var(--line);
+      white-space:pre-wrap;
+      line-height:1.55;
+    }
+    .score-badge{
+      font-size:30px;
+      font-weight:900;
+    }
+    .priority{
+      display:flex;
+      align-items:flex-start;
+      gap:12px;
+      padding:14px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:#fff;
+    }
+    .priority-icon{
+      width:34px;height:34px;border-radius:12px;background:#f4f3ef;
+      display:flex;align-items:center;justify-content:center;font-weight:900;
+    }
+    .hidden{display:none}
+    .actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    @media (max-width: 1200px){
+      .grid.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .grid.two{grid-template-columns:1fr}
+    }
+    @media (max-width: 900px){
+      .app{display:block}
+      .sidebar{width:100%;border-right:0}
+      .main{padding:20px}
+      .form-grid{grid-template-columns:1fr}
+    }
+  </style>
 </head>
 <body>
-    <div id="root"></div>
-    <script type="text/babel">
-        const { useState, useEffect, useCallback, useMemo } = React;
-        const TOKEN_KEY = 'rdm_v4_token';
-        const getToken = () => localStorage.getItem(TOKEN_KEY);
-        const setToken = t => t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY);
+<div id="root"></div>
 
-        async function api(method, path, body, isForm = false) {
-            const headers = {};
-            const token = getToken();
-            if (token) headers['Authorization'] = `Bearer ${token}`;
-            let fetchBody = null;
-            if (body) {
-                if (isForm) {
-                    headers['Content-Type'] = 'application/x-www-form-urlencoded';
-                    fetchBody = new URLSearchParams(body).toString();
-                } else {
-                    headers['Content-Type'] = 'application/json';
-                    fetchBody = JSON.stringify(body);
-                }
-            }
-            try {
-                const response = await fetch(path, { method, headers, body: fetchBody });
-                if (response.status === 401) { setToken(null); window.location.reload(); return; }
-                const text = await response.text();
-                let data;
-                try { data = JSON.parse(text); } catch (e) { throw new Error(`Erro do servidor: ${text.substring(0, 100)}`); }
-                if (!response.ok) throw new Error(data.detail || data.error || 'Erro na requisição');
-                return data;
-            } catch (err) { console.error(`API Error (${path}):`, err); throw err; }
-        }
+<script type="text/babel">
+const API = "";
 
-        function ClientSelect({ clients, value, onChange }) {
-            return (
-                <select value={value} onChange={e => onChange(e.target.value)}>
-                    <option value="">Selecione o cliente...</option>
-                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-            );
-        }
+function getToken(){
+  return localStorage.getItem("rdm_token");
+}
 
-        function Login({ onLogin }) {
-            const [u, setU] = useState('');
-            const [p, setP] = useState('');
-            const [loading, setLoading] = useState(false);
-            const [err, setErr] = useState('');
-            const handleSubmit = async e => {
-                e.preventDefault();
-                setLoading(true); setErr('');
-                try {
-                    const d = await api('POST', '/api/auth/login', { username: u, password: p }, true);
-                    setToken(d.access_token);
-                    onLogin({ username: d.username, is_admin: d.is_admin });
-                } catch (ex) { setErr(ex.message); }
-                finally { setLoading(false); }
-            };
-            return (
-                <div className="login-wrap">
-                    <div className="login-box">
-                        <div style={{fontFamily:'Syne',fontSize:18,fontWeight:800,display:'flex',alignItems:'center',gap:10,marginBottom:'1.75rem'}}>
-                            <div className="logo-m">RD</div>RD Manager IA
-                        </div>
-                        {err && <div className="err">{err}</div>}
-                        <form onSubmit={handleSubmit}>
-                            <div className="field"><label>Usuário</label><input value={u} onChange={e => setU(e.target.value)} autoFocus /></div>
-                            <div className="field" style={{marginBottom:'1.25rem'}}><label>Senha</label><input type="password" value={p} onChange={e => setP(e.target.value)} /></div>
-                            <button className="btn btn-p" type="submit" disabled={loading} style={{width:'100%',justifyContent:'center'}}>
-                                {loading ? <><span className="spin"/>Entrando...</> : 'Entrar'}
-                            </button>
-                        </form>
-                    </div>
+async function api(path, options = {}) {
+  const token = getToken();
+  const headers = {
+    ...(options.body && !(options.body instanceof FormData) ? {"Content-Type":"application/json"} : {}),
+    ...(token ? {"Authorization": "Bearer " + token} : {}),
+    ...(options.headers || {})
+  };
+
+  const res = await fetch(API + path, {...options, headers});
+  const text = await res.text();
+
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+
+  if (!res.ok) {
+    throw new Error(typeof data === "string" ? data : (data?.detail || "Erro do servidor"));
+  }
+
+  return data;
+}
+
+function LoginScreen({onLogin}) {
+  const [username, setUsername] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [error, setError] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+
+  async function handleLogin(e){
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try{
+      const form = new URLSearchParams();
+      form.append("username", username);
+      form.append("password", password);
+
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {"Content-Type":"application/x-www-form-urlencoded"},
+        body: form.toString()
+      });
+
+      const data = await res.json();
+      if(!res.ok) throw new Error(data?.detail || "Erro ao entrar");
+
+      localStorage.setItem("rdm_token", data.access_token);
+      localStorage.setItem("rdm_user", data.username || username);
+      onLogin();
+    }catch(err){
+      setError(err.message || "Erro ao entrar");
+    }finally{
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px",background:"#efede8"}}>
+      <div className="card" style={{width:"100%",maxWidth:"460px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"20px"}}>
+          <div className="brand-badge">RD</div>
+          <div style={{fontSize:"34px",fontWeight:900,lineHeight:1}}>RD Manager IA</div>
+        </div>
+        {error && <div className="result-box" style={{background:"#fff1f1",borderColor:"#efc5c5",color:"#a33"}}>{error}</div>}
+        <form onSubmit={handleLogin} className="stack" style={{marginTop:"16px"}}>
+          <div>
+            <div className="small muted" style={{marginBottom:"8px"}}>Usuário</div>
+            <input value={username} onChange={e=>setUsername(e.target.value)} />
+          </div>
+          <div>
+            <div className="small muted" style={{marginBottom:"8px"}}>Senha</div>
+            <input type="password" value={password} onChange={e=>setPassword(e.target.value)} />
+          </div>
+          <button className="btn" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function Sidebar({section, setSection}) {
+  return (
+    <aside className="sidebar">
+      <div className="brand">
+        <div className="brand-badge">RD</div>
+        <div>RD Manager<br/>IA</div>
+      </div>
+
+      <div>
+        <div className="nav-group-title">Principal</div>
+        <button className={"nav-btn " + (section==="dashboard" ? "active" : "")} onClick={()=>setSection("dashboard")}>📊 Dashboard</button>
+        <button className={"nav-btn " + (section==="clients" ? "active" : "")} onClick={()=>setSection("clients")}>👥 Clientes</button>
+      </div>
+
+      <div>
+        <div className="nav-group-title">Inteligência IA</div>
+        <button className={"nav-btn " + (section==="analysis" ? "active" : "")} onClick={()=>setSection("analysis")}>🧠 Análise IA</button>
+        <button className={"nav-btn " + (section==="flows" ? "active" : "")} onClick={()=>setSection("flows")}>📧 Flows avançados</button>
+        <button className={"nav-btn " + (section==="landing" ? "active" : "")} onClick={()=>setSection("landing")}>🌐 Landing Pages</button>
+        <button className={"nav-btn " + (section==="leads" ? "active" : "")} onClick={()=>setSection("leads")}>🧲 Leads & Segmentação</button>
+        <button className={"nav-btn " + (section==="insights" ? "active" : "")} onClick={()=>setSection("insights")}>💡 Insights</button>
+        <button className={"nav-btn " + (section==="prospect" ? "active" : "")} onClick={()=>setSection("prospect")}>🎯 Prospecção</button>
+      </div>
+    </aside>
+  );
+}
+
+function Dashboard({clients}) {
+  const connected = clients.filter(c => c.rd_token_set).length;
+  const disconnected = clients.length - connected;
+
+  return (
+    <>
+      <div className="topbar">
+        <div>
+          <h1 className="title">Cockpit da Agência</h1>
+          <p className="subtitle">Diagnóstico, prioridade e execução em um só lugar</p>
+        </div>
+      </div>
+
+      <div className="grid kpis" style={{marginBottom:"20px"}}>
+        <div className="card">
+          <div className="muted small">Clientes cadastrados</div>
+          <div className="kpi-value">{clients.length}</div>
+          <div className="muted">Base total da agência</div>
+        </div>
+        <div className="card">
+          <div className="muted small">Clientes conectados RD</div>
+          <div className="kpi-value">{connected}</div>
+          <div className="muted">Integração ativa</div>
+        </div>
+        <div className="card">
+          <div className="muted small">Clientes desconectados</div>
+          <div className="kpi-value">{disconnected}</div>
+          <div className="muted">Prioridade operacional</div>
+        </div>
+        <div className="card">
+          <div className="muted small">Score operacional</div>
+          <div className="kpi-value">{Math.max(45, Math.min(100, 55 + connected * 8))}</div>
+          <div className="muted">Visão geral da agência</div>
+        </div>
+      </div>
+
+      <div className="grid two">
+        <div className="card">
+          <div className="section-head">
+            <h3>Prioridades da semana</h3>
+            <span className="pill warn">Ação imediata</span>
+          </div>
+          <div className="stack">
+            <div className="priority">
+              <div className="priority-icon">1</div>
+              <div>
+                <strong>Conectar todos os clientes ao RD</strong>
+                <div className="muted">Sem integração, a ferramenta perde poder analítico e operacional.</div>
+              </div>
+            </div>
+            <div className="priority">
+              <div className="priority-icon">2</div>
+              <div>
+                <strong>Ativar módulo de flows avançados</strong>
+                <div className="muted">Transforma planejamento em execução de campanhas.</div>
+              </div>
+            </div>
+            <div className="priority">
+              <div className="priority-icon">3</div>
+              <div>
+                <strong>Mapear landing pages estratégicas</strong>
+                <div className="muted">Onde há tráfego e conversão, há oportunidade de ganho rápido.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="section-head">
+            <h3>Alertas</h3>
+            <span className="pill bad">Monitoramento</span>
+          </div>
+          <div className="alert-list">
+            <div className="alert">
+              <strong>{disconnected} cliente(s) sem RD ativo</strong>
+              <div className="muted">Sem token salvo, o status aparece como desconectado e limita automações.</div>
+            </div>
+            <div className="alert">
+              <strong>IA precisa de provider válido</strong>
+              <div className="muted">Groq/OpenAI/Gemini precisam estar corretamente configurados para análise e geração.</div>
+            </div>
+            <div className="alert">
+              <strong>Módulos avançados precisam de uso real</strong>
+              <div className="muted">Flows, leads e páginas devem virar rotina operacional da agência.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function Clients({clients, refreshClients}) {
+  const [message, setMessage] = React.useState("");
+
+  async function connectRD(clientId){
+    window.open(`/oauth/authorize/${clientId}`, "_blank");
+    setMessage("A janela de autenticação foi aberta. Depois de autorizar, atualize a lista.");
+  }
+
+  return (
+    <>
+      <div className="topbar">
+        <div>
+          <h1 className="title">Clientes</h1>
+          <p className="subtitle">Gestão da base e status de integração</p>
+        </div>
+        <button className="btn secondary" onClick={refreshClients}>Atualizar lista</button>
+      </div>
+
+      {message && <div className="card" style={{marginBottom:"16px"}}>{message}</div>}
+
+      <div className="stack">
+        {clients.map(client => (
+          <div className="client-item" key={client.id}>
+            <div className="client-head">
+              <div>
+                <div className="client-name">{client.name}</div>
+                <div className="muted">{client.segment || "Sem segmento"} | {client.website || "Sem site"}</div>
+              </div>
+              <div className={"tag " + (client.rd_token_set ? "connected" : "disconnected")}>
+                {client.rd_token_set ? "RD Conectado" : "RD Desconectado"}
+              </div>
+            </div>
+
+            <div className="actions" style={{marginTop:"14px"}}>
+              <button className="btn small" onClick={()=>connectRD(client.id)}>Conectar RD</button>
+              <button className="btn small secondary">Editar</button>
+              <button className="btn small red">Excluir</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function Analysis({clients}) {
+  const [clientId, setClientId] = React.useState("");
+  const [result, setResult] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+
+  async function runAnalysis(){
+    if(!clientId) return;
+    setLoading(true);
+    setResult("");
+    try{
+      const data = await api("/api/rd/analyze", {
+        method:"POST",
+        body: JSON.stringify({client_id: Number(clientId), type: "general"})
+      });
+      setResult(data.result || JSON.stringify(data, null, 2));
+    }catch(err){
+      setResult("Erro: " + err.message);
+    }finally{
+      setLoading(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="topbar">
+        <div>
+          <h1 className="title">Análise IA</h1>
+          <p className="subtitle">Diagnóstico estratégico profundo por cliente</p>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="small muted" style={{marginBottom:"8px"}}>Cliente</div>
+        <select value={clientId} onChange={e=>setClientId(e.target.value)}>
+          <option value="">Selecione um cliente</option>
+          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+
+        <div className="module-bar">
+          <button className="btn" onClick={runAnalysis} disabled={loading}>{loading ? "Analisando..." : "Gerar análise 360°"}</button>
+        </div>
+
+        {result && <div className="result-box">{result}</div>}
+      </div>
+    </>
+  );
+}
+
+function FlowsAdvanced({clients}) {
+  const [form, setForm] = React.useState({goal:"",product:"",audience:"",awareness:""});
+  const [flow, setFlow] = React.useState("");
+  const [emailResult, setEmailResult] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+
+  function update(key, value){
+    setForm(prev => ({...prev,[key]:value}));
+  }
+
+  async function generateFlow(){
+    setLoading(true);
+    setFlow("");
+    try{
+      const data = await api("/api/flows-adv/generate-flow", {
+        method:"POST",
+        body: JSON.stringify(form)
+      });
+      setFlow(data.flow || JSON.stringify(data, null, 2));
+    }catch(err){
+      setFlow("Erro: " + err.message);
+    }finally{
+      setLoading(false);
+    }
+  }
+
+  async function generateEmail(context){
+    setEmailResult("Gerando...");
+    try{
+      const data = await api("/api/flows-adv/generate-email", {
+        method:"POST",
+        body: JSON.stringify({context})
+      });
+      setEmailResult(data.email || JSON.stringify(data, null, 2));
+    }catch(err){
+      setEmailResult("Erro: " + err.message);
+    }
+  }
+
+  const suggested = [
+    {name:"Email 1 — Abertura e contexto", reason:"Introduzir a oferta e criar conexão inicial", timing:"D+0"},
+    {name:"Email 2 — Quebra de objeção", reason:"Reduzir insegurança e aumentar confiança", timing:"D+2"},
+    {name:"Email 3 — Prova e urgência", reason:"Fazer o lead avançar", timing:"D+4"},
+  ];
+
+  return (
+    <>
+      <div className="topbar">
+        <div>
+          <h1 className="title">Flows avançados</h1>
+          <p className="subtitle">Estruture sequências com lógica estratégica e gere cada email em 1 clique</p>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="form-grid">
+          <div>
+            <div className="small muted" style={{marginBottom:"8px"}}>Objetivo</div>
+            <input value={form.goal} onChange={e=>update("goal", e.target.value)} placeholder="Ex.: vender serviço premium"/>
+          </div>
+          <div>
+            <div className="small muted" style={{marginBottom:"8px"}}>Produto/Oferta</div>
+            <input value={form.product} onChange={e=>update("product", e.target.value)} placeholder="Ex.: consultoria estratégica"/>
+          </div>
+          <div>
+            <div className="small muted" style={{marginBottom:"8px"}}>Público</div>
+            <input value={form.audience} onChange={e=>update("audience", e.target.value)} placeholder="Ex.: empresários locais"/>
+          </div>
+          <div>
+            <div className="small muted" style={{marginBottom:"8px"}}>Nível de consciência</div>
+            <input value={form.awareness} onChange={e=>update("awareness", e.target.value)} placeholder="Frio, morno, quente"/>
+          </div>
+        </div>
+
+        <div className="actions" style={{marginTop:"16px"}}>
+          <button className="btn" onClick={generateFlow}>{loading ? "Gerando..." : "Gerar fluxo estratégico"}</button>
+        </div>
+
+        <div style={{marginTop:"18px"}}>
+          <h3>Estrutura sugerida</h3>
+          <div className="stack">
+            {suggested.map((item, idx) => (
+              <div className="flow-email" key={idx}>
+                <div className="row-between">
+                  <div>
+                    <strong>{item.name}</strong>
+                    <div className="muted small">Motivo: {item.reason}</div>
+                    <div className="muted small">Timing: {item.timing}</div>
+                  </div>
+                  <button className="btn small" onClick={()=>generateEmail(`${item.name}. ${item.reason}. Timing: ${item.timing}. Contexto: ${JSON.stringify(form)}`)}>
+                    Gerar email
+                  </button>
                 </div>
-            );
-        }
+              </div>
+            ))}
+          </div>
+        </div>
 
-        function Dashboard({ clients }) {
-            const [scores, setScores] = useState([]);
-            useEffect(() => { api('GET', '/api/health/all').then(setScores).catch(console.error); }, []);
-            return (
-                <div>
-                    <div className="ph"><h1>Dashboard</h1><p className="sub">Visão consolidada — {clients.length} clientes</p></div>
-                    <div className="mg">
-                        <div className="mc"><div className="ml">Clientes</div><div className="mv">{clients.length}</div></div>
-                        <div className="mc"><div className="ml">Média Health</div><div className="mv">{scores.length ? (scores.reduce((a,b)=>a+b.health.score,0)/scores.length).toFixed(1) : '--'}</div></div>
-                    </div>
-                    <div className="card">
-                        <div className="ct">Performance por Cliente</div>
-                        {scores.map(s => (
-                            <div key={s.id} className="crow">
-                                <div style={{flex:1}}>{s.name}</div>
-                                <div className={`badge badge-${s.health.score > 70 ? 'g' : s.health.score > 40 ? 'y' : 'r'}`}>
-                                    {s.health.label}: {s.health.score}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
+        {flow && <div className="result-box">{flow}</div>}
+        {emailResult && <div className="result-box" style={{marginTop:"14px"}}>{emailResult}</div>}
+      </div>
+    </>
+  );
+}
 
-        function Clients({ clients, onRefresh }) {
-            const [show, setShow] = useState(false);
-            const [editing, setEditing] = useState(null);
-            const [saving, setSaving] = useState(false);
-            const [suggesting, setSuggesting] = useState(false);
-            const [form, setForm] = useState({ name: '', segment: 'Outro', website: '', description: '', rd_crm_token: '' });
-            const [rdToken, setRdToken] = useState('');
-            const SEG = ['E-commerce', 'SaaS', 'Servicos', 'Educacao', 'Saude', 'Varejo', 'Industria', 'Outro'];
+function LandingPages() {
+  const [url, setUrl] = React.useState("");
+  const [analysis, setAnalysis] = React.useState("");
+  const [copy, setCopy] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
 
-            const open = (c = null) => {
-                if (c) {
-                    setEditing(c.id);
-                    setForm({ name: c.name, segment: c.segment || 'Outro', website: c.website || '', description: c.description || '', rd_crm_token: '' });
-                    setRdToken('');
-                } else {
-                    setEditing(null);
-                    setForm({ name: '', segment: 'Outro', website: '', description: '', rd_crm_token: '' });
-                    setRdToken('');
-                }
-                setShow(true);
-            };
+  async function analyze(){
+    setLoading(true);
+    setAnalysis("");
+    try{
+      const data = await api("/api/landing/analyze", {
+        method:"POST",
+        body: JSON.stringify({url})
+      });
+      setAnalysis(JSON.stringify(data, null, 2));
+    }catch(err){
+      setAnalysis("Erro: " + err.message);
+    }finally{
+      setLoading(false);
+    }
+  }
 
-            const save = async () => {
-                setSaving(true);
-                try {
-                    const payload = { ...form, rd_token: rdToken || null };
-                    if (editing) await api('PUT', `/api/clients/${editing}`, payload);
-                    else await api('POST', '/api/clients/', payload);
-                    setShow(false); onRefresh();
-                } catch (e) { alert(e.message); } finally { setSaving(false); }
-            };
+  async function generateCopy(){
+    setCopy("Gerando...");
+    try{
+      const data = await api("/api/landing/generate-copy", {
+        method:"POST",
+        body: JSON.stringify({
+          product:"Serviço premium",
+          audience:"Público de alta intenção",
+          goal:"Conversão"
+        })
+      });
+      setCopy(data.copy || JSON.stringify(data, null, 2));
+    }catch(err){
+      setCopy("Erro: " + err.message);
+    }
+  }
 
-            const del = async id => { if (confirm('Excluir cliente?')) { await api('DELETE', `/api/clients/${id}`); onRefresh(); } };
+  return (
+    <>
+      <div className="topbar">
+        <div>
+          <h1 className="title">Landing Pages</h1>
+          <p className="subtitle">Analise SEO, copy, conversão e performance por página</p>
+        </div>
+      </div>
 
-            const suggest = async () => {
-                if (!form.website) return alert('Insira o website');
-                setSuggesting(true);
-                try {
-                    const d = await api('POST', '/api/clients/suggest-data', { website: form.website });
-                    setForm({ ...form, ...d });
-                } catch (e) { alert(e.message); } finally { setSuggesting(false); }
-            };
+      <div className="card">
+        <div className="small muted" style={{marginBottom:"8px"}}>URL da página</div>
+        <input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://seudominio.com/pagina" />
+        <div className="actions" style={{marginTop:"16px"}}>
+          <button className="btn" onClick={analyze}>{loading ? "Analisando..." : "Analisar página"}</button>
+          <button className="btn secondary" onClick={generateCopy}>Gerar nova copy</button>
+        </div>
+        {analysis && <div className="result-box">{analysis}</div>}
+        {copy && <div className="result-box">{copy}</div>}
+      </div>
+    </>
+  );
+}
 
-            return (
-                <div>
-                    <div className="ph" style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
-                        <div><h1>Clientes</h1><p className="sub">{clients.length} cadastrados</p></div>
-                        <button className="btn btn-p" onClick={() => open()}>+ Novo Cliente</button>
-                    </div>
-                    {show && (
-                        <div className="card">
-                            <div className="ct">{editing ? 'Editar' : 'Novo'}</div>
-                            <div className="two">
-                                <div className="field"><label>Nome *</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div>
-                                <div className="field"><label>Segmento</label><select value={form.segment} onChange={e => setForm({ ...form, segment: e.target.value })}>{SEG.map(s => <option key={s}>{s}</option>)}</select></div>
-                            </div>
-                            <div className="two">
-                                <div className="field"><label>Website</label><div style={{display:'flex',gap:8}}><input style={{flex:1}} value={form.website || ''} onChange={e => setForm({ ...form, website: e.target.value })} /><button className="btn btn-sm" onClick={suggest} disabled={suggesting}>{suggesting ? <span className="spin spin-d"/> : '🪄 IA'}</button></div></div>
-                                <div className="field"><label>Token CRM</label><input type="password" value={form.rd_crm_token || ''} onChange={e => setForm({ ...form, rd_crm_token: e.target.value })} /></div>
-                            </div>
-                            <div className="field"><label>Descrição</label><textarea value={form.description || ''} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-                            <div className="field"><label>RD Marketing</label><div style={{display:'flex',gap:8}}><input type="password" style={{flex:1}} value={rdToken} onChange={e => setRdToken(e.target.value)} placeholder="Token fixo (opcional)" />{editing && <a href={`/oauth/authorize/${editing}`} target="_blank" className="btn btn-sm btn-ik" style={{textDecoration:'none'}}>🔌 Conectar OAuth</a>}</div></div>
-                            <div style={{display:'flex',gap:10}}><button className="btn btn-p" onClick={save} disabled={saving}>{saving ? <span className="spin"/> : 'Salvar'}</button><button className="btn" onClick={() => setShow(false)}>Cancelar</button></div>
-                        </div>
-                    )}
-                    <div className="card">
-                        {clients.map(c => (
-                            <div key={c.id} className="crow">
-                                <div className="av" style={{background:'#EEEDFE',color:'#3C3489'}}>{c.name[0].toUpperCase()}</div>
-                                <div style={{flex:1}}>
-                                    <div style={{fontWeight:500, display:'flex', alignItems:'center'}}>
-                                        {c.name}
-                                        <span style={{marginLeft:8, fontSize:10, display:'flex', alignItems:'center'}}>
-                                            <span className={`dot ${c.rd_token_set ? 'dot-g' : 'dot-r'}`}></span>
-                                            {c.rd_token_set ? 'RD Conectado' : 'RD Desconectado'}
-                                        </span>
-                                    </div>
-                                    <div style={{fontSize:11,color:'var(--ink3)'}}>{c.segment} | {c.website || 'Sem site'}</div>
-                                </div>
-                                <div style={{display:'flex',gap:8}}>
-                                    <button className="btn btn-sm" onClick={() => open(c)}>Editar</button>
-                                    <button className="btn btn-sm btn-d" onClick={() => del(c.id)}>Excluir</button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        }
+function Leads() {
+  const [dataText, setDataText] = React.useState("");
+  const [result, setResult] = React.useState("");
 
-        function AIAnalysisPage({ clients }) {
-            const [cid, setCid] = useState('');
-            const [loading, setLoading] = useState(false);
-            const [res, setRes] = useState('');
-            const run = async (type) => {
-                if (!cid) return alert('Selecione um cliente');
-                setLoading(true); setRes('');
-                try { const d = await api('POST', '/api/analysis/run', { client_id: parseInt(cid), type }); setRes(d.result); }
-                catch (e) { alert(e.message); } finally { setLoading(false); }
-            };
-            return (
-                <div>
-                    <div className="ph"><h1>Análise IA</h1><p className="sub">Diagnósticos estratégicos profundos</p></div>
-                    <div className="card">
-                        <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
-                        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-                            <button className="btn btn-p" onClick={() => run('complete')} disabled={loading}>Análise 360°</button>
-                            <button className="btn" onClick={() => run('seo')} disabled={loading}>SEO & Visibilidade</button>
-                            <button className="btn" onClick={() => run('cro')} disabled={loading}>CRO & Conversão</button>
-                        </div>
-                    </div>
-                    {loading && <div className="card"><span className="spin spin-d"/>Gerando análise estratégica...</div>}
-                    {res && <div className="card"><div className="res">{res}</div></div>}
-                </div>
-            );
-        }
+  async function analyzeBase(){
+    try{
+      const data = await api("/api/leads/analyze-base", {
+        method:"POST",
+        body: JSON.stringify({raw: dataText})
+      });
+      setResult(data.analysis || JSON.stringify(data, null, 2));
+    }catch(err){
+      setResult("Erro: " + err.message);
+    }
+  }
 
-        function EmailPage({ clients }) {
-            const [cid, setCid] = useState('');
-            const [type, setType] = useState('nurturing');
-            const [loading, setLoading] = useState(false);
-            const [res, setRes] = useState('');
-            const generate = async () => {
-                if (!cid) return alert('Selecione um cliente');
-                setLoading(true); setRes('');
-                try { const d = await api('POST', '/api/emails/generate', { client_id: parseInt(cid), type }); setRes(d.result); }
-                catch (e) { alert(e.message); } finally { setLoading(false); }
-            };
-            return (
-                <div>
-                    <div className="ph"><h1>E-mails IA</h1><p className="sub">Copywriting de alta conversão</p></div>
-                    <div className="card">
-                        <div className="two">
-                            <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
-                            <div className="field"><label>Tipo de E-mail</label>
-                                <select value={type} onChange={e => setType(e.target.value)}>
-                                    <option value="nurturing">Nutrição</option>
-                                    <option value="welcome">Boas-vindas</option>
-                                    <option value="promo">Promocional</option>
-                                    <option value="reengagement">Reengajamento</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button className="btn btn-p" onClick={generate} disabled={loading}>Gerar E-mail</button>
-                    </div>
-                    {loading && <div className="card"><span className="spin spin-d"/>Escrevendo copy persuasiva...</div>}
-                    {res && <div className="card"><div className="res">{res}</div></div>}
-                </div>
-            );
-        }
+  return (
+    <>
+      <div className="topbar">
+        <div>
+          <h1 className="title">Leads & Segmentação</h1>
+          <p className="subtitle">Leia a base, identifique oportunidades e gere ações</p>
+        </div>
+      </div>
 
-        function CampaignPage({ clients }) {
-            const [cid, setCid] = useState('');
-            const [obj, setObj] = useState('');
-            const [loading, setLoading] = useState(false);
-            const [res, setRes] = useState('');
-            const plan = async () => {
-                if (!cid || !obj) return alert('Preencha os campos');
-                setLoading(true); setRes('');
-                try { const d = await api('POST', '/api/campaign/plan', { client_id: parseInt(cid), objective: obj }); setRes(d.result); }
-                catch (e) { alert(e.message); } finally { setLoading(false); }
-            };
-            return (
-                <div>
-                    <div className="ph"><h1>Campanhas</h1><p className="sub">Planejamento tático de marketing</p></div>
-                    <div className="card">
-                        <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
-                        <div className="field"><label>Objetivo da Campanha</label><input value={obj} onChange={e => setObj(e.target.value)} placeholder="Ex: Lançamento de novo produto" /></div>
-                        <button className="btn btn-p" onClick={plan} disabled={loading}>Criar Plano</button>
-                    </div>
-                    {loading && <div className="card"><span className="spin spin-d"/>Planejando campanha...</div>}
-                    {res && <div className="card"><div className="res">{res}</div></div>}
-                </div>
-            );
-        }
+      <div className="card">
+        <div className="small muted" style={{marginBottom:"8px"}}>Cole os dados da base ou resumo</div>
+        <textarea value={dataText} onChange={e=>setDataText(e.target.value)} placeholder="Cole sua base, resumo ou export..." />
+        <div className="actions" style={{marginTop:"16px"}}>
+          <button className="btn" onClick={analyzeBase}>Analisar base</button>
+        </div>
+        {result && <div className="result-box">{result}</div>}
+      </div>
+    </>
+  );
+}
 
-        function IntelPage({ clients }) {
-            const [cid, setCid] = useState('');
-            const [loading, setLoading] = useState(false);
-            const [res, setRes] = useState('');
-            const run = async (path) => {
-                if (!cid) return alert('Selecione');
-                setLoading(true); setRes('');
-                try { 
-                    const endpoint = path.includes('weekly') ? `/api/intel/${path}` : `/api/intel/${path}`;
-                    const d = await api('POST', endpoint, { client_id: parseInt(cid) }); 
-                    setRes(d.result || JSON.stringify(d, null, 2)); 
-                }
-                catch (e) { alert(e.message); } finally { setLoading(false); }
-            };
-            return (
-                <div>
-                    <div className="ph"><h1>Inteligência</h1><p className="sub">Insights avançados e planejamento</p></div>
-                    <div className="card">
-                        <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
-                        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-                            <button className="btn btn-p" onClick={() => run('weekly/run/' + cid)} disabled={loading}>Análise Semanal</button>
-                            <button className="btn" onClick={() => run('calendar/generate')} disabled={loading}>Calendário de Conteúdo</button>
-                            <button className="btn" onClick={() => run('competitor/analyze')} disabled={loading}>Análise Concorrentes</button>
-                        </div>
-                    </div>
-                    {loading && <div className="card"><span className="spin spin-d"/>Processando inteligência de dados...</div>}
-                    {res && <div className="card"><div className="res">{res}</div></div>}
-                </div>
-            );
-        }
+function Insights() {
+  const [text, setText] = React.useState("");
+  const [result, setResult] = React.useState("");
 
-        function FlowsPage({ clients }) {
-            const [cid, setCid] = useState('');
-            const [obj, setObj] = useState('');
-            const [loading, setLoading] = useState(false);
-            const [res, setRes] = useState(null);
-            const generate = async () => {
-                if (!cid || !obj) return alert('Preencha');
-                setLoading(true); setRes(null);
-                try { const d = await api('POST', '/api/flows/generate', { client_id: parseInt(cid), objective: obj, flow_type: 'nurturing' }); setRes(d); }
-                catch (e) { alert(e.message); } finally { setLoading(false); }
-            };
-            return (
-                <div>
-                    <div className="ph"><h1>Fluxos de Automação</h1><p className="sub">Design de jornadas do cliente</p></div>
-                    <div className="card">
-                        <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
-                        <div className="field"><label>Objetivo do Fluxo</label><input value={obj} onChange={e => setObj(e.target.value)} placeholder="Ex: Recuperação de carrinho" /></div>
-                        <button className="btn btn-p" onClick={generate} disabled={loading}>Gerar Fluxo</button>
-                    </div>
-                    {loading && <div className="card"><span className="spin spin-d"/>Desenhando jornada...</div>}
-                    {res && (
-                        <div className="card">
-                            <div className="ct">{res.name}</div>
-                            <p style={{fontSize:13,color:'var(--ink2)',marginBottom:'1rem'}}>{res.description}</p>
-                            <div className="res">{JSON.stringify(res.nodes, null, 2)}</div>
-                        </div>
-                    )}
-                </div>
-            );
-        }
+  async function generate(){
+    try{
+      const data = await api("/api/insights/generate", {
+        method:"POST",
+        body: JSON.stringify({raw: text})
+      });
+      setResult(data.insights || JSON.stringify(data, null, 2));
+    }catch(err){
+      setResult("Erro: " + err.message);
+    }
+  }
 
-        function ReportsPage({ clients }) {
-            const [cid, setCid] = useState('');
-            const [type, setType] = useState('monthly');
-            const [loading, setLoading] = useState(false);
-            const [res, setRes] = useState('');
-            const generate = async () => {
-                if (!cid) return alert('Selecione');
-                setLoading(true); setRes('');
-                try { const d = await api('POST', '/api/reports/generate', { client_id: parseInt(cid), type }); setRes(d.result); }
-                catch (e) { alert(e.message); } finally { setLoading(false); }
-            };
-            return (
-                <div>
-                    <div className="ph"><h1>Relatórios</h1><p className="sub">Documentos executivos prontos</p></div>
-                    <div className="card">
-                        <div className="two">
-                            <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
-                            <div className="field"><label>Tipo de Relatório</label>
-                                <select value={type} onChange={e => setType(e.target.value)}>
-                                    <option value="monthly">Mensal de Performance</option>
-                                    <option value="executive">Executivo (Diretoria)</option>
-                                    <option value="campaign">Pós-Campanha</option>
-                                    <option value="roi">Análise de ROI</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button className="btn btn-p" onClick={generate} disabled={loading}>Gerar Relatório</button>
-                    </div>
-                    {loading && <div className="card"><span className="spin spin-d"/>Compilando dados executivos...</div>}
-                    {res && <div className="card"><div className="res">{res}</div></div>}
-                </div>
-            );
-        }
+  return (
+    <>
+      <div className="topbar">
+        <div>
+          <h1 className="title">Insights automáticos</h1>
+          <p className="subtitle">Transforme dados em direção prática</p>
+        </div>
+      </div>
 
-        function CRMPage({ clients }) {
-            const [cid, setCid] = useState('');
-            const [res, setRes] = useState(null);
-            const [loading, setLoading] = useState(false);
-            const sync = async () => {
-                if (!cid) return alert('Selecione');
-                setLoading(true);
-                try { const d = await api('GET', `/api/crm/sync/${cid}`); setRes(d.data); }
-                catch (e) { alert(e.message); } finally { setLoading(false); }
-            };
-            return (
-                <div>
-                    <div className="ph"><h1>RD CRM</h1><p className="sub">Pipeline de Vendas</p></div>
-                    <div className="card">
-                        <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
-                        <button className="btn btn-p" onClick={sync} disabled={loading}>Sincronizar CRM</button>
-                    </div>
-                    {res && (
-                        <div className="mg">
-                            <div className="mc"><div className="ml">Negócios</div><div className="mv">{res.total_deals}</div></div>
-                            <div className="mc"><div className="ml">Ganhos</div><div className="mv" style={{color:'var(--g)'}}>{res.won_deals}</div></div>
-                        </div>
-                    )}
-                </div>
-            );
-        }
+      <div className="card">
+        <div className="small muted" style={{marginBottom:"8px"}}>Dados ou contexto</div>
+        <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="Cole dados, métricas ou resumos..." />
+        <div className="actions" style={{marginTop:"16px"}}>
+          <button className="btn" onClick={generate}>Gerar insights</button>
+        </div>
+        {result && <div className="result-box">{result}</div>}
+      </div>
+    </>
+  );
+}
 
-        function SyncPage({ clients }) {
-            const [cid, setCid] = useState('');
-            const [loading, setLoading] = useState(false);
-            const [diag, setDiag] = useState(null);
-            const sync = async () => {
-                if (!cid) return alert('Selecione');
-                setLoading(true); setDiag(null);
-                try { await api('GET', `/api/rd/sync/${cid}`); alert('Sincronizado!'); }
-                catch (e) { alert(e.message); } finally { setLoading(false); }
-            };
-            const test = async () => {
-                if (!cid) return alert('Selecione');
-                setLoading(true);
-                try { const d = await api('GET', `/api/rd/diagnose/${cid}`); setDiag(d); }
-                catch (e) { alert(e.message); } finally { setLoading(false); }
-            };
-            return (
-                <div>
-                    <div className="ph"><h1>Sincronizar</h1><p className="sub">Atualizar dados do RD Marketing</p></div>
-                    <div className="card">
-                        <div className="field"><label>Cliente</label><ClientSelect clients={clients} value={cid} onChange={setCid} /></div>
-                        <div style={{display:'flex',gap:10}}>
-                            <button className="btn btn-p" onClick={sync} disabled={loading}>Sincronizar Agora</button>
-                            <button className="btn" onClick={test} disabled={loading}>Testar Conexão</button>
-                        </div>
-                    </div>
-                    {diag && (
-                        <div className="card">
-                            <div className="ct">Diagnóstico de Conexão</div>
-                            {diag.map(d => (
-                                <div key={d.name} className="crow">
-                                    <div style={{flex:1}}>{d.name}</div>
-                                    <span className={`badge badge-${d.ok ? 'g' : 'r'}`}>{d.status} {d.ok ? 'OK' : 'ERRO'}</span>
-                                    {d.error && <div style={{fontSize:10,color:'var(--danger)',marginTop:4}}>{d.error}</div>}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            );
-        }
+function Prospect() {
+  const [form, setForm] = React.useState({niche:"", city:"", site:""});
+  const [result, setResult] = React.useState("");
 
-        function App() {
-            const [user, setUser] = useState(null);
-            const [page, setPage] = useState('dashboard');
-            const [clients, setClients] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const refresh = useCallback(async () => { try { const d = await api('GET', '/api/clients/'); setClients(d); } catch(e){} }, []);
-            useEffect(() => {
-                const token = getToken();
-                if (token) { api('GET', '/api/auth/me').then(u => { setUser(u); refresh(); }).catch(() => setToken(null)).finally(() => setLoading(false)); }
-                else { setLoading(false); }
-            }, [refresh]);
+  async function analyze(){
+    try{
+      const data = await api("/api/prospect/analyze-business", {
+        method:"POST",
+        body: JSON.stringify(form)
+      });
+      setResult(data.analysis || JSON.stringify(data, null, 2));
+    }catch(err){
+      setResult("Erro: " + err.message);
+    }
+  }
 
-            if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh'}}><span className="spin spin-d" style={{width:30,height:30}}/></div>;
-            if (!user) return <Login onLogin={u => { setUser(u); refresh(); }} />;
-            
-            const render = () => {
-                switch(page) {
-                    case 'dashboard': return <Dashboard clients={clients} />;
-                    case 'clients': return <Clients clients={clients} onRefresh={refresh} />;
-                    case 'analysis': return <AIAnalysisPage clients={clients} />;
-                    case 'emails': return <EmailPage clients={clients} />;
-                    case 'campaigns': return <CampaignPage clients={clients} />;
-                    case 'flows': return <FlowsPage clients={clients} />;
-                    case 'intel': return <IntelPage clients={clients} />;
-                    case 'reports': return <ReportsPage clients={clients} />;
-                    case 'crm': return <CRMPage clients={clients} />;
-                    case 'sync': return <SyncPage clients={clients} />;
-                    default: return <div>Página não encontrada</div>;
-                }
-            };
-            return (
-                <div style={{display:'flex'}}>
-                    <nav className="sb">
-                        <div className="sb-logo"><div className="logo"><div className="logo-m">RD</div>RD Manager IA</div></div>
-                        <div className="sb-user"><span>{user.username}</span></div>
-                        <div className="sb-body">
-                            <div className="ns">Principal</div>
-                            <button className={`nb ${page==='dashboard'?'active':''}`} onClick={()=>setPage('dashboard')}><span className="ni">📊</span>Dashboard</button>
-                            <button className={`nb ${page==='clients'?'active':''}`} onClick={()=>setPage('clients')}><span className="ni">👥</span>Clientes</button>
-                            <div className="ns">Inteligência IA</div>
-                            <button className={`nb ${page==='analysis'?'active':''}`} onClick={()=>setPage('analysis')}><span className="ni">🧠</span>Análise IA</button>
-                            <button className={`nb ${page==='emails'?'active':''}`} onClick={()=>setPage('emails')}><span className="ni">✉️</span>E-mails IA</button>
-                            <button className={`nb ${page==='campaigns'?'active':''}`} onClick={()=>setPage('campaigns')}><span className="ni">🚀</span>Campanhas</button>
-                            <button className={`nb ${page==='flows'?'active':''}`} onClick={()=>setPage('flows')}><span className="ni">🌊</span>Fluxos</button>
-                            <button className={`nb ${page==='intel'?'active':''}`} onClick={()=>setPage('intel')}><span className="ni">💡</span>Insights</button>
-                            <div className="ns">Resultados</div>
-                            <button className={`nb ${page==='reports'?'active':''}`} onClick={()=>setPage('reports')}><span className="ni">📄</span>Relatórios</button>
-                            <button className={`nb ${page==='crm'?'active':''}`} onClick={()=>setPage('crm')}><span className="ni">💼</span>RD CRM</button>
-                            <button className={`nb ${page==='sync'?'active':''}`} onClick={()=>setPage('sync')}><span className="ni">🔄</span>Sincronizar</button>
-                        </div>
-                    </nav>
-                    <div className="main">{render()}</div>
-                </div>
-            );
-        }
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-    </script>
+  return (
+    <>
+      <div className="topbar">
+        <div>
+          <h1 className="title">Prospecção inteligente</h1>
+          <p className="subtitle">Ache oportunidade, gere diagnóstico e monte abordagem</p>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="form-grid">
+          <div>
+            <div className="small muted" style={{marginBottom:"8px"}}>Nicho</div>
+            <input value={form.niche} onChange={e=>setForm({...form, niche:e.target.value})} placeholder="Ex.: clínica, indústria, loja" />
+          </div>
+          <div>
+            <div className="small muted" style={{marginBottom:"8px"}}>Cidade</div>
+            <input value={form.city} onChange={e=>setForm({...form, city:e.target.value})} placeholder="Ex.: Linhares" />
+          </div>
+          <div style={{gridColumn:"1 / -1"}}>
+            <div className="small muted" style={{marginBottom:"8px"}}>Site</div>
+            <input value={form.site} onChange={e=>setForm({...form, site:e.target.value})} placeholder="https://empresa.com.br" />
+          </div>
+        </div>
+
+        <div className="actions" style={{marginTop:"16px"}}>
+          <button className="btn" onClick={analyze}>Analisar negócio</button>
+        </div>
+
+        {result && <div className="result-box">{result}</div>}
+      </div>
+    </>
+  );
+}
+
+function App() {
+  const [authed, setAuthed] = React.useState(!!getToken());
+  const [section, setSection] = React.useState("dashboard");
+  const [clients, setClients] = React.useState([]);
+
+  async function loadClients(){
+    try{
+      const data = await api("/api/clients/");
+      setClients(Array.isArray(data) ? data : []);
+    }catch(err){
+      console.error(err);
+    }
+  }
+
+  React.useEffect(()=>{
+    if(authed) loadClients();
+  }, [authed]);
+
+  if(!authed){
+    return <LoginScreen onLogin={()=>setAuthed(true)} />;
+  }
+
+  return (
+    <div className="app">
+      <Sidebar section={section} setSection={setSection} />
+      <main className="main">
+        {section === "dashboard" && <Dashboard clients={clients} />}
+        {section === "clients" && <Clients clients={clients} refreshClients={loadClients} />}
+        {section === "analysis" && <Analysis clients={clients} />}
+        {section === "flows" && <FlowsAdvanced clients={clients} />}
+        {section === "landing" && <LandingPages />}
+        {section === "leads" && <Leads />}
+        {section === "insights" && <Insights />}
+        {section === "prospect" && <Prospect />}
+      </main>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 </body>
 </html>
