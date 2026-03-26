@@ -1,1412 +1,280 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RD Manager IA</title>
 
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <style>
-    :root{
-      --bg:#f3efe8;
-      --panel:#ffffff;
-      --panel-soft:#faf8f4;
-      --line:#e5ddd0;
-      --text:#171717;
-      --muted:#6f6b64;
-
-      --sidebar:#121212;
-      --sidebar-soft:#1a1a1a;
-
-      --green:#23a36b;
-      --green-dark:#168456;
-      --green-soft:#edf9f3;
-
-      --red:#d64c4c;
-      --red-soft:#fff2f2;
-
-      --yellow:#b98300;
-      --yellow-soft:#fff7e8;
-
-      --blue:#3d6df2;
-      --blue-soft:#eef3ff;
-
-      --shadow:0 16px 40px rgba(0,0,0,.07);
-      --shadow-soft:0 8px 24px rgba(0,0,0,.05);
-
-      --radius-xl:26px;
-      --radius-lg:20px;
-      --radius-md:16px;
-      --radius-sm:12px;
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #0b0f14;
+      color: white;
     }
 
-    *{box-sizing:border-box}
-
-    body{
-      margin:0;
-      font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background:var(--bg);
-      color:var(--text);
+    .app {
+      display: flex;
     }
 
-    .app{display:flex;min-height:100vh}
-    .sidebar{
-      width:290px;
-      background:linear-gradient(180deg, #141414 0%, #101010 100%);
-      color:#fff;
-      padding:26px 18px;
-      display:flex;
-      flex-direction:column;
-      gap:26px;
-      border-right:1px solid rgba(255,255,255,.04);
+    .sidebar {
+      width: 240px;
+      background: #0f141a;
+      padding: 20px;
+      height: 100vh;
     }
 
-    .brand{display:flex;align-items:center;gap:14px;padding:6px 4px 10px}
-    .brand-badge{
-      width:44px;height:44px;border-radius:14px;
-      background:linear-gradient(180deg, #2ab97b 0%, #1f9b65 100%);
-      display:flex;align-items:center;justify-content:center;
-      font-weight:900;color:#0f0f0f;
-      box-shadow:0 8px 20px rgba(35,163,107,.25);
-    }
-    .brand-title{font-size:17px;line-height:1.05;font-weight:900;letter-spacing:-0.02em}
-
-    .nav-title{
-      color:#767676;
-      text-transform:uppercase;
-      font-size:12px;
-      font-weight:800;
-      letter-spacing:.1em;
-      margin:10px 8px 6px;
+    .sidebar button {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 10px;
+      background: none;
+      border: none;
+      color: white;
+      text-align: left;
+      cursor: pointer;
     }
 
-    .nav-list{display:flex;flex-direction:column;gap:8px}
-
-    .nav-btn{
-      width:100%;
-      background:transparent;
-      color:#d8d8d8;
-      border:1px solid transparent;
-      padding:13px 14px;
-      border-radius:16px;
-      text-align:left;
-      font-size:15px;
-      font-weight:700;
-      cursor:pointer;
-      display:flex;
-      align-items:center;
-      gap:12px;
-      transition:.18s ease;
+    .sidebar button.active {
+      background: #1f8f5f;
+      border-radius: 8px;
     }
 
-    .nav-btn:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.05)}
-    .nav-btn.active{
-      background:linear-gradient(180deg, #2ab97b 0%, #23a36b 100%);
-      color:#fff;
-      box-shadow:0 10px 26px rgba(35,163,107,.26);
-      border-color:rgba(255,255,255,.12);
+    .main {
+      flex: 1;
+      padding: 30px;
     }
 
-    .main{flex:1;padding:30px 34px 44px;overflow:auto}
-
-    .hero{
-      background:linear-gradient(135deg, #ffffff 0%, #faf7f2 100%);
-      border:1px solid var(--line);
-      border-radius:var(--radius-xl);
-      box-shadow:var(--shadow);
-      padding:28px;
-      margin-bottom:22px;
-      position:relative;
-      overflow:hidden;
+    .card {
+      background: #141a21;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 15px;
     }
 
-    .hero:before{
-      content:"";
-      position:absolute;
-      right:-60px;
-      top:-60px;
-      width:220px;
-      height:220px;
-      border-radius:50%;
-      background:radial-gradient(circle, rgba(35,163,107,.10) 0%, rgba(35,163,107,0) 70%);
-      pointer-events:none;
+    .btn {
+      background: #1f8f5f;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      margin-right: 5px;
     }
 
-    .topbar{
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap:20px;
-      margin-bottom:18px;
+    .error-box {
+      background: #5c1a1a;
+      padding: 10px;
+      border-radius: 8px;
     }
 
-    .title{
-      margin:0 0 6px;
-      font-size:34px;
-      font-weight:900;
-      letter-spacing:-0.03em;
-    }
-
-    .subtitle{
-      margin:0;
-      color:var(--muted);
-      font-size:17px;
-      max-width:760px;
-      line-height:1.45;
-    }
-
-    .top-actions{display:flex;gap:10px;flex-wrap:wrap}
-    .grid{display:grid;gap:20px}
-    .grid.kpis{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:22px}
-    .grid.two{grid-template-columns:1.2fr .8fr}
-
-    .card{
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:var(--radius-xl);
-      box-shadow:var(--shadow-soft);
-      padding:22px;
-    }
-
-    .card h3{margin:0 0 14px;font-size:20px;letter-spacing:-0.02em}
-
-    .kpi-card{
-      background:linear-gradient(180deg, #ffffff 0%, #faf8f4 100%);
-      border:1px solid var(--line);
-      border-radius:24px;
-      box-shadow:var(--shadow-soft);
-      padding:22px;
-      position:relative;
-      overflow:hidden;
-    }
-
-    .kpi-card:after{
-      content:"";
-      position:absolute;
-      right:-24px;
-      bottom:-24px;
-      width:90px;
-      height:90px;
-      border-radius:50%;
-      background:rgba(35,163,107,.07);
-    }
-
-    .kpi-label{font-size:13px;color:var(--muted);font-weight:700;margin-bottom:10px}
-    .kpi-value{font-size:38px;line-height:1;font-weight:900;letter-spacing:-0.04em;margin-bottom:8px}
-    .kpi-desc{color:var(--muted);font-size:14px;line-height:1.4}
-
-    .section-head{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      margin-bottom:16px;
-    }
-
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:9px 12px;
-      border-radius:999px;
-      font-size:12px;
-      font-weight:800;
-      border:1px solid var(--line);
-      background:#f4f1ec;
-    }
-
-    .pill.good{color:var(--green-dark); background:var(--green-soft); border-color:#cdeedc;}
-    .pill.warn{color:var(--yellow); background:var(--yellow-soft); border-color:#f0dfaf;}
-    .pill.bad{color:var(--red); background:var(--red-soft); border-color:#f3caca;}
-    .pill.blue{color:var(--blue); background:var(--blue-soft); border-color:#d5e0ff;}
-
-    .stack{display:flex;flex-direction:column;gap:14px}
-
-    .priority{
-      display:flex;
-      align-items:flex-start;
-      gap:14px;
-      padding:16px;
-      border:1px solid var(--line);
-      border-radius:18px;
-      background:linear-gradient(180deg, #fff 0%, #fcfaf7 100%);
-    }
-
-    .priority-icon{
-      width:38px;height:38px;border-radius:14px;
-      background:var(--green-soft);color:var(--green-dark);
-      display:flex;align-items:center;justify-content:center;
-      font-weight:900;border:1px solid #caecd9;flex-shrink:0;
-    }
-
-    .priority strong{display:block;margin-bottom:4px;font-size:15px}
-    .muted{color:var(--muted)}
-    .small{font-size:13px}
-
-    .alert{
-      padding:16px;
-      border-radius:18px;
-      background:linear-gradient(180deg, #fff 0%, #fcfaf7 100%);
-      border:1px solid var(--line);
-    }
-
-    .alert strong{display:block;margin-bottom:5px;font-size:15px}
-
-    .client-item,.flow-email,.ranking-item{
-      border:1px solid var(--line);
-      border-radius:20px;
-      padding:18px;
-      background:linear-gradient(180deg, #fff 0%, #fbf9f5 100%);
-      box-shadow:0 8px 22px rgba(0,0,0,.03);
-    }
-
-    .client-head,.row-between{
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-start;
-      gap:14px;
-    }
-
-    .client-name{font-size:18px;font-weight:900;letter-spacing:-0.02em;margin-bottom:4px}
-
-    .tag{
-      font-size:12px;font-weight:800;padding:8px 11px;border-radius:999px;
-      border:1px solid var(--line);background:#f4f1ec;white-space:nowrap;
-    }
-
-    .tag.connected{color:var(--green-dark); background:var(--green-soft); border-color:#caecd9;}
-    .tag.disconnected{color:var(--red); background:var(--red-soft); border-color:#f0c6c6;}
-    .tag.priority-high{color:var(--red); background:var(--red-soft); border-color:#f0c6c6;}
-    .tag.priority-medium{color:var(--yellow); background:var(--yellow-soft); border-color:#ecd8a1;}
-    .tag.priority-low{color:var(--green-dark); background:var(--green-soft); border-color:#caecd9;}
-
-    .actions{display:flex;gap:10px;flex-wrap:wrap}
-
-    .btn{
-      border:0;
-      background:linear-gradient(180deg, #2ab97b 0%, #23a36b 100%);
-      color:#fff;
-      padding:12px 18px;
-      border-radius:15px;
-      font-weight:800;
-      font-size:14px;
-      cursor:pointer;
-      box-shadow:0 10px 22px rgba(35,163,107,.20);
-      transition:.18s ease;
-    }
-
-    .btn:hover{transform:translateY(-1px);background:linear-gradient(180deg, #25af74 0%, #1f925f 100%)}
-    .btn.secondary{background:#fff;color:var(--text);border:1px solid var(--line);box-shadow:none}
-    .btn.red{background:#fff;color:var(--red);border:1px solid #efc5c5;box-shadow:none}
-    .btn.blue{background:linear-gradient(180deg,#5d87ff 0%,#3d6df2 100%);box-shadow:0 10px 22px rgba(61,109,242,.20)}
-    .btn.small{padding:10px 14px;font-size:13px}
-    .btn:disabled{opacity:.65;cursor:not-allowed;transform:none}
-
-    .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-
-    input, textarea, select{
-      width:100%;
-      padding:14px 16px;
-      border-radius:16px;
-      border:1px solid #dcd3c7;
-      background:#fff;
-      font-size:15px;
-      color:var(--text);
-      outline:none;
-      transition:border-color .18s ease, box-shadow .18s ease;
-    }
-
-    input:focus, textarea:focus, select:focus{
-      border-color:#8cc9aa;
-      box-shadow:0 0 0 4px rgba(35,163,107,.08);
-    }
-
-    textarea{min-height:130px;resize:vertical}
-
-    .result-box{
-      margin-top:16px;
-      padding:18px 18px 20px;
-      border-radius:20px;
-      background:linear-gradient(180deg, #fcfaf6 0%, #f7f3ed 100%);
-      border:1px solid var(--line);
-      white-space:pre-wrap;
-      line-height:1.6;
-      font-size:14px;
-      color:#2a2927;
-    }
-
-    .result-premium{
-      margin-top:18px;
-      border-radius:22px;
-      overflow:hidden;
-      border:1px solid var(--line);
-      background:#fff;
-      box-shadow:var(--shadow-soft);
-    }
-
-    .result-premium-head{
-      padding:14px 18px;
-      background:linear-gradient(180deg, #faf7f2 0%, #f4efe8 100%);
-      border-bottom:1px solid var(--line);
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-    }
-
-    .result-premium-title{font-size:14px;font-weight:900;letter-spacing:.01em}
-    .result-premium-body{
-      padding:18px;
-      white-space:pre-wrap;
-      line-height:1.65;
-      font-size:14px;
-      color:#2b2a28;
-      background:#fff;
-    }
-
-    .error-box{
-      margin-top:12px;
-      padding:16px 18px;
-      border-radius:18px;
-      background:var(--red-soft);
-      border:1px solid #efc5c5;
-      color:#a33;
-      white-space:pre-wrap;
-      box-shadow:0 10px 22px rgba(214,76,76,.06);
-    }
-
-    .empty{
-      padding:18px;
-      border:1px dashed var(--line);
-      border-radius:18px;
-      color:var(--muted);
-      background:#faf8f5;
-    }
-
-    .login-wrap{
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:24px;
-      background:
-        radial-gradient(circle at top right, rgba(35,163,107,.08), transparent 25%),
-        radial-gradient(circle at bottom left, rgba(61,109,242,.05), transparent 25%),
-        var(--bg);
-    }
-
-    .login-card{
-      width:100%;
-      max-width:500px;
-      background:linear-gradient(180deg, #ffffff 0%, #faf7f3 100%);
-      border:1px solid var(--line);
-      border-radius:28px;
-      box-shadow:var(--shadow);
-      padding:28px;
-      position:relative;
-      overflow:hidden;
-    }
-
-    .login-card:after{
-      content:"";
-      position:absolute;
-      top:-50px;
-      right:-50px;
-      width:180px;
-      height:180px;
-      border-radius:50%;
-      background:radial-gradient(circle, rgba(35,163,107,.10) 0%, rgba(35,163,107,0) 70%);
-    }
-
-    .login-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;position:relative;z-index:1}
-    .login-title{font-size:18px;color:var(--muted);margin-top:4px}
-
-    .score-line{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
-
-    .score-badge{
-      min-width:82px;text-align:center;padding:11px 16px;border-radius:16px;
-      font-weight:900;font-size:22px;background:var(--green-soft);
-      color:var(--green-dark);border:1px solid #caecd9;
-      box-shadow:0 6px 16px rgba(35,163,107,.08);
-    }
-
-    .mini-list{margin:8px 0 0;padding-left:18px}
-    .mini-list li{margin-bottom:6px;color:var(--muted)}
-
-    .module-hero{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap}
-    .module-hero-left{max-width:760px}
-    .meta-stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-    .meta-chip{
-      padding:9px 12px;border-radius:999px;border:1px solid var(--line);
-      background:#fff;font-size:12px;font-weight:800;color:var(--muted);
-    }
-
-    .sync-grid{
-      display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:12px;
-      margin-top:14px;
-    }
-
-    .sync-mini{
-      padding:12px 14px;
-      border:1px solid var(--line);
-      border-radius:16px;
-      background:#fff;
-    }
-
-    .sync-mini-label{
-      font-size:12px;
-      color:var(--muted);
-      font-weight:700;
-      margin-bottom:6px;
-    }
-
-    .sync-mini-value{
-      font-size:20px;
-      font-weight:900;
-      letter-spacing:-0.02em;
-    }
-
-    @media (max-width: 1200px){
-      .grid.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
-      .grid.two{grid-template-columns:1fr}
-    }
-
-    @media (max-width: 920px){
-      .app{display:block}
-      .sidebar{width:100%}
-      .main{padding:20px}
-      .form-grid,.sync-grid{grid-template-columns:1fr}
-      .title{font-size:28px}
+    input {
+      display: block;
+      margin-bottom: 10px;
+      padding: 10px;
+      width: 200px;
     }
   </style>
 </head>
+
 <body>
-  <div id="root"></div>
+<div id="root"></div>
 
-  <script type="text/babel">
-    const API = "";
+<script type="text/babel">
 
-    function getToken() {
-      return localStorage.getItem("rdm_token");
+const API = "";
+
+/* =========================
+   AUTH
+========================= */
+
+function getToken() {
+  return localStorage.getItem("rdm_token");
+}
+
+function saveSession(data) {
+  localStorage.setItem("rdm_token", data.access_token);
+}
+
+function clearSession() {
+  localStorage.clear();
+}
+
+/* =========================
+   API
+========================= */
+
+async function api(url, options = {}) {
+  const token = getToken();
+
+  const res = await fetch(API + url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + token,
+      ...(options.headers || {})
     }
+  });
 
-    function clearSession() {
-      localStorage.removeItem("rdm_token");
-      localStorage.removeItem("rdm_user");
-    }
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text);
+  }
 
-    async function api(path, options = {}) {
-      const token = getToken();
+  return res.json();
+}
 
-      const headers = {
-        ...(options.body && !(options.body instanceof FormData) ? {"Content-Type":"application/json"} : {}),
-        ...(token ? {"Authorization":"Bearer " + token} : {}),
-        ...(options.headers || {})
-      };
+/* =========================
+   LOGIN
+========================= */
 
-      const res = await fetch(API + path, { ...options, headers });
-      const raw = await res.text();
+function Login({ onLogin }) {
+  const [user, setUser] = React.useState("");
+  const [pass, setPass] = React.useState("");
+  const [error, setError] = React.useState("");
 
-      let data = null;
-      try {
-        data = raw ? JSON.parse(raw) : null;
-      } catch {
-        if (!res.ok) throw new Error(raw || "Erro do servidor");
-        return raw;
-      }
-
-      if (!res.ok) {
-        throw new Error(data?.detail || raw || "Erro do servidor");
-      }
-
-      return data;
-    }
-
-    function PremiumResult({ title, badge, content }) {
-      if (!content) return null;
-
-      return (
-        <div className="result-premium">
-          <div className="result-premium-head">
-            <div className="result-premium-title">{title}</div>
-            {badge && <span className="pill good">{badge}</span>}
-          </div>
-          <div className="result-premium-body">{content}</div>
-        </div>
-      );
-    }
-
-    function LoginScreen({ onLogin }) {
-      const [username, setUsername] = React.useState("");
-      const [password, setPassword] = React.useState("");
-      const [error, setError] = React.useState("");
-      const [loading, setLoading] = React.useState(false);
-
-      async function handleLogin(e) {
-        e.preventDefault();
-        setError("");
-        setLoading(true);
-
-        try {
-          const form = new URLSearchParams();
-          form.append("username", username);
-          form.append("password", password);
-
-          const res = await fetch("/api/auth/login", {
-            method: "POST",
-            headers: {"Content-Type":"application/x-www-form-urlencoded"},
-            body: form.toString()
-          });
-
-          const raw = await res.text();
-
-          let data;
-          try {
-            data = JSON.parse(raw);
-          } catch {
-            throw new Error(raw || "Erro ao entrar");
-          }
-
-          if (!res.ok) {
-            throw new Error(data?.detail || "Erro ao entrar");
-          }
-
-          localStorage.setItem("rdm_token", data.access_token);
-          localStorage.setItem("rdm_user", data.username || username);
-          onLogin();
-        } catch (err) {
-          setError(err.message || "Erro ao entrar");
-        } finally {
-          setLoading(false);
-        }
-      }
-
-      return (
-        <div className="login-wrap">
-          <div className="login-card">
-            <div className="login-head">
-              <div className="brand-badge">RD</div>
-              <div>
-                <div style={{fontSize:"40px",fontWeight:900,lineHeight:1}}>RD Manager IA</div>
-                <div className="login-title">Cockpit de inteligência para operação de agência</div>
-              </div>
-            </div>
-
-            {error && <div className="error-box">{error}</div>}
-
-            <form onSubmit={handleLogin} className="stack" style={{marginTop:"18px", position:"relative", zIndex:1}}>
-              <div>
-                <div className="small muted" style={{marginBottom:"8px"}}>Usuário</div>
-                <input value={username} onChange={e => setUsername(e.target.value)} />
-              </div>
-
-              <div>
-                <div className="small muted" style={{marginBottom:"8px"}}>Senha</div>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} />
-              </div>
-
-              <button className="btn" disabled={loading}>
-                {loading ? "Entrando..." : "Entrar"}
-              </button>
-            </form>
-          </div>
-        </div>
-      );
-    }
-
-    function Sidebar({ section, setSection, onLogout }) {
-      return (
-        <aside className="sidebar">
-          <div className="brand">
-            <div className="brand-badge">RD</div>
-            <div className="brand-title">RD Manager<br/>IA</div>
-          </div>
-
-          <div>
-            <div className="nav-title">Principal</div>
-            <div className="nav-list">
-              <button className={"nav-btn " + (section==="dashboard" ? "active" : "")} onClick={() => setSection("dashboard")}>📊 Dashboard</button>
-              <button className={"nav-btn " + (section==="clients" ? "active" : "")} onClick={() => setSection("clients")}>👥 Clientes</button>
-            </div>
-          </div>
-
-          <div>
-            <div className="nav-title">Módulos</div>
-            <div className="nav-list">
-              <button className={"nav-btn " + (section==="flows" ? "active" : "")} onClick={() => setSection("flows")}>📧 Flows avançados</button>
-              <button className={"nav-btn " + (section==="landing" ? "active" : "")} onClick={() => setSection("landing")}>🌐 Landing Pages</button>
-              <button className={"nav-btn " + (section==="leads" ? "active" : "")} onClick={() => setSection("leads")}>🧲 Leads & Segmentação</button>
-              <button className={"nav-btn " + (section==="insights" ? "active" : "")} onClick={() => setSection("insights")}>💡 Insights</button>
-              <button className={"nav-btn " + (section==="prospect" ? "active" : "")} onClick={() => setSection("prospect")}>🎯 Prospecção</button>
-            </div>
-          </div>
-
-          <div style={{marginTop:"auto"}}>
-            <button className="nav-btn" onClick={onLogout}>↩️ Sair</button>
-          </div>
-        </aside>
-      );
-    }
-
-    function Dashboard({ agency }) {
-      const ranking = agency?.ranking || [];
-      const alerts = agency?.alerts || [];
-      const priorities = agency?.weekly_priorities || [];
-
-      return (
-        <>
-          <div className="hero">
-            <div className="topbar" style={{marginBottom:0}}>
-              <div>
-                <h1 className="title">Cockpit da Agência</h1>
-                <p className="subtitle">
-                  Uma visão executiva para decidir rápido, priorizar melhor e transformar dados em ação com mais clareza.
-                </p>
-                <div className="meta-stats">
-                  <span className="meta-chip">Score médio da carteira</span>
-                  <span className="meta-chip">Prioridades da semana</span>
-                  <span className="meta-chip">Ranking de clientes</span>
-                </div>
-              </div>
-              <div className="top-actions">
-                <span className="pill good">Operação ativa</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid kpis">
-            <div className="kpi-card">
-              <div className="kpi-label">Score da agência</div>
-              <div className="kpi-value">{agency?.score ?? 0}</div>
-              <div className="kpi-desc">Maturidade média da carteira e da operação atual.</div>
-            </div>
-
-            <div className="kpi-card">
-              <div className="kpi-label">Clientes totais</div>
-              <div className="kpi-value">{agency?.clients_total ?? 0}</div>
-              <div className="kpi-desc">Total de contas acompanhadas pela agência.</div>
-            </div>
-
-            <div className="kpi-card">
-              <div className="kpi-label">RD conectado</div>
-              <div className="kpi-value">{agency?.connected_total ?? 0}</div>
-              <div className="kpi-desc">Clientes com leitura automatizada liberada.</div>
-            </div>
-
-            <div className="kpi-card">
-              <div className="kpi-label">Prioridade alta</div>
-              <div className="kpi-value">{agency?.high_priority_total ?? 0}</div>
-              <div className="kpi-desc">Contas que exigem ação mais rápida.</div>
-            </div>
-          </div>
-
-          <div className="grid two">
-            <div className="card">
-              <div className="section-head">
-                <h3>Prioridades da semana</h3>
-                <span className="pill warn">Execução</span>
-              </div>
-
-              <div className="stack">
-                {priorities.length === 0 ? (
-                  <div className="empty">Ainda sem prioridades geradas.</div>
-                ) : priorities.map((item, index) => (
-                  <div className="priority" key={index}>
-                    <div className="priority-icon">{index + 1}</div>
-                    <div>
-                      <strong>{item}</strong>
-                      <div className="muted">Ação sugerida automaticamente pela leitura da carteira.</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="card">
-              <div className="section-head">
-                <h3>Alertas da operação</h3>
-                <span className="pill bad">Monitoramento</span>
-              </div>
-
-              <div className="stack">
-                {alerts.length === 0 ? (
-                  <div className="empty">Sem alertas relevantes no momento.</div>
-                ) : alerts.map((item, index) => (
-                  <div className="alert" key={index}>
-                    <strong>{item}</strong>
-                    <div className="muted">Esse ponto merece atenção no acompanhamento da semana.</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="card" style={{marginTop:"20px"}}>
-            <div className="section-head">
-              <h3>Ranking dos clientes</h3>
-              <span className="pill good">Priorização</span>
-            </div>
-
-            <div className="stack">
-              {ranking.length === 0 ? (
-                <div className="empty">Nenhum cliente no ranking ainda.</div>
-              ) : ranking.map((item, index) => (
-                <div className="ranking-item" key={item.client_id || index}>
-                  <div className="client-head">
-                    <div>
-                      <div className="client-name">#{index + 1} — {item.client_name}</div>
-                      <div className="muted">{item.summary}</div>
-                    </div>
-
-                    <div className={"tag " + (
-                      item.priority === "alta"
-                        ? "priority-high"
-                        : item.priority === "média"
-                        ? "priority-medium"
-                        : "priority-low"
-                    )}>
-                      prioridade {item.priority}
-                    </div>
-                  </div>
-
-                  <div className="score-line">
-                    <div className="score-badge">{item.score}</div>
-                    <div className="muted">
-                      RD: {item.rd_connected ? "Conectado" : "Desconectado"} | LPs: {item.counts?.landing_pages ?? 0} | Segmentações: {item.counts?.segmentations ?? 0} | Fluxos: {item.counts?.workflows ?? 0} | Campanhas: {item.counts?.campaigns ?? 0}
-                    </div>
-                  </div>
-
-                  {item.actions?.length > 0 && (
-                    <div className="result-box">
-                      <strong>Ações sugeridas</strong>
-                      <ul className="mini-list">
-                        {item.actions.map((a, idx) => <li key={idx}>{a}</li>)}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      );
-    }
-
-    function Clients({ clients, refreshAll }) {
-      const [creating, setCreating] = React.useState(false);
-      const [form, setForm] = React.useState({
-        name: "",
-        segment: "",
-        website: "",
-        description: ""
+  async function handleLogin() {
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ username: user, password: pass })
       });
-      const [message, setMessage] = React.useState("");
-      const [loadingMap, setLoadingMap] = React.useState({});
-      const [summaryMap, setSummaryMap] = React.useState({});
 
-      function setLoading(clientId, value) {
-        setLoadingMap(prev => ({ ...prev, [clientId]: value }));
-      }
+      const data = await res.json();
 
-      function setSummary(clientId, value) {
-        setSummaryMap(prev => ({ ...prev, [clientId]: value }));
-      }
+      if (!res.ok) throw new Error(data.detail);
 
-      async function connectRD(clientId) {
-        window.open(`/oauth/authorize/${clientId}`, "_blank");
-        setMessage("A autenticação da RD foi aberta em outra aba. Depois de autorizar, clique em atualizar.");
-      }
-
-      async function createClient() {
-        setMessage("");
-        try {
-          await api("/api/clients/", {
-            method: "POST",
-            body: JSON.stringify(form)
-          });
-
-          setForm({
-            name: "",
-            segment: "",
-            website: "",
-            description: ""
-          });
-
-          setCreating(false);
-          setMessage("Cliente cadastrado com sucesso.");
-          refreshAll();
-        } catch (err) {
-          setMessage("Erro ao cadastrar cliente: " + err.message);
-        }
-      }
-
-      async function runSync(clientId) {
-        try {
-          setLoading(clientId, true);
-          setSummary(clientId, null);
-          const data = await api(`/api/rdsync/run/${clientId}`, {
-            method: "POST"
-          });
-          setSummary(clientId, data?.summary || data);
-          setMessage(`Sync executado para o cliente ${clientId}.`);
-          await refreshAll();
-        } catch (err) {
-          setMessage(`Erro no sync do cliente ${clientId}: ` + err.message);
-        } finally {
-          setLoading(clientId, false);
-        }
-      }
-
-      async function loadSummary(clientId) {
-        try {
-          setLoading(clientId, true);
-          const data = await api(`/api/rdsync/summary/${clientId}`);
-          setSummary(clientId, data?.data?.summary || data?.data || null);
-        } catch (err) {
-          setMessage(`Erro ao buscar resumo do cliente ${clientId}: ` + err.message);
-        } finally {
-          setLoading(clientId, false);
-        }
-      }
-
-      return (
-        <>
-          <div className="hero">
-            <div className="module-hero">
-              <div className="module-hero-left">
-                <h1 className="title">Clientes</h1>
-                <p className="subtitle">
-                  Organize sua carteira, acompanhe o status da RD e rode sync direto pela interface para começar a alimentar score, alertas e diagnósticos reais.
-                </p>
-              </div>
-
-              <div className="top-actions">
-                <button className="btn secondary" onClick={refreshAll}>Atualizar</button>
-                <button className="btn" onClick={() => setCreating(!creating)}>
-                  {creating ? "Fechar cadastro" : "Novo cliente"}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {message && (
-            <div className="error-box" style={{color:"#444",background:"#f8f7f4",borderColor:"#ddd7cd"}}>
-              {message}
-            </div>
-          )}
-
-          {creating && (
-            <div className="card" style={{marginBottom:"20px"}}>
-              <div className="section-head">
-                <h3>Cadastrar cliente</h3>
-                <span className="pill good">Nova conta</span>
-              </div>
-
-              <div className="form-grid">
-                <div>
-                  <div className="small muted" style={{marginBottom:"8px"}}>Nome</div>
-                  <input value={form.name} onChange={e => setForm({...form, name:e.target.value})} />
-                </div>
-
-                <div>
-                  <div className="small muted" style={{marginBottom:"8px"}}>Segmento</div>
-                  <input value={form.segment} onChange={e => setForm({...form, segment:e.target.value})} />
-                </div>
-
-                <div>
-                  <div className="small muted" style={{marginBottom:"8px"}}>Site</div>
-                  <input value={form.website} onChange={e => setForm({...form, website:e.target.value})} />
-                </div>
-
-                <div>
-                  <div className="small muted" style={{marginBottom:"8px"}}>Descrição</div>
-                  <input value={form.description} onChange={e => setForm({...form, description:e.target.value})} />
-                </div>
-              </div>
-
-              <div className="actions" style={{marginTop:"16px"}}>
-                <button className="btn" onClick={createClient}>Salvar cliente</button>
-              </div>
-            </div>
-          )}
-
-          <div className="stack">
-            {clients.length === 0 && <div className="empty">Nenhum cliente encontrado ainda.</div>}
-
-            {clients.map(client => {
-              const isConnected = !!(client.rd_token_set || client.rd_connected || client.rd_token || client.rd_refresh_token);
-              const summary = summaryMap[client.id];
-              const counts = summary?.counts || {};
-
-              return (
-                <div className="client-item" key={client.id}>
-                  <div className="client-head">
-                    <div>
-                      <div className="client-name">{client.name}</div>
-                      <div className="muted">{client.segment || "Sem segmento"} | {client.website || "Sem site"}</div>
-                    </div>
-
-                    <div className={"tag " + (isConnected ? "connected" : "disconnected")}>
-                      {isConnected ? "RD conectado" : "RD desconectado"}
-                    </div>
-                  </div>
-
-                  {client.description && (
-                    <div className="muted" style={{marginTop:"10px", lineHeight:1.55}}>
-                      {client.description}
-                    </div>
-                  )}
-
-                  <div className="actions" style={{marginTop:"16px"}}>
-                    <button className="btn small" onClick={() => connectRD(client.id)}>Conectar RD</button>
-                    <button className="btn small blue" disabled={!!loadingMap[client.id]} onClick={() => runSync(client.id)}>
-                      {loadingMap[client.id] ? "Sincronizando..." : "Rodar Sync RD"}
-                    </button>
-                    <button className="btn small secondary" disabled={!!loadingMap[client.id]} onClick={() => loadSummary(client.id)}>
-                      Ver resumo
-                    </button>
-                  </div>
-
-                  {summary && (
-                    <div className="result-premium" style={{marginTop:"16px"}}>
-                      <div className="result-premium-head">
-                        <div className="result-premium-title">Resumo do sync</div>
-                        <span className="pill blue">Dados RD</span>
-                      </div>
-
-                      <div className="result-premium-body">
-                        <div className="sync-grid">
-                          <div className="sync-mini">
-                            <div className="sync-mini-label">Landing Pages</div>
-                            <div className="sync-mini-value">{counts.landing_pages || 0}</div>
-                          </div>
-                          <div className="sync-mini">
-                            <div className="sync-mini-label">Segmentações</div>
-                            <div className="sync-mini-value">{counts.segmentations || 0}</div>
-                          </div>
-                          <div className="sync-mini">
-                            <div className="sync-mini-label">Fluxos</div>
-                            <div className="sync-mini-value">{counts.workflows || 0}</div>
-                          </div>
-                          <div className="sync-mini">
-                            <div className="sync-mini-label">Campanhas</div>
-                            <div className="sync-mini-value">{counts.campaigns || 0}</div>
-                          </div>
-                        </div>
-
-                        {summary.module_errors && Object.keys(summary.module_errors).length > 0 && (
-                          <div className="result-box" style={{marginTop:"14px"}}>
-                            <strong>Erros de módulos:</strong>
-                            {"\n"}
-                            {JSON.stringify(summary.module_errors, null, 2)}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </>
-      );
+      saveSession(data);
+      onLogin();
+    } catch (e) {
+      setError(e.message);
     }
+  }
 
-    function FlowsAdvanced() {
-      const [form, setForm] = React.useState({goal:"", product:"", audience:"", awareness:""});
-      const [flow, setFlow] = React.useState("");
-      const [emailResult, setEmailResult] = React.useState("");
+  return (
+    <div style={{padding:40}}>
+      <h2>Login</h2>
+      {error && <div className="error-box">{error}</div>}
+      <input placeholder="Usuário" onChange={e => setUser(e.target.value)} />
+      <input type="password" placeholder="Senha" onChange={e => setPass(e.target.value)} />
+      <button className="btn" onClick={handleLogin}>Entrar</button>
+    </div>
+  );
+}
 
-      function update(key, value) {
-        setForm(prev => ({...prev, [key]: value}));
-      }
+/* =========================
+   SIDEBAR
+========================= */
 
-      async function generateFlow() {
-        try {
-          const data = await api("/api/flows-adv/generate-flow", {
-            method: "POST",
-            body: JSON.stringify(form)
-          });
-          setFlow(data.flow || JSON.stringify(data, null, 2));
-        } catch (err) {
-          setFlow("Erro: " + err.message);
-        }
-      }
+function Sidebar({ section, setSection, logout }) {
+  return (
+    <div className="sidebar">
+      <h3>RD Manager IA</h3>
 
-      async function generateEmail(context) {
-        try {
-          const data = await api("/api/flows-adv/generate-email", {
-            method: "POST",
-            body: JSON.stringify({context})
-          });
-          setEmailResult(data.email || JSON.stringify(data, null, 2));
-        } catch (err) {
-          setEmailResult("Erro: " + err.message);
-        }
-      }
+      <button className={section==="dashboard"?"active":""} onClick={()=>setSection("dashboard")}>Dashboard</button>
+      <button className={section==="clients"?"active":""} onClick={()=>setSection("clients")}>Clientes</button>
 
-      const suggested = [
-        {name:"Email 1 — Abertura e conexão", reason:"Contextualizar a oferta e criar identificação inicial", timing:"D+0"},
-        {name:"Email 2 — Quebra de objeção", reason:"Reduzir barreiras e elevar confiança", timing:"D+2"},
-        {name:"Email 3 — Prova e CTA", reason:"Empurrar a decisão com argumento mais forte", timing:"D+4"},
-      ];
+      <button onClick={logout}>Sair</button>
+    </div>
+  );
+}
 
-      return (
-        <>
-          <div className="hero">
-            <div className="module-hero">
-              <div className="module-hero-left">
-                <h1 className="title">Flows avançados</h1>
-                <p className="subtitle">
-                  Estruture sequências mais estratégicas e transforme cada etapa em um email pronto, com lógica comercial e visual mais profissional.
-                </p>
-              </div>
-              <span className="pill good">Entrega premium</span>
-            </div>
+/* =========================
+   DASHBOARD
+========================= */
+
+function Dashboard({ data }) {
+  if (!data) return <div>Carregando...</div>;
+
+  return (
+    <div>
+      <h2>Dashboard</h2>
+      <div className="card">
+        <strong>Total clientes:</strong> {data.total_clients}
+      </div>
+    </div>
+  );
+}
+
+/* =========================
+   CLIENTES
+========================= */
+
+function Clients({ clients, refresh }) {
+  return (
+    <div>
+      <h2>Clientes</h2>
+
+      {clients.map(c => (
+        <div className="card" key={c.id}>
+          <strong>{c.name}</strong>
+
+          <div style={{marginTop:10}}>
+            <button className="btn" onClick={()=>runSync(c.id, refresh)}>Rodar Sync RD</button>
           </div>
-
-          <div className="card">
-            <div className="form-grid">
-              <div>
-                <div className="small muted" style={{marginBottom:"8px"}}>Objetivo</div>
-                <input value={form.goal} onChange={e => update("goal", e.target.value)} placeholder="Ex.: vender consultoria premium" />
-              </div>
-
-              <div>
-                <div className="small muted" style={{marginBottom:"8px"}}>Produto</div>
-                <input value={form.product} onChange={e => update("product", e.target.value)} placeholder="Ex.: mentoria estratégica" />
-              </div>
-
-              <div>
-                <div className="small muted" style={{marginBottom:"8px"}}>Público</div>
-                <input value={form.audience} onChange={e => update("audience", e.target.value)} placeholder="Ex.: empresários locais" />
-              </div>
-
-              <div>
-                <div className="small muted" style={{marginBottom:"8px"}}>Consciência</div>
-                <input value={form.awareness} onChange={e => update("awareness", e.target.value)} placeholder="Frio, morno, quente" />
-              </div>
-            </div>
-
-            <div className="actions" style={{marginTop:"16px"}}>
-              <button className="btn" onClick={generateFlow}>Gerar fluxo</button>
-            </div>
-
-            <div style={{marginTop:"20px"}}>
-              <div className="section-head">
-                <h3>Estrutura sugerida</h3>
-                <span className="pill warn">Execução</span>
-              </div>
-
-              <div className="stack">
-                {suggested.map((item, idx) => (
-                  <div className="flow-email" key={idx}>
-                    <div className="row-between">
-                      <div>
-                        <strong>{item.name}</strong>
-                        <div className="muted small">Motivo: {item.reason}</div>
-                        <div className="muted small">Timing: {item.timing}</div>
-                      </div>
-
-                      <button className="btn small" onClick={() => generateEmail(`${item.name}. ${item.reason}. ${item.timing}. Contexto: ${JSON.stringify(form)}`)}>
-                        Gerar email
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <PremiumResult title="Fluxo gerado" badge="Estratégia" content={flow} />
-            <PremiumResult title="Email gerado" badge="Copy pronta" content={emailResult} />
-          </div>
-        </>
-      );
-    }
-
-    function LandingPages() {
-      const [url, setUrl] = React.useState("");
-      const [analysis, setAnalysis] = React.useState("");
-      const [copy, setCopy] = React.useState("");
-
-      async function analyze() {
-        try {
-          const data = await api("/api/landing/analyze", {
-            method: "POST",
-            body: JSON.stringify({url})
-          });
-          setAnalysis(JSON.stringify(data, null, 2));
-        } catch (err) {
-          setAnalysis("Erro: " + err.message);
-        }
-      }
-
-      async function generateCopy() {
-        try {
-          const data = await api("/api/landing/generate-copy", {
-            method: "POST",
-            body: JSON.stringify({
-              product:"Serviço premium",
-              audience:"Público de alta intenção",
-              goal:"Conversão"
-            })
-          });
-          setCopy(data.copy || JSON.stringify(data, null, 2));
-        } catch (err) {
-          setCopy("Erro: " + err.message);
-        }
-      }
-
-      return (
-        <>
-          <div className="hero">
-            <div className="module-hero">
-              <div className="module-hero-left">
-                <h1 className="title">Landing Pages</h1>
-                <p className="subtitle">
-                  Analise páginas, identifique gargalos de SEO e conversão e transforme a entrega em uma apresentação mais valiosa para o cliente.
-                </p>
-              </div>
-              <span className="pill good">Análise premium</span>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="small muted" style={{marginBottom:"8px"}}>URL da página</div>
-            <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://seudominio.com/pagina" />
-
-            <div className="actions" style={{marginTop:"16px"}}>
-              <button className="btn" onClick={analyze}>Analisar página</button>
-              <button className="btn secondary" onClick={generateCopy}>Gerar nova copy</button>
-            </div>
-
-            <PremiumResult title="Diagnóstico da página" badge="SEO + CRO" content={analysis} />
-            <PremiumResult title="Nova proposta de copy" badge="Reposicionamento" content={copy} />
-          </div>
-        </>
-      );
-    }
-
-    function Leads() {
-      const [dataText, setDataText] = React.useState("");
-      const [result, setResult] = React.useState("");
-
-      async function analyzeBase() {
-        try {
-          const data = await api("/api/leads/analyze-base", {
-            method: "POST",
-            body: JSON.stringify({raw:dataText})
-          });
-          setResult(data.analysis || JSON.stringify(data, null, 2));
-        } catch (err) {
-          setResult("Erro: " + err.message);
-        }
-      }
-
-      return (
-        <>
-          <div className="hero">
-            <div className="module-hero">
-              <div className="module-hero-left">
-                <h1 className="title">Leads & Segmentação</h1>
-                <p className="subtitle">
-                  Leia a base, identifique grupos acionáveis e apresente insights com mais clareza visual e valor estratégico.
-                </p>
-              </div>
-              <span className="pill good">Base inteligente</span>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="small muted" style={{marginBottom:"8px"}}>Cole os dados da base</div>
-            <textarea value={dataText} onChange={e => setDataText(e.target.value)} placeholder="Cole a base, resumo ou export..." />
-
-            <div className="actions" style={{marginTop:"16px"}}>
-              <button className="btn" onClick={analyzeBase}>Analisar base</button>
-            </div>
-
-            <PremiumResult title="Leitura da base" badge="Segmentação" content={result} />
-          </div>
-        </>
-      );
-    }
-
-    function Insights() {
-      const [text, setText] = React.useState("");
-      const [result, setResult] = React.useState("");
-
-      async function generate() {
-        try {
-          const data = await api("/api/insights/generate", {
-            method: "POST",
-            body: JSON.stringify({raw:text})
-          });
-          setResult(data.insights || JSON.stringify(data, null, 2));
-        } catch (err) {
-          setResult("Erro: " + err.message);
-        }
-      }
-
-      return (
-        <>
-          <div className="hero">
-            <div className="module-hero">
-              <div className="module-hero-left">
-                <h1 className="title">Insights automáticos</h1>
-                <p className="subtitle">
-                  Transforme dados soltos em direção, contexto e próximos passos com leitura mais nobre e apresentação mais profissional.
-                </p>
-              </div>
-              <span className="pill good">Leitura executiva</span>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="small muted" style={{marginBottom:"8px"}}>Contexto</div>
-            <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Cole métricas, observações ou contexto..." />
-
-            <div className="actions" style={{marginTop:"16px"}}>
-              <button className="btn" onClick={generate}>Gerar insights</button>
-            </div>
-
-            <PremiumResult title="Insights gerados" badge="Direção" content={result} />
-          </div>
-        </>
-      );
-    }
-
-    function Prospect() {
-      const [form, setForm] = React.useState({niche:"", city:"", site:""});
-      const [result, setResult] = React.useState("");
-
-      async function analyze() {
-        try {
-          const data = await api("/api/prospect/analyze-business", {
-            method: "POST",
-            body: JSON.stringify(form)
-          });
-          setResult(data.analysis || JSON.stringify(data, null, 2));
-        } catch (err) {
-          setResult("Erro: " + err.message);
-        }
-      }
-
-      return (
-        <>
-          <div className="hero">
-            <div className="module-hero">
-              <div className="module-hero-left">
-                <h1 className="title">Prospecção inteligente</h1>
-                <p className="subtitle">
-                  Analise nichos, cidades e sites para criar argumentos comerciais mais fortes e uma entrega que pareça uma auditoria premium.
-                </p>
-              </div>
-              <span className="pill good">Comercial</span>
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="form-grid">
-              <div>
-                <div className="small muted" style={{marginBottom:"8px"}}>Nicho</div>
-                <input value={form.niche} onChange={e => setForm({...form, niche:e.target.value})} />
-              </div>
-
-              <div>
-                <div className="small muted" style={{marginBottom:"8px"}}>Cidade</div>
-                <input value={form.city} onChange={e => setForm({...form, city:e.target.value})} />
-              </div>
-
-              <div style={{gridColumn:"1 / -1"}}>
-                <div className="small muted" style={{marginBottom:"8px"}}>Site</div>
-                <input value={form.site} onChange={e => setForm({...form, site:e.target.value})} />
-              </div>
-            </div>
-
-            <div className="actions" style={{marginTop:"16px"}}>
-              <button className="btn" onClick={analyze}>Analisar negócio</button>
-            </div>
-
-            <PremiumResult title="Diagnóstico de prospecção" badge="Abordagem" content={result} />
-          </div>
-        </>
-      );
-    }
-
-    function App() {
-      const [authed, setAuthed] = React.useState(!!getToken());
-      const [section, setSection] = React.useState("dashboard");
-      const [clients, setClients] = React.useState([]);
-      const [agencyData, setAgencyData] = React.useState(null);
-      const [globalError, setGlobalError] = React.useState("");
-
-      async function loadClients() {
-        try {
-          const data = await api("/api/clients/");
-          setClients(Array.isArray(data) ? data : []);
-        } catch (err) {
-          setClients([]);
-          setGlobalError("Erro ao carregar clientes: " + err.message);
-        }
-      }
-
-      async function loadAgencyOverview() {
-        try {
-          const data = await api("/api/agency/overview");
-          setAgencyData(data);
-        } catch (err) {
-          setAgencyData(null);
-          setGlobalError("Erro ao carregar dashboard da agência: " + err.message);
-        }
-      }
-
-      async function refreshAll() {
-        setGlobalError("");
-        await loadClients();
-        await loadAgencyOverview();
-      }
-
-      React.useEffect(() => {
-        if (authed) {
-          refreshAll();
-        }
-      }, [authed]);
-
-      function handleLogout() {
-        clearSession();
-        setAuthed(false);
-      }
-
-      if (!authed) {
-        return <LoginScreen onLogin={() => setAuthed(true)} />;
-      }
-
-      return (
-        <div className="app">
-          <Sidebar section={section} setSection={setSection} onLogout={handleLogout} />
-
-          <main className="main">
-            {globalError && <div className="error-box" style={{marginBottom:"20px"}}>{globalError}</div>}
-
-            {section === "dashboard" && <Dashboard agency={agencyData?.agency || null} />}
-            {section === "clients" && <Clients clients={clients} refreshAll={refreshAll} />}
-            {section === "flows" && <FlowsAdvanced />}
-            {section === "landing" && <LandingPages />}
-            {section === "leads" && <Leads />}
-            {section === "insights" && <Insights />}
-            {section === "prospect" && <Prospect />}
-          </main>
         </div>
-      );
-    }
+      ))}
+    </div>
+  );
+}
 
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<App />);
-  </script>
+async function runSync(id, refresh) {
+  await api("/api/rdsync/run/" + id, { method: "POST" });
+  refresh();
+}
+
+/* =========================
+   APP
+========================= */
+
+function App() {
+  const [authed, setAuthed] = React.useState(!!getToken());
+  const [section, setSection] = React.useState("dashboard");
+
+  const [clients, setClients] = React.useState([]);
+  const [dashboard, setDashboard] = React.useState(null);
+
+  async function loadAll() {
+    if (!getToken()) return;
+
+    const [c, d] = await Promise.all([
+      api("/api/clients/"),
+      api("/api/agency/overview")
+    ]);
+
+    setClients(c);
+    setDashboard(d);
+  }
+
+  React.useEffect(() => {
+    loadAll();
+  }, []);
+
+  function logout() {
+    clearSession();
+    setAuthed(false);
+  }
+
+  if (!authed) return <Login onLogin={()=>setAuthed(true)} />;
+
+  return (
+    <div className="app">
+      <Sidebar section={section} setSection={setSection} logout={logout} />
+
+      <div className="main">
+        {section === "dashboard" && <Dashboard data={dashboard} />}
+        {section === "clients" && <Clients clients={clients} refresh={loadAll} />}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById("root"));
+
+</script>
 </body>
 </html>
