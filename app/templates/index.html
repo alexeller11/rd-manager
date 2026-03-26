@@ -12,82 +12,108 @@
   <style>
     :root{
       --bg:#efede8;
-      --panel:#f8f7f4;
       --card:#ffffff;
-      --text:#181818;
-      --muted:#6f6f6f;
-      --line:#ded8ce;
-      --green:#22a06b;
-      --green-dark:#16865a;
-      --red:#d84c4c;
-      --yellow:#d59a00;
-      --shadow:0 8px 24px rgba(0,0,0,.06);
+      --line:#ddd7cd;
+      --text:#171717;
+      --muted:#6d6d6d;
+      --green:#25a36a;
+      --green-dark:#198357;
+      --red:#d84b4b;
+      --soft-red:#fff1f1;
+      --yellow:#b98500;
+      --soft:#f7f5f1;
+      --shadow:0 10px 30px rgba(0,0,0,.06);
       --radius:18px;
     }
+
     *{box-sizing:border-box}
+
     body{
       margin:0;
-      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background:var(--bg);
       color:var(--text);
     }
-    .app{display:flex;min-height:100vh}
+
+    .app{
+      display:flex;
+      min-height:100vh;
+    }
+
     .sidebar{
-      width:270px;
+      width:280px;
       background:#171717;
       color:#fff;
       padding:24px 18px;
       display:flex;
       flex-direction:column;
       gap:24px;
-      border-right:1px solid rgba(255,255,255,.06);
     }
+
     .brand{
       display:flex;
       align-items:center;
-      gap:12px;
-      font-weight:800;
+      gap:14px;
+    }
+
+    .brand-badge{
+      width:40px;
+      height:40px;
+      border-radius:12px;
+      background:var(--green);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      color:#111;
+    }
+
+    .brand-title{
       font-size:18px;
+      font-weight:900;
       line-height:1.1;
     }
-    .brand-badge{
-      width:34px;height:34px;border-radius:10px;
-      background:var(--green);display:flex;align-items:center;justify-content:center;
-      font-weight:900;
-    }
-    .nav-group-title{
-      color:#7d7d7d;
+
+    .nav-title{
+      color:#7c7c7c;
+      text-transform:uppercase;
       font-size:12px;
       font-weight:700;
-      text-transform:uppercase;
       letter-spacing:.08em;
-      margin:8px 4px;
+      margin:8px 6px;
     }
+
     .nav-btn{
       width:100%;
-      border:0;
       background:transparent;
-      color:#d4d4d4;
+      color:#d7d7d7;
+      border:0;
       padding:12px 14px;
       border-radius:14px;
       text-align:left;
       font-size:15px;
+      font-weight:600;
       cursor:pointer;
       display:flex;
       align-items:center;
       gap:10px;
     }
+
+    .nav-btn:hover{
+      background:rgba(255,255,255,.06);
+    }
+
     .nav-btn.active{
       background:var(--green);
       color:#fff;
-      font-weight:700;
     }
-    .nav-btn:hover{background:rgba(255,255,255,.06)}
+
     .main{
       flex:1;
       padding:28px 32px 40px;
       overflow:auto;
     }
+
     .topbar{
       display:flex;
       justify-content:space-between;
@@ -95,22 +121,33 @@
       gap:16px;
       margin-bottom:22px;
     }
+
     .title{
-      font-size:28px;
-      font-weight:900;
       margin:0 0 6px;
+      font-size:30px;
+      font-weight:900;
     }
+
     .subtitle{
-      color:var(--muted);
       margin:0;
+      color:var(--muted);
       font-size:18px;
     }
+
     .grid{
       display:grid;
       gap:20px;
     }
-    .grid.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
-    .grid.two{grid-template-columns:1.2fr .8fr}
+
+    .grid.kpis{
+      grid-template-columns:repeat(4,minmax(0,1fr));
+      margin-bottom:20px;
+    }
+
+    .grid.two{
+      grid-template-columns:1.2fr .8fr;
+    }
+
     .card{
       background:var(--card);
       border:1px solid var(--line);
@@ -118,16 +155,67 @@
       box-shadow:var(--shadow);
       padding:22px;
     }
+
     .card h3{
       margin:0 0 14px;
       font-size:20px;
     }
+
     .kpi-value{
       font-size:34px;
       font-weight:900;
       margin-bottom:6px;
     }
+
     .muted{color:var(--muted)}
+    .small{font-size:13px}
+
+    .section-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:14px;
+    }
+
+    .stack{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .btn{
+      border:0;
+      background:var(--green);
+      color:#fff;
+      padding:12px 18px;
+      border-radius:14px;
+      font-weight:800;
+      font-size:15px;
+      cursor:pointer;
+    }
+
+    .btn:hover{
+      background:var(--green-dark);
+    }
+
+    .btn.secondary{
+      background:#fff;
+      color:var(--text);
+      border:1px solid var(--line);
+    }
+
+    .btn.red{
+      background:#fff;
+      color:var(--red);
+      border:1px solid #efc5c5;
+    }
+
+    .btn.small{
+      padding:10px 14px;
+      font-size:14px;
+    }
+
     .pill{
       display:inline-flex;
       align-items:center;
@@ -136,119 +224,14 @@
       border-radius:999px;
       font-size:13px;
       font-weight:700;
-      background:#f4f3ef;
       border:1px solid var(--line);
+      background:#f3f1ed;
     }
+
     .pill.good{color:var(--green-dark)}
-    .pill.warn{color:#9a6a00}
+    .pill.warn{color:var(--yellow)}
     .pill.bad{color:var(--red)}
-    .section-head{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-      margin-bottom:14px;
-    }
-    .btn{
-      border:0;
-      background:var(--green);
-      color:#fff;
-      padding:12px 18px;
-      border-radius:14px;
-      font-weight:800;
-      cursor:pointer;
-      font-size:15px;
-    }
-    .btn:hover{background:var(--green-dark)}
-    .btn.secondary{
-      background:#fff;
-      color:var(--text);
-      border:1px solid var(--line);
-    }
-    .btn.red{
-      background:#fff;
-      color:var(--red);
-      border:1px solid #efc5c5;
-    }
-    .btn.small{padding:10px 14px;font-size:14px}
-    .stack{display:flex;flex-direction:column;gap:14px}
-    .client-item,.action-item,.lp-item,.flow-email{
-      border:1px solid var(--line);
-      border-radius:16px;
-      padding:16px;
-      background:#fff;
-    }
-    .client-head,.row-between{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:12px;
-    }
-    .client-name{
-      font-size:18px;
-      font-weight:800;
-    }
-    .small{font-size:13px}
-    .tag{
-      font-size:12px;
-      font-weight:800;
-      padding:6px 10px;
-      border-radius:999px;
-      background:#f4f3ef;
-      border:1px solid var(--line);
-    }
-    .tag.disconnected{color:var(--red)}
-    .tag.connected{color:var(--green-dark)}
-    .alert-list{display:flex;flex-direction:column;gap:12px}
-    .alert{
-      padding:14px 16px;
-      border-radius:16px;
-      background:#fff;
-      border:1px solid var(--line);
-    }
-    .alert strong{display:block;margin-bottom:4px}
-    .module-bar{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      margin:10px 0 20px;
-    }
-    .module-btn{
-      border:1px solid var(--line);
-      background:#fff;
-      border-radius:14px;
-      padding:12px 16px;
-      cursor:pointer;
-      font-weight:800;
-    }
-    .module-btn.active{
-      background:var(--green);
-      color:#fff;
-      border-color:var(--green);
-    }
-    select,input,textarea{
-      width:100%;
-      padding:14px 16px;
-      border-radius:14px;
-      border:1px solid #d9d3c8;
-      background:#fff;
-      font-size:16px;
-    }
-    textarea{min-height:120px;resize:vertical}
-    .form-grid{
-      display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:14px;
-    }
-    .result-box{
-      margin-top:16px;
-      padding:18px;
-      border-radius:16px;
-      background:#f8f7f4;
-      border:1px solid var(--line);
-      white-space:pre-wrap;
-      line-height:1.55;
-    }
+
     .priority{
       display:flex;
       align-items:flex-start;
@@ -258,19 +241,151 @@
       border-radius:16px;
       background:#fff;
     }
+
     .priority-icon{
-      width:34px;height:34px;border-radius:12px;background:#f4f3ef;
-      display:flex;align-items:center;justify-content:center;font-weight:900;
+      width:34px;
+      height:34px;
+      border-radius:12px;
+      background:#f3f1ed;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
     }
+
+    .alert{
+      padding:14px 16px;
+      border-radius:16px;
+      background:#fff;
+      border:1px solid var(--line);
+    }
+
+    .alert strong{
+      display:block;
+      margin-bottom:4px;
+    }
+
+    .client-item,.flow-email{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:16px;
+      background:#fff;
+    }
+
+    .client-head,.row-between{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+    }
+
+    .client-name{
+      font-size:18px;
+      font-weight:800;
+    }
+
+    .tag{
+      font-size:12px;
+      font-weight:800;
+      padding:6px 10px;
+      border-radius:999px;
+      background:#f3f1ed;
+      border:1px solid var(--line);
+    }
+
+    .tag.connected{
+      color:var(--green-dark);
+    }
+
+    .tag.disconnected{
+      color:var(--red);
+    }
+
     .actions{
       display:flex;
       gap:10px;
       flex-wrap:wrap;
     }
+
+    .form-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:14px;
+    }
+
+    select,input,textarea{
+      width:100%;
+      padding:14px 16px;
+      border-radius:14px;
+      border:1px solid #d8d2c8;
+      background:#fff;
+      font-size:16px;
+    }
+
+    textarea{
+      min-height:120px;
+      resize:vertical;
+    }
+
+    .result-box{
+      margin-top:16px;
+      padding:18px;
+      border-radius:16px;
+      background:var(--soft);
+      border:1px solid var(--line);
+      white-space:pre-wrap;
+      line-height:1.55;
+    }
+
+    .login-wrap{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      background:var(--bg);
+    }
+
+    .login-card{
+      width:100%;
+      max-width:460px;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      padding:24px;
+    }
+
+    .login-head{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-bottom:16px;
+    }
+
+    .error-box{
+      margin-top:12px;
+      padding:18px;
+      border-radius:16px;
+      background:var(--soft-red);
+      border:1px solid #efc5c5;
+      color:#a33;
+      white-space:pre-wrap;
+    }
+
+    .empty{
+      padding:16px;
+      border:1px dashed var(--line);
+      border-radius:16px;
+      color:var(--muted);
+      background:#faf8f5;
+    }
+
     @media (max-width: 1200px){
       .grid.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
       .grid.two{grid-template-columns:1fr}
     }
+
     @media (max-width: 900px){
       .app{display:block}
       .sidebar{width:100%;border-right:0}
@@ -289,18 +404,24 @@
       return localStorage.getItem("rdm_token");
     }
 
+    function clearSession() {
+      localStorage.removeItem("rdm_token");
+      localStorage.removeItem("rdm_user");
+    }
+
     async function api(path, options = {}) {
       const token = getToken();
+
       const headers = {
         ...(options.body && !(options.body instanceof FormData) ? {"Content-Type":"application/json"} : {}),
         ...(token ? {"Authorization":"Bearer " + token} : {}),
         ...(options.headers || {})
       };
 
-      const res = await fetch(API + path, {...options, headers});
+      const res = await fetch(API + path, { ...options, headers });
       const raw = await res.text();
 
-      let data;
+      let data = null;
       try {
         data = raw ? JSON.parse(raw) : null;
       } catch {
@@ -361,18 +482,14 @@
       }
 
       return (
-        <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px",background:"#efede8"}}>
-          <div className="card" style={{width:"100%",maxWidth:"460px"}}>
-            <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"20px"}}>
+        <div className="login-wrap">
+          <div className="login-card">
+            <div className="login-head">
               <div className="brand-badge">RD</div>
               <div style={{fontSize:"34px",fontWeight:900,lineHeight:1}}>RD Manager IA</div>
             </div>
 
-            {error && (
-              <div className="result-box" style={{background:"#fff1f1",borderColor:"#efc5c5",color:"#a33"}}>
-                {error}
-              </div>
-            )}
+            {error && <div className="error-box">{error}</div>}
 
             <form onSubmit={handleLogin} className="stack" style={{marginTop:"16px"}}>
               <div>
@@ -394,61 +511,72 @@
       );
     }
 
-    function Sidebar({ section, setSection }) {
+    function Sidebar({ section, setSection, onLogout }) {
       return (
         <aside className="sidebar">
           <div className="brand">
             <div className="brand-badge">RD</div>
-            <div>RD Manager<br/>IA</div>
+            <div className="brand-title">RD Manager<br/>IA</div>
           </div>
 
           <div>
-            <div className="nav-group-title">Principal</div>
+            <div className="nav-title">Principal</div>
             <button className={"nav-btn " + (section==="dashboard" ? "active" : "")} onClick={() => setSection("dashboard")}>📊 Dashboard</button>
+            <button className={"nav-btn " + (section==="clients" ? "active" : "")} onClick={() => setSection("clients")}>👥 Clientes</button>
           </div>
 
           <div>
-            <div className="nav-group-title">Módulos</div>
+            <div className="nav-title">Módulos</div>
             <button className={"nav-btn " + (section==="flows" ? "active" : "")} onClick={() => setSection("flows")}>📧 Flows avançados</button>
             <button className={"nav-btn " + (section==="landing" ? "active" : "")} onClick={() => setSection("landing")}>🌐 Landing Pages</button>
             <button className={"nav-btn " + (section==="leads" ? "active" : "")} onClick={() => setSection("leads")}>🧲 Leads & Segmentação</button>
             <button className={"nav-btn " + (section==="insights" ? "active" : "")} onClick={() => setSection("insights")}>💡 Insights</button>
             <button className={"nav-btn " + (section==="prospect" ? "active" : "")} onClick={() => setSection("prospect")}>🎯 Prospecção</button>
           </div>
+
+          <div style={{marginTop:"auto"}}>
+            <button className="nav-btn" onClick={onLogout}>↩️ Sair</button>
+          </div>
         </aside>
       );
     }
 
-    function Dashboard() {
+    function Dashboard({ clients }) {
+      const connected = clients.filter(c => c.rd_token_set || c.rd_connected).length;
+      const disconnected = clients.length - connected;
+
       return (
         <>
           <div className="topbar">
             <div>
               <h1 className="title">Cockpit da Agência</h1>
-              <p className="subtitle">Diagnóstico, prioridade e execução</p>
+              <p className="subtitle">Diagnóstico, prioridade e execução em uma visão central</p>
             </div>
           </div>
 
-          <div className="grid kpis" style={{marginBottom:"20px"}}>
+          <div className="grid kpis">
             <div className="card">
-              <div className="muted small">Score geral</div>
-              <div className="kpi-value">68</div>
-              <div className="muted">Visão inicial da operação</div>
+              <div className="small muted">Clientes cadastrados</div>
+              <div className="kpi-value">{clients.length}</div>
+              <div className="muted">Base da operação</div>
             </div>
+
             <div className="card">
-              <div className="muted small">Prioridade</div>
-              <div className="kpi-value">Alta</div>
-              <div className="muted">Ajustar módulos e integrações</div>
+              <div className="small muted">Clientes com RD ativo</div>
+              <div className="kpi-value">{connected}</div>
+              <div className="muted">Integração conectada</div>
             </div>
+
             <div className="card">
-              <div className="muted small">Foco imediato</div>
-              <div className="kpi-value">Flows</div>
-              <div className="muted">Execução comercial</div>
+              <div className="small muted">Clientes desconectados</div>
+              <div className="kpi-value">{disconnected}</div>
+              <div className="muted">Prioridade de correção</div>
             </div>
+
             <div className="card">
-              <div className="muted small">Próximo ganho</div>
-              <div className="kpi-value">LPs</div>
-              <div className="muted">SEO + CRO</div>
+              <div className="small muted">Score inicial</div>
+              <div className="kpi-value">{Math.max(55, Math.min(100, 60 + connected * 5))}</div>
+              <div className="muted">Maturidade operacional</div>
             </div>
           </div>
 
@@ -458,26 +586,29 @@
                 <h3>Prioridades da semana</h3>
                 <span className="pill warn">Ação</span>
               </div>
+
               <div className="stack">
                 <div className="priority">
                   <div className="priority-icon">1</div>
                   <div>
-                    <strong>Estruturar fluxos por objetivo</strong>
-                    <div className="muted">Transformar ideias em execução rápida para cada cliente.</div>
+                    <strong>Conectar todos os clientes ao RD</strong>
+                    <div className="muted">Sem RD ativo, você perde leitura automática de base, páginas e operação.</div>
                   </div>
                 </div>
+
                 <div className="priority">
                   <div className="priority-icon">2</div>
                   <div>
-                    <strong>Mapear landing pages principais</strong>
-                    <div className="muted">Priorizar páginas de maior impacto comercial.</div>
+                    <strong>Ativar flows por objetivo</strong>
+                    <div className="muted">Fluxos bem definidos encurtam a operação da agência e elevam o valor percebido.</div>
                   </div>
                 </div>
+
                 <div className="priority">
                   <div className="priority-icon">3</div>
                   <div>
-                    <strong>Organizar base de leads</strong>
-                    <div className="muted">Criar segmentação útil e acionável.</div>
+                    <strong>Mapear landing pages mais importantes</strong>
+                    <div className="muted">As páginas críticas devem virar prioridade de SEO, copy e conversão.</div>
                   </div>
                 </div>
               </div>
@@ -485,21 +616,24 @@
 
             <div className="card">
               <div className="section-head">
-                <h3>Visão executiva</h3>
-                <span className="pill good">Produto</span>
+                <h3>Alertas</h3>
+                <span className="pill bad">Monitoramento</span>
               </div>
-              <div className="alert-list">
+
+              <div className="stack">
                 <div className="alert">
-                  <strong>Backend operacional</strong>
-                  <div className="muted">O sistema já sobe e responde corretamente.</div>
+                  <strong>{disconnected} cliente(s) sem RD conectado</strong>
+                  <div className="muted">Sem token válido, a leitura de dados fica limitada.</div>
                 </div>
+
                 <div className="alert">
-                  <strong>Frontend ativo</strong>
-                  <div className="muted">Agora o foco é transformar isso em cockpit real de agência.</div>
+                  <strong>Frontend restaurado</strong>
+                  <div className="muted">Agora o foco é transformar isso em cockpit operacional e decisório.</div>
                 </div>
+
                 <div className="alert">
                   <strong>Próximo salto</strong>
-                  <div className="muted">Score por cliente, ranking e alertas automáticos.</div>
+                  <div className="muted">Score automático, ranking de clientes e alertas de oportunidade.</div>
                 </div>
               </div>
             </div>
@@ -508,49 +642,187 @@
       );
     }
 
+    function Clients({ clients, refreshClients }) {
+      const [creating, setCreating] = React.useState(false);
+      const [form, setForm] = React.useState({
+        name: "",
+        segment: "",
+        website: "",
+        description: ""
+      });
+      const [message, setMessage] = React.useState("");
+
+      async function connectRD(clientId) {
+        window.open(`/oauth/authorize/${clientId}`, "_blank");
+        setMessage("A autenticação da RD foi aberta em outra aba. Depois de autorizar, clique em atualizar.");
+      }
+
+      async function createClient() {
+        setMessage("");
+        try {
+          await api("/api/clients/", {
+            method: "POST",
+            body: JSON.stringify(form)
+          });
+
+          setForm({
+            name: "",
+            segment: "",
+            website: "",
+            description: ""
+          });
+
+          setCreating(false);
+          setMessage("Cliente cadastrado com sucesso.");
+          refreshClients();
+        } catch (err) {
+          setMessage("Erro ao cadastrar cliente: " + err.message);
+        }
+      }
+
+      return (
+        <>
+          <div className="topbar">
+            <div>
+              <h1 className="title">Clientes</h1>
+              <p className="subtitle">Cadastro, visão da carteira e status RD</p>
+            </div>
+
+            <div className="actions">
+              <button className="btn secondary" onClick={refreshClients}>Atualizar</button>
+              <button className="btn" onClick={() => setCreating(!creating)}>
+                {creating ? "Fechar cadastro" : "Novo cliente"}
+              </button>
+            </div>
+          </div>
+
+          {message && <div className="error-box" style={{color:"#444",background:"#f8f7f4",borderColor:"#ddd7cd"}}>{message}</div>}
+
+          {creating && (
+            <div className="card" style={{marginBottom:"20px"}}>
+              <h3>Cadastrar cliente</h3>
+              <div className="form-grid">
+                <div>
+                  <div className="small muted" style={{marginBottom:"8px"}}>Nome</div>
+                  <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+                </div>
+
+                <div>
+                  <div className="small muted" style={{marginBottom:"8px"}}>Segmento</div>
+                  <input value={form.segment} onChange={e => setForm({...form, segment: e.target.value})} />
+                </div>
+
+                <div>
+                  <div className="small muted" style={{marginBottom:"8px"}}>Site</div>
+                  <input value={form.website} onChange={e => setForm({...form, website: e.target.value})} />
+                </div>
+
+                <div>
+                  <div className="small muted" style={{marginBottom:"8px"}}>Descrição</div>
+                  <input value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
+                </div>
+              </div>
+
+              <div className="actions" style={{marginTop:"16px"}}>
+                <button className="btn" onClick={createClient}>Salvar cliente</button>
+              </div>
+            </div>
+          )}
+
+          <div className="stack">
+            {clients.length === 0 && (
+              <div className="empty">Nenhum cliente encontrado ainda.</div>
+            )}
+
+            {clients.map(client => {
+              const isConnected = !!(client.rd_token_set || client.rd_connected);
+
+              return (
+                <div className="client-item" key={client.id}>
+                  <div className="client-head">
+                    <div>
+                      <div className="client-name">{client.name}</div>
+                      <div className="muted">
+                        {client.segment || "Sem segmento"} | {client.website || "Sem site"}
+                      </div>
+                    </div>
+
+                    <div className={"tag " + (isConnected ? "connected" : "disconnected")}>
+                      {isConnected ? "RD Conectado" : "RD Desconectado"}
+                    </div>
+                  </div>
+
+                  {client.description && (
+                    <div className="muted" style={{marginTop:"10px"}}>
+                      {client.description}
+                    </div>
+                  )}
+
+                  <div className="actions" style={{marginTop:"14px"}}>
+                    <button className="btn small" onClick={() => connectRD(client.id)}>Conectar RD</button>
+                    <button className="btn small secondary">Editar</button>
+                    <button className="btn small red">Excluir</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      );
+    }
+
     function FlowsAdvanced() {
-      const [form, setForm] = React.useState({goal:"",product:"",audience:"",awareness:""});
+      const [form, setForm] = React.useState({
+        goal: "",
+        product: "",
+        audience: "",
+        awareness: ""
+      });
       const [flow, setFlow] = React.useState("");
       const [emailResult, setEmailResult] = React.useState("");
       const [loading, setLoading] = React.useState(false);
 
-      function update(key, value){
-        setForm(prev => ({...prev,[key]:value}));
+      function update(key, value) {
+        setForm(prev => ({...prev, [key]: value}));
       }
 
-      async function generateFlow(){
+      async function generateFlow() {
         setLoading(true);
         setFlow("");
-        try{
+
+        try {
           const data = await api("/api/flows-adv/generate-flow", {
-            method:"POST",
+            method: "POST",
             body: JSON.stringify(form)
           });
+
           setFlow(data.flow || JSON.stringify(data, null, 2));
-        }catch(err){
+        } catch (err) {
           setFlow("Erro: " + err.message);
-        }finally{
+        } finally {
           setLoading(false);
         }
       }
 
-      async function generateEmail(context){
+      async function generateEmail(context) {
         setEmailResult("Gerando...");
-        try{
+
+        try {
           const data = await api("/api/flows-adv/generate-email", {
-            method:"POST",
+            method: "POST",
             body: JSON.stringify({context})
           });
+
           setEmailResult(data.email || JSON.stringify(data, null, 2));
-        }catch(err){
+        } catch (err) {
           setEmailResult("Erro: " + err.message);
         }
       }
 
       const suggested = [
-        {name:"Email 1 — Contexto e conexão", reason:"Criar abertura e conexão inicial", timing:"D+0"},
-        {name:"Email 2 — Quebra de objeção", reason:"Reduzir barreiras e aumentar confiança", timing:"D+2"},
-        {name:"Email 3 — Prova e CTA", reason:"Empurrar o lead para decisão", timing:"D+4"},
+        {name:"Email 1 — Abertura e conexão", reason:"Contextualizar e criar identificação", timing:"D+0"},
+        {name:"Email 2 — Quebra de objeção", reason:"Reduzir insegurança e aumentar confiança", timing:"D+2"},
+        {name:"Email 3 — Prova e CTA", reason:"Levar para ação concreta", timing:"D+4"},
       ];
 
       return (
@@ -558,7 +830,7 @@
           <div className="topbar">
             <div>
               <h1 className="title">Flows avançados</h1>
-              <p className="subtitle">Planeje a sequência e gere cada email em 1 clique</p>
+              <p className="subtitle">Estruture a lógica da sequência e gere cada email com um clique</p>
             </div>
           </div>
 
@@ -566,19 +838,22 @@
             <div className="form-grid">
               <div>
                 <div className="small muted" style={{marginBottom:"8px"}}>Objetivo</div>
-                <input value={form.goal} onChange={e=>update("goal", e.target.value)} placeholder="Ex.: vender serviço premium" />
+                <input value={form.goal} onChange={e => update("goal", e.target.value)} placeholder="Ex.: vender serviço premium" />
               </div>
+
               <div>
                 <div className="small muted" style={{marginBottom:"8px"}}>Produto/Oferta</div>
-                <input value={form.product} onChange={e=>update("product", e.target.value)} placeholder="Ex.: consultoria estratégica" />
+                <input value={form.product} onChange={e => update("product", e.target.value)} placeholder="Ex.: consultoria estratégica" />
               </div>
+
               <div>
                 <div className="small muted" style={{marginBottom:"8px"}}>Público</div>
-                <input value={form.audience} onChange={e=>update("audience", e.target.value)} placeholder="Ex.: empresários locais" />
+                <input value={form.audience} onChange={e => update("audience", e.target.value)} placeholder="Ex.: empresários locais" />
               </div>
+
               <div>
                 <div className="small muted" style={{marginBottom:"8px"}}>Nível de consciência</div>
-                <input value={form.awareness} onChange={e=>update("awareness", e.target.value)} placeholder="Frio, morno, quente" />
+                <input value={form.awareness} onChange={e => update("awareness", e.target.value)} placeholder="Frio, morno, quente" />
               </div>
             </div>
 
@@ -588,6 +863,7 @@
 
             <div style={{marginTop:"18px"}}>
               <h3>Estrutura sugerida</h3>
+
               <div className="stack">
                 {suggested.map((item, idx) => (
                   <div className="flow-email" key={idx}>
@@ -597,6 +873,7 @@
                         <div className="muted small">Motivo: {item.reason}</div>
                         <div className="muted small">Timing: {item.timing}</div>
                       </div>
+
                       <button
                         className="btn small"
                         onClick={() => generateEmail(`${item.name}. ${item.reason}. Timing: ${item.timing}. Contexto: ${JSON.stringify(form)}`)}
@@ -610,7 +887,7 @@
             </div>
 
             {flow && <div className="result-box">{flow}</div>}
-            {emailResult && <div className="result-box" style={{marginTop:"14px"}}>{emailResult}</div>}
+            {emailResult && <div className="result-box">{emailResult}</div>}
           </div>
         </>
       );
@@ -621,30 +898,32 @@
       const [analysis, setAnalysis] = React.useState("");
       const [copy, setCopy] = React.useState("");
 
-      async function analyze(){
-        try{
+      async function analyze() {
+        try {
           const data = await api("/api/landing/analyze", {
-            method:"POST",
+            method: "POST",
             body: JSON.stringify({url})
           });
+
           setAnalysis(JSON.stringify(data, null, 2));
-        }catch(err){
+        } catch (err) {
           setAnalysis("Erro: " + err.message);
         }
       }
 
-      async function generateCopy(){
-        try{
+      async function generateCopy() {
+        try {
           const data = await api("/api/landing/generate-copy", {
-            method:"POST",
+            method: "POST",
             body: JSON.stringify({
-              product:"Serviço premium",
-              audience:"Público de alta intenção",
-              goal:"Conversão"
+              product: "Serviço premium",
+              audience: "Público de alta intenção",
+              goal: "Conversão"
             })
           });
+
           setCopy(data.copy || JSON.stringify(data, null, 2));
-        }catch(err){
+        } catch (err) {
           setCopy("Erro: " + err.message);
         }
       }
@@ -654,17 +933,19 @@
           <div className="topbar">
             <div>
               <h1 className="title">Landing Pages</h1>
-              <p className="subtitle">Análise de SEO, copy e conversão</p>
+              <p className="subtitle">Analise páginas e gere melhorias rápidas</p>
             </div>
           </div>
 
           <div className="card">
             <div className="small muted" style={{marginBottom:"8px"}}>URL da página</div>
-            <input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://seudominio.com/pagina" />
+            <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://seudominio.com/pagina" />
+
             <div className="actions" style={{marginTop:"16px"}}>
               <button className="btn" onClick={analyze}>Analisar página</button>
               <button className="btn secondary" onClick={generateCopy}>Gerar nova copy</button>
             </div>
+
             {analysis && <div className="result-box">{analysis}</div>}
             {copy && <div className="result-box">{copy}</div>}
           </div>
@@ -676,14 +957,15 @@
       const [dataText, setDataText] = React.useState("");
       const [result, setResult] = React.useState("");
 
-      async function analyzeBase(){
-        try{
+      async function analyzeBase() {
+        try {
           const data = await api("/api/leads/analyze-base", {
-            method:"POST",
+            method: "POST",
             body: JSON.stringify({raw: dataText})
           });
+
           setResult(data.analysis || JSON.stringify(data, null, 2));
-        }catch(err){
+        } catch (err) {
           setResult("Erro: " + err.message);
         }
       }
@@ -693,16 +975,18 @@
           <div className="topbar">
             <div>
               <h1 className="title">Leads & Segmentação</h1>
-              <p className="subtitle">Leia a base e gere ação</p>
+              <p className="subtitle">Leia base, identifique oportunidades e transforme em ação</p>
             </div>
           </div>
 
           <div className="card">
-            <div className="small muted" style={{marginBottom:"8px"}}>Cole os dados da base</div>
-            <textarea value={dataText} onChange={e=>setDataText(e.target.value)} placeholder="Cole sua base, resumo ou export..." />
+            <div className="small muted" style={{marginBottom:"8px"}}>Cole a base ou resumo</div>
+            <textarea value={dataText} onChange={e => setDataText(e.target.value)} placeholder="Cole a base, resumo ou export..." />
+
             <div className="actions" style={{marginTop:"16px"}}>
               <button className="btn" onClick={analyzeBase}>Analisar base</button>
             </div>
+
             {result && <div className="result-box">{result}</div>}
           </div>
         </>
@@ -713,14 +997,15 @@
       const [text, setText] = React.useState("");
       const [result, setResult] = React.useState("");
 
-      async function generate(){
-        try{
+      async function generate() {
+        try {
           const data = await api("/api/insights/generate", {
-            method:"POST",
+            method: "POST",
             body: JSON.stringify({raw: text})
           });
+
           setResult(data.insights || JSON.stringify(data, null, 2));
-        }catch(err){
+        } catch (err) {
           setResult("Erro: " + err.message);
         }
       }
@@ -730,16 +1015,18 @@
           <div className="topbar">
             <div>
               <h1 className="title">Insights automáticos</h1>
-              <p className="subtitle">Transforme dados em direção prática</p>
+              <p className="subtitle">Transforme contexto em direção prática</p>
             </div>
           </div>
 
           <div className="card">
             <div className="small muted" style={{marginBottom:"8px"}}>Dados ou contexto</div>
-            <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="Cole dados, métricas ou contexto..." />
+            <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Cole métricas, contexto ou resumo..." />
+
             <div className="actions" style={{marginTop:"16px"}}>
               <button className="btn" onClick={generate}>Gerar insights</button>
             </div>
+
             {result && <div className="result-box">{result}</div>}
           </div>
         </>
@@ -750,14 +1037,15 @@
       const [form, setForm] = React.useState({niche:"", city:"", site:""});
       const [result, setResult] = React.useState("");
 
-      async function analyze(){
-        try{
+      async function analyze() {
+        try {
           const data = await api("/api/prospect/analyze-business", {
-            method:"POST",
+            method: "POST",
             body: JSON.stringify(form)
           });
+
           setResult(data.analysis || JSON.stringify(data, null, 2));
-        }catch(err){
+        } catch (err) {
           setResult("Erro: " + err.message);
         }
       }
@@ -767,7 +1055,7 @@
           <div className="topbar">
             <div>
               <h1 className="title">Prospecção inteligente</h1>
-              <p className="subtitle">Diagnóstico e abordagem comercial</p>
+              <p className="subtitle">Analise nicho, cidade e site para gerar abordagem comercial</p>
             </div>
           </div>
 
@@ -775,15 +1063,17 @@
             <div className="form-grid">
               <div>
                 <div className="small muted" style={{marginBottom:"8px"}}>Nicho</div>
-                <input value={form.niche} onChange={e=>setForm({...form, niche:e.target.value})} placeholder="Ex.: clínica, indústria, loja" />
+                <input value={form.niche} onChange={e => setForm({...form, niche:e.target.value})} placeholder="Ex.: clínica, indústria, loja" />
               </div>
+
               <div>
                 <div className="small muted" style={{marginBottom:"8px"}}>Cidade</div>
-                <input value={form.city} onChange={e=>setForm({...form, city:e.target.value})} placeholder="Ex.: Linhares" />
+                <input value={form.city} onChange={e => setForm({...form, city:e.target.value})} placeholder="Ex.: Linhares" />
               </div>
+
               <div style={{gridColumn:"1 / -1"}}>
                 <div className="small muted" style={{marginBottom:"8px"}}>Site</div>
-                <input value={form.site} onChange={e=>setForm({...form, site:e.target.value})} placeholder="https://empresa.com.br" />
+                <input value={form.site} onChange={e => setForm({...form, site:e.target.value})} placeholder="https://empresa.com.br" />
               </div>
             </div>
 
@@ -800,6 +1090,30 @@
     function App() {
       const [authed, setAuthed] = React.useState(!!getToken());
       const [section, setSection] = React.useState("dashboard");
+      const [clients, setClients] = React.useState([]);
+      const [clientLoadError, setClientLoadError] = React.useState("");
+
+      async function loadClients() {
+        try {
+          setClientLoadError("");
+          const data = await api("/api/clients/");
+          setClients(Array.isArray(data) ? data : []);
+        } catch (err) {
+          setClients([]);
+          setClientLoadError(err.message || "Erro ao carregar clientes");
+        }
+      }
+
+      React.useEffect(() => {
+        if (authed) {
+          loadClients();
+        }
+      }, [authed]);
+
+      function handleLogout() {
+        clearSession();
+        setAuthed(false);
+      }
 
       if (!authed) {
         return <LoginScreen onLogin={() => setAuthed(true)} />;
@@ -807,9 +1121,17 @@
 
       return (
         <div className="app">
-          <Sidebar section={section} setSection={setSection} />
+          <Sidebar section={section} setSection={setSection} onLogout={handleLogout} />
+
           <main className="main">
-            {section === "dashboard" && <Dashboard />}
+            {clientLoadError && (
+              <div className="error-box" style={{marginBottom:"20px"}}>
+                Erro ao carregar clientes: {clientLoadError}
+              </div>
+            )}
+
+            {section === "dashboard" && <Dashboard clients={clients} />}
+            {section === "clients" && <Clients clients={clients} refreshClients={loadClients} />}
             {section === "flows" && <FlowsAdvanced />}
             {section === "landing" && <LandingPages />}
             {section === "leads" && <Leads />}
