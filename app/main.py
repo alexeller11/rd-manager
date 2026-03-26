@@ -4,7 +4,6 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from app.routers import rd_aggregator
 
 from app.auth_core import (
     ensure_admin_exists,
@@ -29,14 +28,16 @@ from app.routers import (
     leads,
     oauth,
     prospect,
+    rd_aggregator,
     rd_station,
     reports,
     scheduler,
+    agency_dashboard,
 )
 
 settings = get_settings()
 
-app = FastAPI(title="RD Manager IA", version="7.0.0")
+app = FastAPI(title="RD Manager IA", version="8.0.0")
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 app.add_middleware(
@@ -80,7 +81,7 @@ app.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
 
 
 # =========================
-# ROTAS PRIVADAS ANTIGAS
+# ROTAS PRIVADAS
 # =========================
 
 private_dependencies = [Depends(get_current_user)]
@@ -110,6 +111,13 @@ app.include_router(
     rd_station.router,
     prefix="/api/rd",
     tags=["rd_station"],
+    dependencies=private_dependencies,
+)
+
+app.include_router(
+    rd_aggregator.router,
+    prefix="/api/rdx",
+    tags=["rd_aggregator"],
     dependencies=private_dependencies,
 )
 
@@ -149,9 +157,9 @@ app.include_router(
 )
 
 app.include_router(
-    rd_aggregator.router,
-    prefix="/api/rdx",
-    tags=["rd_aggregator"],
+    agency_dashboard.router,
+    prefix="/api/agency",
+    tags=["agency_dashboard"],
     dependencies=private_dependencies,
 )
 
@@ -194,7 +202,6 @@ app.include_router(
     dependencies=private_dependencies,
 )
 
-
 if settings.debug_mode:
     from app.routers import debug
 
@@ -211,7 +218,7 @@ async def health_check():
     return {
         "status": "ok",
         "env": settings.app_env,
-        "version": "7.0.0",
+        "version": "8.0.0",
     }
 
 
@@ -228,4 +235,4 @@ async def root():
 
 @app.get("/test")
 async def test():
-    return {"msg": "esse é o main restaurado com módulos antigos + novos"}
+    return {"msg": "esse é o main com score e dashboard da agência"}
