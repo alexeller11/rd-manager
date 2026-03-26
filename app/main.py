@@ -165,3 +165,9 @@ async def root():
 @app.get("/test")
 async def test():
     return {"msg": "esse é o main NOVO"}
+
+@app.get("/debug/create-admin")
+async def create_admin_debug():
+    from app.auth_core import ensure_admin_exists
+    await ensure_admin_exists()
+    return {"ok": True}
