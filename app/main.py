@@ -1,3 +1,5 @@
+print("🔥 ESTE É O MAIN CORRETO 🔥")
+
 import os
 
 from fastapi import Depends, FastAPI
