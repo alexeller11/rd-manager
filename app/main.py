@@ -1,134 +1,166 @@
-print("🔥 ESTE É O MAIN CORRETO 🔥")
+from fastapi import APIRouter, Depends, HTTPException
 
-import os
+from app.auth_core import get_current_user
+from app.database import db_execute, db_fetch_all, db_fetch_one
+from app.services.scoring import build_client_score, calculate_score
 
-from fastapi import Depends, FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-
-from app.auth_core import (
-    ensure_admin_exists,
-    get_current_user,
-    migrate_plaintext_rd_credentials,
-    require_admin,
-)
-from app.core.settings import get_settings
-from app.database import close_db, init_db
-from app.routers import (
-    analysis,
-    auth,
-    campaign,
-    clients,
-    emails,
-    flows,
-    flows_advanced,
-    health,
-    insights,
-    intelligence,
-    landing_pages,
-    leads,
-    oauth,
-    prospect,
-    rd_aggregator,
-    rd_fullsync,
-    rd_station,
-    reports,
-    scheduler,
-    agency_dashboard,
-)
-
-settings = get_settings()
-
-app = FastAPI(title="RD Manager IA", version="11.0.0")
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-os.makedirs("app/static", exist_ok=True)
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+router = APIRouter()
 
 
-@app.on_event("startup")
-async def startup() -> None:
-    print("🚀 Iniciando RD Manager IA...")
-    print(f"🌍 Ambiente: {settings.app_env}")
-    print(f"🐞 Debug: {settings.debug_mode}")
-
-    await init_db()
-    await ensure_admin_exists()
-    await migrate_plaintext_rd_credentials()
-
-    print("✅ Aplicação pronta.")
-
-
-@app.on_event("shutdown")
-async def shutdown() -> None:
-    await close_db()
-    print("🛑 Aplicação encerrada com conexão de banco fechada.")
-
-
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-app.include_router(health.router, prefix="/api/health", tags=["health"])
-app.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
-
-private_dependencies = [Depends(get_current_user)]
-
-app.include_router(clients.router, prefix="/api/clients", tags=["clients"], dependencies=private_dependencies)
-app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"], dependencies=private_dependencies)
-app.include_router(emails.router, prefix="/api/emails", tags=["emails"], dependencies=private_dependencies)
-app.include_router(rd_station.router, prefix="/api/rd", tags=["rd_station"], dependencies=private_dependencies)
-app.include_router(rd_aggregator.router, prefix="/api/rdx", tags=["rd_aggregator"], dependencies=private_dependencies)
-app.include_router(rd_fullsync.router, prefix="/api/rdsync", tags=["rd_fullsync"], dependencies=private_dependencies)
-app.include_router(reports.router, prefix="/api/reports", tags=["reports"], dependencies=private_dependencies)
-app.include_router(flows.router, prefix="/api/flows", tags=["flows"], dependencies=private_dependencies)
-app.include_router(intelligence.router, prefix="/api/intel", tags=["intelligence"], dependencies=private_dependencies)
-app.include_router(scheduler.router, prefix="/api/scheduler", tags=["scheduler"], dependencies=private_dependencies)
-app.include_router(campaign.router, prefix="/api/campaign", tags=["campaign"], dependencies=private_dependencies)
-app.include_router(agency_dashboard.router, prefix="/api/agency", tags=["agency_dashboard"], dependencies=private_dependencies)
-
-app.include_router(flows_advanced.router, prefix="/api/flows-adv", tags=["flows_advanced"], dependencies=private_dependencies)
-app.include_router(landing_pages.router, prefix="/api/landing", tags=["landing_pages"], dependencies=private_dependencies)
-app.include_router(leads.router, prefix="/api/leads", tags=["leads"], dependencies=private_dependencies)
-app.include_router(insights.router, prefix="/api/insights", tags=["insights"], dependencies=private_dependencies)
-app.include_router(prospect.router, prefix="/api/prospect", tags=["prospect"], dependencies=private_dependencies)
-
-if settings.debug_mode:
-    from app.routers import debug
-    app.include_router(
-        debug.router,
-        prefix="/api/debug",
-        tags=["debug"],
-        dependencies=[Depends(require_admin)],
+async def _ensure_sync_summary_table():
+    await db_execute(
+        """
+        CREATE TABLE IF NOT EXISTS rd_sync_summaries (
+            client_id INTEGER PRIMARY KEY,
+            summary JSONB NOT NULL,
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """
     )
 
 
-@app.get("/health")
-async def health_check():
+@router.get("/overview", dependencies=[Depends(get_current_user)])
+async def agency_overview():
+    await _ensure_sync_summary_table()
+
+    clients = await db_fetch_all(
+        """
+        SELECT
+            c.id,
+            c.name,
+            c.segment,
+            c.website,
+            c.description,
+            CASE
+                WHEN rc.access_token IS NOT NULL AND TRIM(rc.access_token) <> '' THEN TRUE
+                WHEN c.rd_token IS NOT NULL AND TRIM(c.rd_token) <> '' THEN TRUE
+                ELSE FALSE
+            END AS rd_connected,
+            CASE
+                WHEN rc.access_token IS NOT NULL AND TRIM(rc.access_token) <> '' THEN TRUE
+                WHEN c.rd_token IS NOT NULL AND TRIM(c.rd_token) <> '' THEN TRUE
+                ELSE FALSE
+            END AS rd_token_set
+        FROM clients c
+        LEFT JOIN rd_credentials rc
+            ON rc.client_id = c.id
+        ORDER BY c.id DESC
+        """
+    ) or []
+
+    ranking = []
+    connected_total = 0
+    high_priority_total = 0
+
+    for client in clients:
+        summary_row = await db_fetch_one(
+            """
+            SELECT summary, updated_at
+            FROM rd_sync_summaries
+            WHERE client_id = $1
+            """,
+            client["id"],
+        )
+
+        summary_payload = None
+        if summary_row and summary_row.get("summary"):
+            summary_payload = summary_row["summary"]
+
+        item = build_client_score(client, summary_payload)
+
+        if item["rd_connected"]:
+            connected_total += 1
+        if item["priority"] == "alta":
+            high_priority_total += 1
+
+        ranking.append(item)
+
+    ranking = sorted(ranking, key=lambda x: x["score"], reverse=True)
+
+    avg_score = 0
+    if ranking:
+        avg_score = round(sum(item["score"] for item in ranking) / len(ranking))
+
+    alerts = []
+    if connected_total < len(clients):
+        alerts.append("Existem clientes sem RD conectada")
+    if high_priority_total > 0:
+        alerts.append(f"{high_priority_total} cliente(s) com prioridade alta")
+    if avg_score < 60 and len(clients) > 0:
+        alerts.append("A maturidade média da carteira ainda está baixa")
+
+    weekly_priorities = []
+    if connected_total < len(clients):
+        weekly_priorities.append("Conectar todos os clientes pendentes à RD")
+    if high_priority_total > 0:
+        weekly_priorities.append("Atuar primeiro nos clientes com prioridade alta")
+    weekly_priorities.append("Rodar sync completo da RD nos clientes estratégicos")
+    weekly_priorities.append("Transformar gargalos em plano de ação semanal")
+
     return {
-        "status": "ok",
-        "env": settings.app_env,
-        "version": "11.0.0",
+        "agency": {
+            "score": avg_score,
+            "clients_total": len(clients),
+            "connected_total": connected_total,
+            "high_priority_total": high_priority_total,
+            "ranking": ranking,
+            "alerts": alerts,
+            "weekly_priorities": weekly_priorities,
+        },
+        "clients": clients,
     }
 
 
-@app.get("/", response_class=HTMLResponse)
-async def root():
-    path = os.path.join(BASE_DIR, "app", "templates", "index.html")
+@router.get("/client/{client_id}", dependencies=[Depends(get_current_user)])
+async def agency_client_detail(client_id: int):
+    await _ensure_sync_summary_table()
 
-    if not os.path.exists(path):
-        return HTMLResponse("<h1>index.html não encontrado</h1>", status_code=500)
+    client = await db_fetch_one(
+        """
+        SELECT
+            c.id,
+            c.name,
+            c.segment,
+            c.website,
+            c.description,
+            CASE
+                WHEN rc.access_token IS NOT NULL AND TRIM(rc.access_token) <> '' THEN TRUE
+                WHEN c.rd_token IS NOT NULL AND TRIM(c.rd_token) <> '' THEN TRUE
+                ELSE FALSE
+            END AS rd_connected,
+            CASE
+                WHEN rc.access_token IS NOT NULL AND TRIM(rc.access_token) <> '' THEN TRUE
+                WHEN c.rd_token IS NOT NULL AND TRIM(c.rd_token) <> '' THEN TRUE
+                ELSE FALSE
+            END AS rd_token_set
+        FROM clients c
+        LEFT JOIN rd_credentials rc
+            ON rc.client_id = c.id
+        WHERE c.id = $1
+        """,
+        client_id,
+    )
 
-    with open(path, "r", encoding="utf-8") as f:
-        return HTMLResponse(f.read())
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
+    summary_row = await db_fetch_one(
+        """
+        SELECT summary, updated_at
+        FROM rd_sync_summaries
+        WHERE client_id = $1
+        """,
+        client_id,
+    )
 
-@app.get("/test")
-async def test():
-    return {"msg": "main completo com sync e dashboard visual"}
+    summary_payload = None
+    if summary_row and summary_row.get("summary"):
+        summary_payload = summary_row["summary"]
+
+    score_data = build_client_score(client, summary_payload)
+
+    return {
+        "client": client,
+        "score_data": score_data,
+        "sync_summary": summary_payload,
+    }
