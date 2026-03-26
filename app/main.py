@@ -29,6 +29,7 @@ from app.routers import (
     oauth,
     prospect,
     rd_aggregator,
+    rd_fullsync,
     rd_station,
     reports,
     scheduler,
@@ -37,7 +38,7 @@ from app.routers import (
 
 settings = get_settings()
 
-app = FastAPI(title="RD Manager IA", version="9.0.0")
+app = FastAPI(title="RD Manager IA", version="11.0.0")
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 app.add_middleware(
@@ -71,18 +72,9 @@ async def shutdown() -> None:
     print("🛑 Aplicação encerrada com conexão de banco fechada.")
 
 
-# =========================
-# PÚBLICAS
-# =========================
-
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(health.router, prefix="/api/health", tags=["health"])
 app.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
-
-
-# =========================
-# PRIVADAS
-# =========================
 
 private_dependencies = [Depends(get_current_user)]
 
@@ -91,6 +83,7 @@ app.include_router(analysis.router, prefix="/api/analysis", tags=["analysis"], d
 app.include_router(emails.router, prefix="/api/emails", tags=["emails"], dependencies=private_dependencies)
 app.include_router(rd_station.router, prefix="/api/rd", tags=["rd_station"], dependencies=private_dependencies)
 app.include_router(rd_aggregator.router, prefix="/api/rdx", tags=["rd_aggregator"], dependencies=private_dependencies)
+app.include_router(rd_fullsync.router, prefix="/api/rdsync", tags=["rd_fullsync"], dependencies=private_dependencies)
 app.include_router(reports.router, prefix="/api/reports", tags=["reports"], dependencies=private_dependencies)
 app.include_router(flows.router, prefix="/api/flows", tags=["flows"], dependencies=private_dependencies)
 app.include_router(intelligence.router, prefix="/api/intel", tags=["intelligence"], dependencies=private_dependencies)
@@ -98,7 +91,6 @@ app.include_router(scheduler.router, prefix="/api/scheduler", tags=["scheduler"]
 app.include_router(campaign.router, prefix="/api/campaign", tags=["campaign"], dependencies=private_dependencies)
 app.include_router(agency_dashboard.router, prefix="/api/agency", tags=["agency_dashboard"], dependencies=private_dependencies)
 
-# Módulos novos
 app.include_router(flows_advanced.router, prefix="/api/flows-adv", tags=["flows_advanced"], dependencies=private_dependencies)
 app.include_router(landing_pages.router, prefix="/api/landing", tags=["landing_pages"], dependencies=private_dependencies)
 app.include_router(leads.router, prefix="/api/leads", tags=["leads"], dependencies=private_dependencies)
@@ -120,7 +112,7 @@ async def health_check():
     return {
         "status": "ok",
         "env": settings.app_env,
-        "version": "9.0.0",
+        "version": "11.0.0",
     }
 
 
@@ -137,4 +129,4 @@ async def root():
 
 @app.get("/test")
 async def test():
-    return {"msg": "main completo da agência"}
+    return {"msg": "main completo com sync e dashboard visual"}
