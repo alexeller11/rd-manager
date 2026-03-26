@@ -141,7 +141,6 @@
 
     .grid.kpis{
       grid-template-columns:repeat(4,minmax(0,1fr));
-      margin-bottom:20px;
     }
 
     .grid.two{
@@ -293,13 +292,11 @@
       border:1px solid var(--line);
     }
 
-    .tag.connected{
-      color:var(--green-dark);
-    }
-
-    .tag.disconnected{
-      color:var(--red);
-    }
+    .tag.connected{color:var(--green-dark)}
+    .tag.disconnected{color:var(--red)}
+    .tag.priority-high{color:var(--red)}
+    .tag.priority-medium{color:var(--yellow)}
+    .tag.priority-low{color:var(--green-dark)}
 
     .actions{
       display:flex;
@@ -379,6 +376,34 @@
       border-radius:16px;
       color:var(--muted);
       background:#faf8f5;
+    }
+
+    .score-line{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin:10px 0 0;
+    }
+
+    .score-badge{
+      min-width:78px;
+      text-align:center;
+      padding:10px 14px;
+      border-radius:14px;
+      font-weight:900;
+      font-size:22px;
+      background:#f3f1ed;
+      border:1px solid var(--line);
+    }
+
+    .mini-list{
+      margin:0;
+      padding-left:18px;
+    }
+
+    .mini-list li{
+      margin-bottom:6px;
+      color:var(--muted);
     }
 
     @media (max-width: 1200px){
@@ -541,42 +566,43 @@
       );
     }
 
-    function Dashboard({ clients }) {
-      const connected = clients.filter(c => c.rd_token_set || c.rd_connected).length;
-      const disconnected = clients.length - connected;
+    function Dashboard({ agency, clients }) {
+      const ranking = agency?.ranking || [];
+      const alerts = agency?.alerts || [];
+      const priorities = agency?.weekly_priorities || [];
 
       return (
         <>
           <div className="topbar">
             <div>
               <h1 className="title">Cockpit da Agência</h1>
-              <p className="subtitle">Diagnóstico, prioridade e execução em uma visão central</p>
+              <p className="subtitle">Score, prioridade, ranking e direção automática</p>
             </div>
           </div>
 
-          <div className="grid kpis">
+          <div className="grid kpis" style={{marginBottom:"20px"}}>
             <div className="card">
-              <div className="small muted">Clientes cadastrados</div>
-              <div className="kpi-value">{clients.length}</div>
-              <div className="muted">Base da operação</div>
+              <div className="small muted">Score da agência</div>
+              <div className="kpi-value">{agency?.score ?? 0}</div>
+              <div className="muted">Maturidade operacional média</div>
+            </div>
+
+            <div className="card">
+              <div className="small muted">Clientes totais</div>
+              <div className="kpi-value">{agency?.clients_total ?? 0}</div>
+              <div className="muted">Carteira da agência</div>
             </div>
 
             <div className="card">
               <div className="small muted">Clientes com RD ativo</div>
-              <div className="kpi-value">{connected}</div>
-              <div className="muted">Integração conectada</div>
+              <div className="kpi-value">{agency?.connected_total ?? 0}</div>
+              <div className="muted">Base conectada</div>
             </div>
 
             <div className="card">
-              <div className="small muted">Clientes desconectados</div>
-              <div className="kpi-value">{disconnected}</div>
-              <div className="muted">Prioridade de correção</div>
-            </div>
-
-            <div className="card">
-              <div className="small muted">Score inicial</div>
-              <div className="kpi-value">{Math.max(55, Math.min(100, 60 + connected * 5))}</div>
-              <div className="muted">Maturidade operacional</div>
+              <div className="small muted">Prioridade alta</div>
+              <div className="kpi-value">{agency?.high_priority_total ?? 0}</div>
+              <div className="muted">Clientes que pedem ação imediata</div>
             </div>
           </div>
 
@@ -584,33 +610,20 @@
             <div className="card">
               <div className="section-head">
                 <h3>Prioridades da semana</h3>
-                <span className="pill warn">Ação</span>
+                <span className="pill warn">Execução</span>
               </div>
 
               <div className="stack">
-                <div className="priority">
-                  <div className="priority-icon">1</div>
-                  <div>
-                    <strong>Conectar todos os clientes ao RD</strong>
-                    <div className="muted">Sem RD ativo, você perde leitura automática de base, páginas e operação.</div>
+                {priorities.length === 0 ? (
+                  <div className="empty">Ainda sem prioridades geradas.</div>
+                ) : priorities.map((item, index) => (
+                  <div className="priority" key={index}>
+                    <div className="priority-icon">{index + 1}</div>
+                    <div>
+                      <strong>{item}</strong>
+                    </div>
                   </div>
-                </div>
-
-                <div className="priority">
-                  <div className="priority-icon">2</div>
-                  <div>
-                    <strong>Ativar flows por objetivo</strong>
-                    <div className="muted">Fluxos bem definidos encurtam a operação da agência e elevam o valor percebido.</div>
-                  </div>
-                </div>
-
-                <div className="priority">
-                  <div className="priority-icon">3</div>
-                  <div>
-                    <strong>Mapear landing pages mais importantes</strong>
-                    <div className="muted">As páginas críticas devem virar prioridade de SEO, copy e conversão.</div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
@@ -621,21 +634,64 @@
               </div>
 
               <div className="stack">
-                <div className="alert">
-                  <strong>{disconnected} cliente(s) sem RD conectado</strong>
-                  <div className="muted">Sem token válido, a leitura de dados fica limitada.</div>
-                </div>
-
-                <div className="alert">
-                  <strong>Frontend restaurado</strong>
-                  <div className="muted">Agora o foco é transformar isso em cockpit operacional e decisório.</div>
-                </div>
-
-                <div className="alert">
-                  <strong>Próximo salto</strong>
-                  <div className="muted">Score automático, ranking de clientes e alertas de oportunidade.</div>
-                </div>
+                {alerts.length === 0 ? (
+                  <div className="empty">Sem alertas relevantes no momento.</div>
+                ) : alerts.map((item, index) => (
+                  <div className="alert" key={index}>
+                    <strong>{item}</strong>
+                  </div>
+                ))}
               </div>
+            </div>
+          </div>
+
+          <div className="card" style={{marginTop:"20px"}}>
+            <div className="section-head">
+              <h3>Ranking dos clientes</h3>
+              <span className="pill good">Prioridade por score</span>
+            </div>
+
+            <div className="stack">
+              {ranking.length === 0 ? (
+                <div className="empty">Nenhum cliente no ranking ainda.</div>
+              ) : ranking.map((item, index) => (
+                <div className="client-item" key={item.client_id || index}>
+                  <div className="client-head">
+                    <div>
+                      <div className="client-name">
+                        #{index + 1} — {item.client_name || "Cliente"}
+                      </div>
+                      <div className="muted">{item.summary}</div>
+                    </div>
+
+                    <div className={"tag " + (
+                      item.priority === "alta"
+                        ? "priority-high"
+                        : item.priority === "média"
+                        ? "priority-medium"
+                        : "priority-low"
+                    )}>
+                      Prioridade {item.priority}
+                    </div>
+                  </div>
+
+                  <div className="score-line">
+                    <div className="score-badge">{item.score}</div>
+                    <div className="muted">
+                      RD: {item.rd_connected ? "Conectado" : "Desconectado"} | LPs: {item.counts?.landing_pages ?? 0} | Segmentações: {item.counts?.segmentations ?? 0} | Fluxos: {item.counts?.workflows ?? 0}
+                    </div>
+                  </div>
+
+                  {item.alerts?.length > 0 && (
+                    <div className="result-box">
+                      <strong>Alertas:</strong>
+                      <ul className="mini-list">
+                        {item.alerts.map((a, idx) => <li key={idx}>{a}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </>
@@ -659,6 +715,7 @@
 
       async function createClient() {
         setMessage("");
+
         try {
           await api("/api/clients/", {
             method: "POST",
@@ -685,7 +742,7 @@
           <div className="topbar">
             <div>
               <h1 className="title">Clientes</h1>
-              <p className="subtitle">Cadastro, visão da carteira e status RD</p>
+              <p className="subtitle">Cadastro, carteira e status operacional</p>
             </div>
 
             <div className="actions">
@@ -696,11 +753,16 @@
             </div>
           </div>
 
-          {message && <div className="error-box" style={{color:"#444",background:"#f8f7f4",borderColor:"#ddd7cd"}}>{message}</div>}
+          {message && (
+            <div className="error-box" style={{color:"#444",background:"#f8f7f4",borderColor:"#ddd7cd"}}>
+              {message}
+            </div>
+          )}
 
           {creating && (
             <div className="card" style={{marginBottom:"20px"}}>
               <h3>Cadastrar cliente</h3>
+
               <div className="form-grid">
                 <div>
                   <div className="small muted" style={{marginBottom:"8px"}}>Nome</div>
@@ -735,7 +797,7 @@
             )}
 
             {clients.map(client => {
-              const isConnected = !!(client.rd_token_set || client.rd_connected);
+              const isConnected = !!(client.rd_token_set || client.rd_connected || client.rd_token || client.rd_refresh_token);
 
               return (
                 <div className="client-item" key={client.id}>
@@ -830,7 +892,7 @@
           <div className="topbar">
             <div>
               <h1 className="title">Flows avançados</h1>
-              <p className="subtitle">Estruture a lógica da sequência e gere cada email com um clique</p>
+              <p className="subtitle">Estruture a lógica da sequência e gere cada email em um clique</p>
             </div>
           </div>
 
@@ -858,7 +920,9 @@
             </div>
 
             <div className="actions" style={{marginTop:"16px"}}>
-              <button className="btn" onClick={generateFlow}>{loading ? "Gerando..." : "Gerar fluxo estratégico"}</button>
+              <button className="btn" onClick={generateFlow}>
+                {loading ? "Gerando..." : "Gerar fluxo estratégico"}
+              </button>
             </div>
 
             <div style={{marginTop:"18px"}}>
@@ -933,7 +997,7 @@
           <div className="topbar">
             <div>
               <h1 className="title">Landing Pages</h1>
-              <p className="subtitle">Analise páginas e gere melhorias rápidas</p>
+              <p className="subtitle">Analise páginas, score e oportunidade de melhoria</p>
             </div>
           </div>
 
@@ -975,7 +1039,7 @@
           <div className="topbar">
             <div>
               <h1 className="title">Leads & Segmentação</h1>
-              <p className="subtitle">Leia base, identifique oportunidades e transforme em ação</p>
+              <p className="subtitle">Leia a base, descubra oportunidades e transforme em ação</p>
             </div>
           </div>
 
@@ -1015,7 +1079,7 @@
           <div className="topbar">
             <div>
               <h1 className="title">Insights automáticos</h1>
-              <p className="subtitle">Transforme contexto em direção prática</p>
+              <p className="subtitle">Transforme dados em direção prática</p>
             </div>
           </div>
 
@@ -1055,7 +1119,7 @@
           <div className="topbar">
             <div>
               <h1 className="title">Prospecção inteligente</h1>
-              <p className="subtitle">Analise nicho, cidade e site para gerar abordagem comercial</p>
+              <p className="subtitle">Diagnóstico e abordagem comercial orientada por dados</p>
             </div>
           </div>
 
@@ -1092,6 +1156,8 @@
       const [section, setSection] = React.useState("dashboard");
       const [clients, setClients] = React.useState([]);
       const [clientLoadError, setClientLoadError] = React.useState("");
+      const [agencyData, setAgencyData] = React.useState(null);
+      const [agencyError, setAgencyError] = React.useState("");
 
       async function loadClients() {
         try {
@@ -1104,9 +1170,21 @@
         }
       }
 
+      async function loadAgencyOverview() {
+        try {
+          setAgencyError("");
+          const data = await api("/api/agency/overview");
+          setAgencyData(data);
+        } catch (err) {
+          setAgencyData(null);
+          setAgencyError(err.message || "Erro ao carregar visão da agência");
+        }
+      }
+
       React.useEffect(() => {
         if (authed) {
           loadClients();
+          loadAgencyOverview();
         }
       }, [authed]);
 
@@ -1130,8 +1208,23 @@
               </div>
             )}
 
-            {section === "dashboard" && <Dashboard clients={clients} />}
-            {section === "clients" && <Clients clients={clients} refreshClients={loadClients} />}
+            {agencyError && (
+              <div className="error-box" style={{marginBottom:"20px"}}>
+                Erro ao carregar visão da agência: {agencyError}
+              </div>
+            )}
+
+            {section === "dashboard" && (
+              <Dashboard
+                agency={agencyData?.agency || null}
+                clients={agencyData?.clients || clients}
+              />
+            )}
+
+            {section === "clients" && (
+              <Clients clients={clients} refreshClients={() => { loadClients(); loadAgencyOverview(); }} />
+            )}
+
             {section === "flows" && <FlowsAdvanced />}
             {section === "landing" && <LandingPages />}
             {section === "leads" && <Leads />}
