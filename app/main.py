@@ -14,19 +14,28 @@ from app.auth_core import (
 from app.core.settings import get_settings
 from app.database import close_db, init_db
 from app.routers import (
+    analysis,
     auth,
-    health,
-    oauth,
+    campaign,
+    clients,
+    emails,
+    flows,
     flows_advanced,
+    health,
+    insights,
+    intelligence,
     landing_pages,
     leads,
-    insights,
+    oauth,
     prospect,
+    rd_station,
+    reports,
+    scheduler,
 )
 
 settings = get_settings()
 
-app = FastAPI(title="RD Manager IA - Clean")
+app = FastAPI(title="RD Manager IA", version="7.0.0")
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 app.add_middleware(
@@ -40,10 +49,6 @@ app.add_middleware(
 os.makedirs("app/static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-
-# =========================
-# STARTUP / SHUTDOWN
-# =========================
 
 @app.on_event("startup")
 async def startup() -> None:
@@ -74,10 +79,78 @@ app.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
 
 
 # =========================
-# ROTAS PRIVADAS
+# ROTAS PRIVADAS ANTIGAS
 # =========================
 
 private_dependencies = [Depends(get_current_user)]
+
+app.include_router(
+    clients.router,
+    prefix="/api/clients",
+    tags=["clients"],
+    dependencies=private_dependencies,
+)
+
+app.include_router(
+    analysis.router,
+    prefix="/api/analysis",
+    tags=["analysis"],
+    dependencies=private_dependencies,
+)
+
+app.include_router(
+    emails.router,
+    prefix="/api/emails",
+    tags=["emails"],
+    dependencies=private_dependencies,
+)
+
+app.include_router(
+    rd_station.router,
+    prefix="/api/rd",
+    tags=["rd_station"],
+    dependencies=private_dependencies,
+)
+
+app.include_router(
+    reports.router,
+    prefix="/api/reports",
+    tags=["reports"],
+    dependencies=private_dependencies,
+)
+
+app.include_router(
+    flows.router,
+    prefix="/api/flows",
+    tags=["flows"],
+    dependencies=private_dependencies,
+)
+
+app.include_router(
+    intelligence.router,
+    prefix="/api/intel",
+    tags=["intelligence"],
+    dependencies=private_dependencies,
+)
+
+app.include_router(
+    scheduler.router,
+    prefix="/api/scheduler",
+    tags=["scheduler"],
+    dependencies=private_dependencies,
+)
+
+app.include_router(
+    campaign.router,
+    prefix="/api/campaign",
+    tags=["campaign"],
+    dependencies=private_dependencies,
+)
+
+
+# =========================
+# MÓDULOS NOVOS
+# =========================
 
 app.include_router(
     flows_advanced.router,
@@ -115,10 +188,6 @@ app.include_router(
 )
 
 
-# =========================
-# DEBUG
-# =========================
-
 if settings.debug_mode:
     from app.routers import debug
 
@@ -130,22 +199,14 @@ if settings.debug_mode:
     )
 
 
-# =========================
-# HEALTHCHECK
-# =========================
-
 @app.get("/health")
 async def health_check():
     return {
         "status": "ok",
         "env": settings.app_env,
-        "version": "6.1.0",
+        "version": "7.0.0",
     }
 
-
-# =========================
-# FRONTEND
-# =========================
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
@@ -158,16 +219,6 @@ async def root():
         return HTMLResponse(f.read())
 
 
-# =========================
-# TESTE
-# =========================
-
 @app.get("/test")
 async def test():
-    return {"msg": "esse é o main NOVO"}
-
-@app.get("/debug/create-admin")
-async def create_admin_debug():
-    from app.auth_core import ensure_admin_exists
-    await ensure_admin_exists()
-    return {"ok": True}
+    return {"msg": "esse é o main restaurado com módulos antigos + novos"}
