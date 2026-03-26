@@ -52,11 +52,7 @@
       color:var(--text);
     }
 
-    .app{
-      display:flex;
-      min-height:100vh;
-    }
-
+    .app{display:flex;min-height:100vh}
     .sidebar{
       width:290px;
       background:linear-gradient(180deg, #141414 0%, #101010 100%);
@@ -66,35 +62,17 @@
       flex-direction:column;
       gap:26px;
       border-right:1px solid rgba(255,255,255,.04);
-      box-shadow:inset -1px 0 0 rgba(255,255,255,.03);
     }
 
-    .brand{
-      display:flex;
-      align-items:center;
-      gap:14px;
-      padding:6px 4px 10px;
-    }
-
+    .brand{display:flex;align-items:center;gap:14px;padding:6px 4px 10px}
     .brand-badge{
-      width:44px;
-      height:44px;
-      border-radius:14px;
+      width:44px;height:44px;border-radius:14px;
       background:linear-gradient(180deg, #2ab97b 0%, #1f9b65 100%);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:900;
-      color:#0f0f0f;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:900;color:#0f0f0f;
       box-shadow:0 8px 20px rgba(35,163,107,.25);
     }
-
-    .brand-title{
-      font-size:17px;
-      line-height:1.05;
-      font-weight:900;
-      letter-spacing:-0.02em;
-    }
+    .brand-title{font-size:17px;line-height:1.05;font-weight:900;letter-spacing:-0.02em}
 
     .nav-title{
       color:#767676;
@@ -105,11 +83,7 @@
       margin:10px 8px 6px;
     }
 
-    .nav-list{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-    }
+    .nav-list{display:flex;flex-direction:column;gap:8px}
 
     .nav-btn{
       width:100%;
@@ -128,11 +102,7 @@
       transition:.18s ease;
     }
 
-    .nav-btn:hover{
-      background:rgba(255,255,255,.05);
-      border-color:rgba(255,255,255,.05);
-    }
-
+    .nav-btn:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.05)}
     .nav-btn.active{
       background:linear-gradient(180deg, #2ab97b 0%, #23a36b 100%);
       color:#fff;
@@ -140,11 +110,7 @@
       border-color:rgba(255,255,255,.12);
     }
 
-    .main{
-      flex:1;
-      padding:30px 34px 44px;
-      overflow:auto;
-    }
+    .main{flex:1;padding:30px 34px 44px;overflow:auto}
 
     .hero{
       background:linear-gradient(135deg, #ffffff 0%, #faf7f2 100%);
@@ -192,25 +158,10 @@
       line-height:1.45;
     }
 
-    .top-actions{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-
-    .grid{
-      display:grid;
-      gap:20px;
-    }
-
-    .grid.kpis{
-      grid-template-columns:repeat(4,minmax(0,1fr));
-      margin-bottom:22px;
-    }
-
-    .grid.two{
-      grid-template-columns:1.2fr .8fr;
-    }
+    .top-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .grid{display:grid;gap:20px}
+    .grid.kpis{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:22px}
+    .grid.two{grid-template-columns:1.2fr .8fr}
 
     .card{
       background:var(--panel);
@@ -220,11 +171,7 @@
       padding:22px;
     }
 
-    .card h3{
-      margin:0 0 14px;
-      font-size:20px;
-      letter-spacing:-0.02em;
-    }
+    .card h3{margin:0 0 14px;font-size:20px;letter-spacing:-0.02em}
 
     .kpi-card{
       background:linear-gradient(180deg, #ffffff 0%, #faf8f4 100%);
@@ -247,26 +194,9 @@
       background:rgba(35,163,107,.07);
     }
 
-    .kpi-label{
-      font-size:13px;
-      color:var(--muted);
-      font-weight:700;
-      margin-bottom:10px;
-    }
-
-    .kpi-value{
-      font-size:38px;
-      line-height:1;
-      font-weight:900;
-      letter-spacing:-0.04em;
-      margin-bottom:8px;
-    }
-
-    .kpi-desc{
-      color:var(--muted);
-      font-size:14px;
-      line-height:1.4;
-    }
+    .kpi-label{font-size:13px;color:var(--muted);font-weight:700;margin-bottom:10px}
+    .kpi-value{font-size:38px;line-height:1;font-weight:900;letter-spacing:-0.04em;margin-bottom:8px}
+    .kpi-desc{color:var(--muted);font-size:14px;line-height:1.4}
 
     .section-head{
       display:flex;
@@ -291,12 +221,9 @@
     .pill.good{color:var(--green-dark); background:var(--green-soft); border-color:#cdeedc;}
     .pill.warn{color:var(--yellow); background:var(--yellow-soft); border-color:#f0dfaf;}
     .pill.bad{color:var(--red); background:var(--red-soft); border-color:#f3caca;}
+    .pill.blue{color:var(--blue); background:var(--blue-soft); border-color:#d5e0ff;}
 
-    .stack{
-      display:flex;
-      flex-direction:column;
-      gap:14px;
-    }
+    .stack{display:flex;flex-direction:column;gap:14px}
 
     .priority{
       display:flex;
@@ -309,25 +236,13 @@
     }
 
     .priority-icon{
-      width:38px;
-      height:38px;
-      border-radius:14px;
-      background:var(--green-soft);
-      color:var(--green-dark);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight:900;
-      border:1px solid #caecd9;
-      flex-shrink:0;
+      width:38px;height:38px;border-radius:14px;
+      background:var(--green-soft);color:var(--green-dark);
+      display:flex;align-items:center;justify-content:center;
+      font-weight:900;border:1px solid #caecd9;flex-shrink:0;
     }
 
-    .priority strong{
-      display:block;
-      margin-bottom:4px;
-      font-size:15px;
-    }
-
+    .priority strong{display:block;margin-bottom:4px;font-size:15px}
     .muted{color:var(--muted)}
     .small{font-size:13px}
 
@@ -338,13 +253,9 @@
       border:1px solid var(--line);
     }
 
-    .alert strong{
-      display:block;
-      margin-bottom:5px;
-      font-size:15px;
-    }
+    .alert strong{display:block;margin-bottom:5px;font-size:15px}
 
-    .client-item, .flow-email, .ranking-item{
+    .client-item,.flow-email,.ranking-item{
       border:1px solid var(--line);
       border-radius:20px;
       padding:18px;
@@ -352,28 +263,18 @@
       box-shadow:0 8px 22px rgba(0,0,0,.03);
     }
 
-    .client-head, .row-between{
+    .client-head,.row-between{
       display:flex;
       justify-content:space-between;
       align-items:flex-start;
       gap:14px;
     }
 
-    .client-name{
-      font-size:18px;
-      font-weight:900;
-      letter-spacing:-0.02em;
-      margin-bottom:4px;
-    }
+    .client-name{font-size:18px;font-weight:900;letter-spacing:-0.02em;margin-bottom:4px}
 
     .tag{
-      font-size:12px;
-      font-weight:800;
-      padding:8px 11px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      background:#f4f1ec;
-      white-space:nowrap;
+      font-size:12px;font-weight:800;padding:8px 11px;border-radius:999px;
+      border:1px solid var(--line);background:#f4f1ec;white-space:nowrap;
     }
 
     .tag.connected{color:var(--green-dark); background:var(--green-soft); border-color:#caecd9;}
@@ -382,11 +283,7 @@
     .tag.priority-medium{color:var(--yellow); background:var(--yellow-soft); border-color:#ecd8a1;}
     .tag.priority-low{color:var(--green-dark); background:var(--green-soft); border-color:#caecd9;}
 
-    .actions{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-    }
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
 
     .btn{
       border:0;
@@ -401,35 +298,14 @@
       transition:.18s ease;
     }
 
-    .btn:hover{
-      transform:translateY(-1px);
-      background:linear-gradient(180deg, #25af74 0%, #1f925f 100%);
-    }
+    .btn:hover{transform:translateY(-1px);background:linear-gradient(180deg, #25af74 0%, #1f925f 100%)}
+    .btn.secondary{background:#fff;color:var(--text);border:1px solid var(--line);box-shadow:none}
+    .btn.red{background:#fff;color:var(--red);border:1px solid #efc5c5;box-shadow:none}
+    .btn.blue{background:linear-gradient(180deg,#5d87ff 0%,#3d6df2 100%);box-shadow:0 10px 22px rgba(61,109,242,.20)}
+    .btn.small{padding:10px 14px;font-size:13px}
+    .btn:disabled{opacity:.65;cursor:not-allowed;transform:none}
 
-    .btn.secondary{
-      background:#fff;
-      color:var(--text);
-      border:1px solid var(--line);
-      box-shadow:none;
-    }
-
-    .btn.red{
-      background:#fff;
-      color:var(--red);
-      border:1px solid #efc5c5;
-      box-shadow:none;
-    }
-
-    .btn.small{
-      padding:10px 14px;
-      font-size:13px;
-    }
-
-    .form-grid{
-      display:grid;
-      grid-template-columns:repeat(2,minmax(0,1fr));
-      gap:14px;
-    }
+    .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 
     input, textarea, select{
       width:100%;
@@ -448,10 +324,7 @@
       box-shadow:0 0 0 4px rgba(35,163,107,.08);
     }
 
-    textarea{
-      min-height:130px;
-      resize:vertical;
-    }
+    textarea{min-height:130px;resize:vertical}
 
     .result-box{
       margin-top:16px;
@@ -484,12 +357,7 @@
       gap:12px;
     }
 
-    .result-premium-title{
-      font-size:14px;
-      font-weight:900;
-      letter-spacing:.01em;
-    }
-
+    .result-premium-title{font-size:14px;font-weight:900;letter-spacing:.01em}
     .result-premium-body{
       padding:18px;
       white-space:pre-wrap;
@@ -553,80 +421,54 @@
       background:radial-gradient(circle, rgba(35,163,107,.10) 0%, rgba(35,163,107,0) 70%);
     }
 
-    .login-head{
-      display:flex;
-      align-items:center;
-      gap:14px;
-      margin-bottom:18px;
-      position:relative;
-      z-index:1;
-    }
+    .login-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;position:relative;z-index:1}
+    .login-title{font-size:18px;color:var(--muted);margin-top:4px}
 
-    .login-title{
-      font-size:18px;
-      color:var(--muted);
-      margin-top:4px;
-    }
-
-    .score-line{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      margin-top:12px;
-      flex-wrap:wrap;
-    }
+    .score-line{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap}
 
     .score-badge{
-      min-width:82px;
-      text-align:center;
-      padding:11px 16px;
-      border-radius:16px;
-      font-weight:900;
-      font-size:22px;
-      background:var(--green-soft);
-      color:var(--green-dark);
-      border:1px solid #caecd9;
+      min-width:82px;text-align:center;padding:11px 16px;border-radius:16px;
+      font-weight:900;font-size:22px;background:var(--green-soft);
+      color:var(--green-dark);border:1px solid #caecd9;
       box-shadow:0 6px 16px rgba(35,163,107,.08);
     }
 
-    .mini-list{
-      margin:8px 0 0;
-      padding-left:18px;
+    .mini-list{margin:8px 0 0;padding-left:18px}
+    .mini-list li{margin-bottom:6px;color:var(--muted)}
+
+    .module-hero{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+    .module-hero-left{max-width:760px}
+    .meta-stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .meta-chip{
+      padding:9px 12px;border-radius:999px;border:1px solid var(--line);
+      background:#fff;font-size:12px;font-weight:800;color:var(--muted);
     }
 
-    .mini-list li{
-      margin-bottom:6px;
-      color:var(--muted);
-    }
-
-    .module-hero{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap:16px;
-      margin-bottom:18px;
-      flex-wrap:wrap;
-    }
-
-    .module-hero-left{
-      max-width:760px;
-    }
-
-    .meta-stats{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
+    .sync-grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px;
       margin-top:14px;
     }
 
-    .meta-chip{
-      padding:9px 12px;
-      border-radius:999px;
+    .sync-mini{
+      padding:12px 14px;
       border:1px solid var(--line);
+      border-radius:16px;
       background:#fff;
+    }
+
+    .sync-mini-label{
       font-size:12px;
-      font-weight:800;
       color:var(--muted);
+      font-weight:700;
+      margin-bottom:6px;
+    }
+
+    .sync-mini-value{
+      font-size:20px;
+      font-weight:900;
+      letter-spacing:-0.02em;
     }
 
     @media (max-width: 1200px){
@@ -638,7 +480,7 @@
       .app{display:block}
       .sidebar{width:100%}
       .main{padding:20px}
-      .form-grid{grid-template-columns:1fr}
+      .form-grid,.sync-grid{grid-template-columns:1fr}
       .title{font-size:28px}
     }
   </style>
@@ -831,7 +673,6 @@
                   <span className="meta-chip">Ranking de clientes</span>
                 </div>
               </div>
-
               <div className="top-actions">
                 <span className="pill good">Operação ativa</span>
               </div>
@@ -860,7 +701,7 @@
             <div className="kpi-card">
               <div className="kpi-label">Prioridade alta</div>
               <div className="kpi-value">{agency?.high_priority_total ?? 0}</div>
-              <div className="kpi-desc">Contas que exigem ação mais rápida da equipe.</div>
+              <div className="kpi-desc">Contas que exigem ação mais rápida.</div>
             </div>
           </div>
 
@@ -965,6 +806,16 @@
         description: ""
       });
       const [message, setMessage] = React.useState("");
+      const [loadingMap, setLoadingMap] = React.useState({});
+      const [summaryMap, setSummaryMap] = React.useState({});
+
+      function setLoading(clientId, value) {
+        setLoadingMap(prev => ({ ...prev, [clientId]: value }));
+      }
+
+      function setSummary(clientId, value) {
+        setSummaryMap(prev => ({ ...prev, [clientId]: value }));
+      }
 
       async function connectRD(clientId) {
         window.open(`/oauth/authorize/${clientId}`, "_blank");
@@ -994,6 +845,35 @@
         }
       }
 
+      async function runSync(clientId) {
+        try {
+          setLoading(clientId, true);
+          setSummary(clientId, null);
+          const data = await api(`/api/rdsync/run/${clientId}`, {
+            method: "POST"
+          });
+          setSummary(clientId, data?.summary || data);
+          setMessage(`Sync executado para o cliente ${clientId}.`);
+          await refreshAll();
+        } catch (err) {
+          setMessage(`Erro no sync do cliente ${clientId}: ` + err.message);
+        } finally {
+          setLoading(clientId, false);
+        }
+      }
+
+      async function loadSummary(clientId) {
+        try {
+          setLoading(clientId, true);
+          const data = await api(`/api/rdsync/summary/${clientId}`);
+          setSummary(clientId, data?.data?.summary || data?.data || null);
+        } catch (err) {
+          setMessage(`Erro ao buscar resumo do cliente ${clientId}: ` + err.message);
+        } finally {
+          setLoading(clientId, false);
+        }
+      }
+
       return (
         <>
           <div className="hero">
@@ -1001,7 +881,7 @@
               <div className="module-hero-left">
                 <h1 className="title">Clientes</h1>
                 <p className="subtitle">
-                  Organize sua carteira, acompanhe o status da RD e enxergue rapidamente quais contas estão prontas para operação e quais ainda exigem configuração.
+                  Organize sua carteira, acompanhe o status da RD e rode sync direto pela interface para começar a alimentar score, alertas e diagnósticos reais.
                 </p>
               </div>
 
@@ -1060,6 +940,8 @@
 
             {clients.map(client => {
               const isConnected = !!(client.rd_token_set || client.rd_connected || client.rd_token || client.rd_refresh_token);
+              const summary = summaryMap[client.id];
+              const counts = summary?.counts || {};
 
               return (
                 <div className="client-item" key={client.id}>
@@ -1082,7 +964,51 @@
 
                   <div className="actions" style={{marginTop:"16px"}}>
                     <button className="btn small" onClick={() => connectRD(client.id)}>Conectar RD</button>
+                    <button className="btn small blue" disabled={!!loadingMap[client.id]} onClick={() => runSync(client.id)}>
+                      {loadingMap[client.id] ? "Sincronizando..." : "Rodar Sync RD"}
+                    </button>
+                    <button className="btn small secondary" disabled={!!loadingMap[client.id]} onClick={() => loadSummary(client.id)}>
+                      Ver resumo
+                    </button>
                   </div>
+
+                  {summary && (
+                    <div className="result-premium" style={{marginTop:"16px"}}>
+                      <div className="result-premium-head">
+                        <div className="result-premium-title">Resumo do sync</div>
+                        <span className="pill blue">Dados RD</span>
+                      </div>
+
+                      <div className="result-premium-body">
+                        <div className="sync-grid">
+                          <div className="sync-mini">
+                            <div className="sync-mini-label">Landing Pages</div>
+                            <div className="sync-mini-value">{counts.landing_pages || 0}</div>
+                          </div>
+                          <div className="sync-mini">
+                            <div className="sync-mini-label">Segmentações</div>
+                            <div className="sync-mini-value">{counts.segmentations || 0}</div>
+                          </div>
+                          <div className="sync-mini">
+                            <div className="sync-mini-label">Fluxos</div>
+                            <div className="sync-mini-value">{counts.workflows || 0}</div>
+                          </div>
+                          <div className="sync-mini">
+                            <div className="sync-mini-label">Campanhas</div>
+                            <div className="sync-mini-value">{counts.campaigns || 0}</div>
+                          </div>
+                        </div>
+
+                        {summary.module_errors && Object.keys(summary.module_errors).length > 0 && (
+                          <div className="result-box" style={{marginTop:"14px"}}>
+                            <strong>Erros de módulos:</strong>
+                            {"\n"}
+                            {JSON.stringify(summary.module_errors, null, 2)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -1289,7 +1215,7 @@
               <div className="module-hero-left">
                 <h1 className="title">Leads & Segmentação</h1>
                 <p className="subtitle">
-                  Leia a base, identifique grupos acionáveis e apresente insights com muito mais clareza visual e valor estratégico.
+                  Leia a base, identifique grupos acionáveis e apresente insights com mais clareza visual e valor estratégico.
                 </p>
               </div>
               <span className="pill good">Base inteligente</span>
