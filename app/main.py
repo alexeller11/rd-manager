@@ -4,6 +4,7 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from app.routers import rd_aggregator
 
 from app.auth_core import (
     ensure_admin_exists,
@@ -147,6 +148,12 @@ app.include_router(
     dependencies=private_dependencies,
 )
 
+app.include_router(
+    rd_aggregator.router,
+    prefix="/api/rdx",
+    tags=["rd_aggregator"],
+    dependencies=private_dependencies,
+)
 
 # =========================
 # MÓDULOS NOVOS
