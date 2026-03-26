@@ -9,6 +9,10 @@ from app.database import db_execute, db_fetch_all, db_fetch_one, db_fetchval
 router = APIRouter()
 
 
+# =============================
+# SCHEMAS
+# =============================
+
 class ClientCreate(BaseModel):
     name: str
     segment: Optional[str] = None
@@ -22,6 +26,10 @@ class ClientUpdate(BaseModel):
     website: Optional[str] = None
     description: Optional[str] = None
 
+
+# =============================
+# INIT TABLES
+# =============================
 
 async def _ensure_clients_table():
     await db_execute(
@@ -59,6 +67,44 @@ async def _ensure_clients_table():
     )
 
 
+# =============================
+# FUNÇÃO CRÍTICA DE COMPATIBILIDADE
+# =============================
+
+async def fetch_client(client_id: int):
+    await _ensure_clients_table()
+
+    query = """
+    SELECT
+        c.*,
+        CASE
+            WHEN rc.access_token IS NOT NULL AND TRIM(rc.access_token) <> '' THEN TRUE
+            WHEN c.rd_token IS NOT NULL AND TRIM(c.rd_token) <> '' THEN TRUE
+            ELSE FALSE
+        END AS rd_connected,
+        CASE
+            WHEN rc.access_token IS NOT NULL AND TRIM(rc.access_token) <> '' THEN TRUE
+            WHEN c.rd_token IS NOT NULL AND TRIM(c.rd_token) <> '' THEN TRUE
+            ELSE FALSE
+        END AS rd_token_set
+    FROM clients c
+    LEFT JOIN rd_credentials rc
+        ON rc.client_id = c.id
+    WHERE c.id = $1
+    """
+
+    client = await db_fetch_one(query, client_id)
+
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+
+    return client
+
+
+# =============================
+# LISTAR CLIENTES
+# =============================
+
 @router.get("/")
 async def list_clients():
     await _ensure_clients_table()
@@ -92,63 +138,38 @@ async def list_clients():
     return rows or []
 
 
+# =============================
+# DETALHE CLIENTE
+# =============================
+
 @router.get("/{client_id}")
 async def get_client(client_id: int):
-    await _ensure_clients_table()
+    return await fetch_client(client_id)
 
-    query = """
-    SELECT
-        c.id,
-        c.name,
-        c.segment,
-        c.website,
-        c.description,
-        c.created_at,
-        c.updated_at,
-        CASE
-            WHEN rc.access_token IS NOT NULL AND TRIM(rc.access_token) <> '' THEN TRUE
-            WHEN c.rd_token IS NOT NULL AND TRIM(c.rd_token) <> '' THEN TRUE
-            ELSE FALSE
-        END AS rd_connected,
-        CASE
-            WHEN rc.access_token IS NOT NULL AND TRIM(rc.access_token) <> '' THEN TRUE
-            WHEN c.rd_token IS NOT NULL AND TRIM(c.rd_token) <> '' THEN TRUE
-            ELSE FALSE
-        END AS rd_token_set
-    FROM clients c
-    LEFT JOIN rd_credentials rc
-        ON rc.client_id = c.id
-    WHERE c.id = $1
-    """
 
-    row = await db_fetch_one(query, client_id)
-    if not row:
-        raise HTTPException(status_code=404, detail="Cliente não encontrado")
-
-    return row
-
+# =============================
+# CRIAR CLIENTE
+# =============================
 
 @router.post("/")
 async def create_client(payload: ClientCreate):
     await _ensure_clients_table()
 
-    query = """
-    INSERT INTO clients (
-        name,
-        segment,
-        website,
-        description,
-        created_at,
-        updated_at
-    )
-    VALUES ($1, $2, $3, $4, $5, $6)
-    RETURNING id
-    """
-
     now = datetime.now(timezone.utc)
 
     client_id = await db_fetchval(
-        query,
+        """
+        INSERT INTO clients (
+            name,
+            segment,
+            website,
+            description,
+            created_at,
+            updated_at
+        )
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id
+        """,
         payload.name,
         payload.segment,
         payload.website,
@@ -167,13 +188,13 @@ async def create_client(payload: ClientCreate):
     }
 
 
+# =============================
+# ATUALIZAR CLIENTE
+# =============================
+
 @router.put("/{client_id}")
 async def update_client(client_id: int, payload: ClientUpdate):
     await _ensure_clients_table()
-
-    existing = await db_fetch_one("SELECT id FROM clients WHERE id = $1", client_id)
-    if not existing:
-        raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
     current = await db_fetch_one(
         """
@@ -183,6 +204,9 @@ async def update_client(client_id: int, payload: ClientUpdate):
         """,
         client_id,
     )
+
+    if not current:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
     await db_execute(
         """
@@ -205,6 +229,10 @@ async def update_client(client_id: int, payload: ClientUpdate):
 
     return {"ok": True, "message": "Cliente atualizado com sucesso"}
 
+
+# =============================
+# EXCLUIR CLIENTE
+# =============================
 
 @router.delete("/{client_id}")
 async def delete_client(client_id: int):
