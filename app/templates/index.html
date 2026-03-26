@@ -4,7 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>RD Manager IA</title>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
   <style>
     :root{
       --bg:#efede8;
@@ -245,10 +249,6 @@
       white-space:pre-wrap;
       line-height:1.55;
     }
-    .score-badge{
-      font-size:30px;
-      font-weight:900;
-    }
     .priority{
       display:flex;
       align-items:flex-start;
@@ -262,7 +262,6 @@
       width:34px;height:34px;border-radius:12px;background:#f4f3ef;
       display:flex;align-items:center;justify-content:center;font-weight:900;
     }
-    .hidden{display:none}
     .actions{
       display:flex;
       gap:10px;
@@ -281,666 +280,548 @@
   </style>
 </head>
 <body>
-<div id="root"></div>
+  <div id="root"></div>
 
-<script type="text/babel">
-const API = "";
+  <script type="text/babel">
+    const API = "";
 
-function getToken(){
-  return localStorage.getItem("rdm_token");
-}
-
-async function api(path, options = {}) {
-  const token = getToken();
-  const headers = {
-    ...(options.body && !(options.body instanceof FormData) ? {"Content-Type":"application/json"} : {}),
-    ...(token ? {"Authorization": "Bearer " + token} : {}),
-    ...(options.headers || {})
-  };
-
-  const res = await fetch(API + path, {...options, headers});
-  const text = await res.text();
-
-  let data = null;
-  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-
-  if (!res.ok) {
-    throw new Error(typeof data === "string" ? data : (data?.detail || "Erro do servidor"));
-  }
-
-  return data;
-}
-
-function LoginScreen({onLogin}) {
-  const [username, setUsername] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [error, setError] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
-
-  async function handleLogin(e){
-  e.preventDefault();
-  setError("");
-  setLoading(true);
-
-  try{
-    const form = new URLSearchParams();
-    form.append("username", username);
-    form.append("password", password);
-
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: {"Content-Type":"application/x-www-form-urlencoded"},
-      body: form.toString()
-    });
-
-    const raw = await res.text();
-
-    let data;
-    try {
-      data = JSON.parse(raw);
-    } catch {
-      throw new Error(raw || "Erro ao entrar");
+    function getToken() {
+      return localStorage.getItem("rdm_token");
     }
 
-    if(!res.ok){
-      throw new Error(data?.detail || "Erro ao entrar");
+    async function api(path, options = {}) {
+      const token = getToken();
+      const headers = {
+        ...(options.body && !(options.body instanceof FormData) ? {"Content-Type":"application/json"} : {}),
+        ...(token ? {"Authorization":"Bearer " + token} : {}),
+        ...(options.headers || {})
+      };
+
+      const res = await fetch(API + path, {...options, headers});
+      const raw = await res.text();
+
+      let data;
+      try {
+        data = raw ? JSON.parse(raw) : null;
+      } catch {
+        if (!res.ok) throw new Error(raw || "Erro do servidor");
+        return raw;
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.detail || raw || "Erro do servidor");
+      }
+
+      return data;
     }
 
-    localStorage.setItem("rdm_token", data.access_token);
-    localStorage.setItem("rdm_user", data.username || username);
-    onLogin();
-  } catch(err){
-    setError(err.message || "Erro ao entrar");
-  } finally {
-    setLoading(false);
-  }
-}
+    function LoginScreen({ onLogin }) {
+      const [username, setUsername] = React.useState("");
+      const [password, setPassword] = React.useState("");
+      const [error, setError] = React.useState("");
+      const [loading, setLoading] = React.useState(false);
 
-      const data = await res.json();
-      if(!res.ok) throw new Error(data?.detail || "Erro ao entrar");
+      async function handleLogin(e) {
+        e.preventDefault();
+        setError("");
+        setLoading(true);
 
-      localStorage.setItem("rdm_token", data.access_token);
-      localStorage.setItem("rdm_user", data.username || username);
-      onLogin();
-    }catch(err){
-      setError(err.message || "Erro ao entrar");
-    }finally{
-      setLoading(false);
-    }
-  }
+        try {
+          const form = new URLSearchParams();
+          form.append("username", username);
+          form.append("password", password);
 
-  return (
-    <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px",background:"#efede8"}}>
-      <div className="card" style={{width:"100%",maxWidth:"460px"}}>
-        <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"20px"}}>
-          <div className="brand-badge">RD</div>
-          <div style={{fontSize:"34px",fontWeight:900,lineHeight:1}}>RD Manager IA</div>
-        </div>
-        {error && <div className="result-box" style={{background:"#fff1f1",borderColor:"#efc5c5",color:"#a33"}}>{error}</div>}
-        <form onSubmit={handleLogin} className="stack" style={{marginTop:"16px"}}>
-          <div>
-            <div className="small muted" style={{marginBottom:"8px"}}>Usuário</div>
-            <input value={username} onChange={e=>setUsername(e.target.value)} />
-          </div>
-          <div>
-            <div className="small muted" style={{marginBottom:"8px"}}>Senha</div>
-            <input type="password" value={password} onChange={e=>setPassword(e.target.value)} />
-          </div>
-          <button className="btn" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</button>
-        </form>
-      </div>
-    </div>
-  );
-}
+          const res = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: {"Content-Type":"application/x-www-form-urlencoded"},
+            body: form.toString()
+          });
 
-function Sidebar({section, setSection}) {
-  return (
-    <aside className="sidebar">
-      <div className="brand">
-        <div className="brand-badge">RD</div>
-        <div>RD Manager<br/>IA</div>
-      </div>
+          const raw = await res.text();
 
-      <div>
-        <div className="nav-group-title">Principal</div>
-        <button className={"nav-btn " + (section==="dashboard" ? "active" : "")} onClick={()=>setSection("dashboard")}>📊 Dashboard</button>
-        <button className={"nav-btn " + (section==="clients" ? "active" : "")} onClick={()=>setSection("clients")}>👥 Clientes</button>
-      </div>
+          let data;
+          try {
+            data = JSON.parse(raw);
+          } catch {
+            throw new Error(raw || "Erro ao entrar");
+          }
 
-      <div>
-        <div className="nav-group-title">Inteligência IA</div>
-        <button className={"nav-btn " + (section==="analysis" ? "active" : "")} onClick={()=>setSection("analysis")}>🧠 Análise IA</button>
-        <button className={"nav-btn " + (section==="flows" ? "active" : "")} onClick={()=>setSection("flows")}>📧 Flows avançados</button>
-        <button className={"nav-btn " + (section==="landing" ? "active" : "")} onClick={()=>setSection("landing")}>🌐 Landing Pages</button>
-        <button className={"nav-btn " + (section==="leads" ? "active" : "")} onClick={()=>setSection("leads")}>🧲 Leads & Segmentação</button>
-        <button className={"nav-btn " + (section==="insights" ? "active" : "")} onClick={()=>setSection("insights")}>💡 Insights</button>
-        <button className={"nav-btn " + (section==="prospect" ? "active" : "")} onClick={()=>setSection("prospect")}>🎯 Prospecção</button>
-      </div>
-    </aside>
-  );
-}
+          if (!res.ok) {
+            throw new Error(data?.detail || "Erro ao entrar");
+          }
 
-function Dashboard({clients}) {
-  const connected = clients.filter(c => c.rd_token_set).length;
-  const disconnected = clients.length - connected;
+          localStorage.setItem("rdm_token", data.access_token);
+          localStorage.setItem("rdm_user", data.username || username);
+          onLogin();
+        } catch (err) {
+          setError(err.message || "Erro ao entrar");
+        } finally {
+          setLoading(false);
+        }
+      }
 
-  return (
-    <>
-      <div className="topbar">
-        <div>
-          <h1 className="title">Cockpit da Agência</h1>
-          <p className="subtitle">Diagnóstico, prioridade e execução em um só lugar</p>
-        </div>
-      </div>
+      return (
+        <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:"24px",background:"#efede8"}}>
+          <div className="card" style={{width:"100%",maxWidth:"460px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"20px"}}>
+              <div className="brand-badge">RD</div>
+              <div style={{fontSize:"34px",fontWeight:900,lineHeight:1}}>RD Manager IA</div>
+            </div>
 
-      <div className="grid kpis" style={{marginBottom:"20px"}}>
-        <div className="card">
-          <div className="muted small">Clientes cadastrados</div>
-          <div className="kpi-value">{clients.length}</div>
-          <div className="muted">Base total da agência</div>
-        </div>
-        <div className="card">
-          <div className="muted small">Clientes conectados RD</div>
-          <div className="kpi-value">{connected}</div>
-          <div className="muted">Integração ativa</div>
-        </div>
-        <div className="card">
-          <div className="muted small">Clientes desconectados</div>
-          <div className="kpi-value">{disconnected}</div>
-          <div className="muted">Prioridade operacional</div>
-        </div>
-        <div className="card">
-          <div className="muted small">Score operacional</div>
-          <div className="kpi-value">{Math.max(45, Math.min(100, 55 + connected * 8))}</div>
-          <div className="muted">Visão geral da agência</div>
-        </div>
-      </div>
+            {error && (
+              <div className="result-box" style={{background:"#fff1f1",borderColor:"#efc5c5",color:"#a33"}}>
+                {error}
+              </div>
+            )}
 
-      <div className="grid two">
-        <div className="card">
-          <div className="section-head">
-            <h3>Prioridades da semana</h3>
-            <span className="pill warn">Ação imediata</span>
-          </div>
-          <div className="stack">
-            <div className="priority">
-              <div className="priority-icon">1</div>
+            <form onSubmit={handleLogin} className="stack" style={{marginTop:"16px"}}>
               <div>
-                <strong>Conectar todos os clientes ao RD</strong>
-                <div className="muted">Sem integração, a ferramenta perde poder analítico e operacional.</div>
+                <div className="small muted" style={{marginBottom:"8px"}}>Usuário</div>
+                <input value={username} onChange={e => setUsername(e.target.value)} />
               </div>
-            </div>
-            <div className="priority">
-              <div className="priority-icon">2</div>
+
               <div>
-                <strong>Ativar módulo de flows avançados</strong>
-                <div className="muted">Transforma planejamento em execução de campanhas.</div>
+                <div className="small muted" style={{marginBottom:"8px"}}>Senha</div>
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} />
               </div>
-            </div>
-            <div className="priority">
-              <div className="priority-icon">3</div>
-              <div>
-                <strong>Mapear landing pages estratégicas</strong>
-                <div className="muted">Onde há tráfego e conversão, há oportunidade de ganho rápido.</div>
-              </div>
-            </div>
+
+              <button className="btn" disabled={loading}>
+                {loading ? "Entrando..." : "Entrar"}
+              </button>
+            </form>
           </div>
         </div>
-
-        <div className="card">
-          <div className="section-head">
-            <h3>Alertas</h3>
-            <span className="pill bad">Monitoramento</span>
-          </div>
-          <div className="alert-list">
-            <div className="alert">
-              <strong>{disconnected} cliente(s) sem RD ativo</strong>
-              <div className="muted">Sem token salvo, o status aparece como desconectado e limita automações.</div>
-            </div>
-            <div className="alert">
-              <strong>IA precisa de provider válido</strong>
-              <div className="muted">Groq/OpenAI/Gemini precisam estar corretamente configurados para análise e geração.</div>
-            </div>
-            <div className="alert">
-              <strong>Módulos avançados precisam de uso real</strong>
-              <div className="muted">Flows, leads e páginas devem virar rotina operacional da agência.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-function Clients({clients, refreshClients}) {
-  const [message, setMessage] = React.useState("");
-
-  async function connectRD(clientId){
-    window.open(`/oauth/authorize/${clientId}`, "_blank");
-    setMessage("A janela de autenticação foi aberta. Depois de autorizar, atualize a lista.");
-  }
-
-  return (
-    <>
-      <div className="topbar">
-        <div>
-          <h1 className="title">Clientes</h1>
-          <p className="subtitle">Gestão da base e status de integração</p>
-        </div>
-        <button className="btn secondary" onClick={refreshClients}>Atualizar lista</button>
-      </div>
-
-      {message && <div className="card" style={{marginBottom:"16px"}}>{message}</div>}
-
-      <div className="stack">
-        {clients.map(client => (
-          <div className="client-item" key={client.id}>
-            <div className="client-head">
-              <div>
-                <div className="client-name">{client.name}</div>
-                <div className="muted">{client.segment || "Sem segmento"} | {client.website || "Sem site"}</div>
-              </div>
-              <div className={"tag " + (client.rd_token_set ? "connected" : "disconnected")}>
-                {client.rd_token_set ? "RD Conectado" : "RD Desconectado"}
-              </div>
-            </div>
-
-            <div className="actions" style={{marginTop:"14px"}}>
-              <button className="btn small" onClick={()=>connectRD(client.id)}>Conectar RD</button>
-              <button className="btn small secondary">Editar</button>
-              <button className="btn small red">Excluir</button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function Analysis({clients}) {
-  const [clientId, setClientId] = React.useState("");
-  const [result, setResult] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
-
-  async function runAnalysis(){
-    if(!clientId) return;
-    setLoading(true);
-    setResult("");
-    try{
-      const data = await api("/api/rd/analyze", {
-        method:"POST",
-        body: JSON.stringify({client_id: Number(clientId), type: "general"})
-      });
-      setResult(data.result || JSON.stringify(data, null, 2));
-    }catch(err){
-      setResult("Erro: " + err.message);
-    }finally{
-      setLoading(false);
+      );
     }
-  }
 
-  return (
-    <>
-      <div className="topbar">
-        <div>
-          <h1 className="title">Análise IA</h1>
-          <p className="subtitle">Diagnóstico estratégico profundo por cliente</p>
-        </div>
-      </div>
+    function Sidebar({ section, setSection }) {
+      return (
+        <aside className="sidebar">
+          <div className="brand">
+            <div className="brand-badge">RD</div>
+            <div>RD Manager<br/>IA</div>
+          </div>
 
-      <div className="card">
-        <div className="small muted" style={{marginBottom:"8px"}}>Cliente</div>
-        <select value={clientId} onChange={e=>setClientId(e.target.value)}>
-          <option value="">Selecione um cliente</option>
-          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+          <div>
+            <div className="nav-group-title">Principal</div>
+            <button className={"nav-btn " + (section==="dashboard" ? "active" : "")} onClick={() => setSection("dashboard")}>📊 Dashboard</button>
+          </div>
 
-        <div className="module-bar">
-          <button className="btn" onClick={runAnalysis} disabled={loading}>{loading ? "Analisando..." : "Gerar análise 360°"}</button>
-        </div>
-
-        {result && <div className="result-box">{result}</div>}
-      </div>
-    </>
-  );
-}
-
-function FlowsAdvanced({clients}) {
-  const [form, setForm] = React.useState({goal:"",product:"",audience:"",awareness:""});
-  const [flow, setFlow] = React.useState("");
-  const [emailResult, setEmailResult] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
-
-  function update(key, value){
-    setForm(prev => ({...prev,[key]:value}));
-  }
-
-  async function generateFlow(){
-    setLoading(true);
-    setFlow("");
-    try{
-      const data = await api("/api/flows-adv/generate-flow", {
-        method:"POST",
-        body: JSON.stringify(form)
-      });
-      setFlow(data.flow || JSON.stringify(data, null, 2));
-    }catch(err){
-      setFlow("Erro: " + err.message);
-    }finally{
-      setLoading(false);
+          <div>
+            <div className="nav-group-title">Módulos</div>
+            <button className={"nav-btn " + (section==="flows" ? "active" : "")} onClick={() => setSection("flows")}>📧 Flows avançados</button>
+            <button className={"nav-btn " + (section==="landing" ? "active" : "")} onClick={() => setSection("landing")}>🌐 Landing Pages</button>
+            <button className={"nav-btn " + (section==="leads" ? "active" : "")} onClick={() => setSection("leads")}>🧲 Leads & Segmentação</button>
+            <button className={"nav-btn " + (section==="insights" ? "active" : "")} onClick={() => setSection("insights")}>💡 Insights</button>
+            <button className={"nav-btn " + (section==="prospect" ? "active" : "")} onClick={() => setSection("prospect")}>🎯 Prospecção</button>
+          </div>
+        </aside>
+      );
     }
-  }
 
-  async function generateEmail(context){
-    setEmailResult("Gerando...");
-    try{
-      const data = await api("/api/flows-adv/generate-email", {
-        method:"POST",
-        body: JSON.stringify({context})
-      });
-      setEmailResult(data.email || JSON.stringify(data, null, 2));
-    }catch(err){
-      setEmailResult("Erro: " + err.message);
-    }
-  }
-
-  const suggested = [
-    {name:"Email 1 — Abertura e contexto", reason:"Introduzir a oferta e criar conexão inicial", timing:"D+0"},
-    {name:"Email 2 — Quebra de objeção", reason:"Reduzir insegurança e aumentar confiança", timing:"D+2"},
-    {name:"Email 3 — Prova e urgência", reason:"Fazer o lead avançar", timing:"D+4"},
-  ];
-
-  return (
-    <>
-      <div className="topbar">
-        <div>
-          <h1 className="title">Flows avançados</h1>
-          <p className="subtitle">Estruture sequências com lógica estratégica e gere cada email em 1 clique</p>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="form-grid">
-          <div>
-            <div className="small muted" style={{marginBottom:"8px"}}>Objetivo</div>
-            <input value={form.goal} onChange={e=>update("goal", e.target.value)} placeholder="Ex.: vender serviço premium"/>
+    function Dashboard() {
+      return (
+        <>
+          <div className="topbar">
+            <div>
+              <h1 className="title">Cockpit da Agência</h1>
+              <p className="subtitle">Diagnóstico, prioridade e execução</p>
+            </div>
           </div>
-          <div>
-            <div className="small muted" style={{marginBottom:"8px"}}>Produto/Oferta</div>
-            <input value={form.product} onChange={e=>update("product", e.target.value)} placeholder="Ex.: consultoria estratégica"/>
-          </div>
-          <div>
-            <div className="small muted" style={{marginBottom:"8px"}}>Público</div>
-            <input value={form.audience} onChange={e=>update("audience", e.target.value)} placeholder="Ex.: empresários locais"/>
-          </div>
-          <div>
-            <div className="small muted" style={{marginBottom:"8px"}}>Nível de consciência</div>
-            <input value={form.awareness} onChange={e=>update("awareness", e.target.value)} placeholder="Frio, morno, quente"/>
-          </div>
-        </div>
 
-        <div className="actions" style={{marginTop:"16px"}}>
-          <button className="btn" onClick={generateFlow}>{loading ? "Gerando..." : "Gerar fluxo estratégico"}</button>
-        </div>
+          <div className="grid kpis" style={{marginBottom:"20px"}}>
+            <div className="card">
+              <div className="muted small">Score geral</div>
+              <div className="kpi-value">68</div>
+              <div className="muted">Visão inicial da operação</div>
+            </div>
+            <div className="card">
+              <div className="muted small">Prioridade</div>
+              <div className="kpi-value">Alta</div>
+              <div className="muted">Ajustar módulos e integrações</div>
+            </div>
+            <div className="card">
+              <div className="muted small">Foco imediato</div>
+              <div className="kpi-value">Flows</div>
+              <div className="muted">Execução comercial</div>
+            </div>
+            <div className="card">
+              <div className="muted small">Próximo ganho</div>
+              <div className="kpi-value">LPs</div>
+              <div className="muted">SEO + CRO</div>
+            </div>
+          </div>
 
-        <div style={{marginTop:"18px"}}>
-          <h3>Estrutura sugerida</h3>
-          <div className="stack">
-            {suggested.map((item, idx) => (
-              <div className="flow-email" key={idx}>
-                <div className="row-between">
+          <div className="grid two">
+            <div className="card">
+              <div className="section-head">
+                <h3>Prioridades da semana</h3>
+                <span className="pill warn">Ação</span>
+              </div>
+              <div className="stack">
+                <div className="priority">
+                  <div className="priority-icon">1</div>
                   <div>
-                    <strong>{item.name}</strong>
-                    <div className="muted small">Motivo: {item.reason}</div>
-                    <div className="muted small">Timing: {item.timing}</div>
+                    <strong>Estruturar fluxos por objetivo</strong>
+                    <div className="muted">Transformar ideias em execução rápida para cada cliente.</div>
                   </div>
-                  <button className="btn small" onClick={()=>generateEmail(`${item.name}. ${item.reason}. Timing: ${item.timing}. Contexto: ${JSON.stringify(form)}`)}>
-                    Gerar email
-                  </button>
+                </div>
+                <div className="priority">
+                  <div className="priority-icon">2</div>
+                  <div>
+                    <strong>Mapear landing pages principais</strong>
+                    <div className="muted">Priorizar páginas de maior impacto comercial.</div>
+                  </div>
+                </div>
+                <div className="priority">
+                  <div className="priority-icon">3</div>
+                  <div>
+                    <strong>Organizar base de leads</strong>
+                    <div className="muted">Criar segmentação útil e acionável.</div>
+                  </div>
                 </div>
               </div>
-            ))}
+            </div>
+
+            <div className="card">
+              <div className="section-head">
+                <h3>Visão executiva</h3>
+                <span className="pill good">Produto</span>
+              </div>
+              <div className="alert-list">
+                <div className="alert">
+                  <strong>Backend operacional</strong>
+                  <div className="muted">O sistema já sobe e responde corretamente.</div>
+                </div>
+                <div className="alert">
+                  <strong>Frontend ativo</strong>
+                  <div className="muted">Agora o foco é transformar isso em cockpit real de agência.</div>
+                </div>
+                <div className="alert">
+                  <strong>Próximo salto</strong>
+                  <div className="muted">Score por cliente, ranking e alertas automáticos.</div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {flow && <div className="result-box">{flow}</div>}
-        {emailResult && <div className="result-box" style={{marginTop:"14px"}}>{emailResult}</div>}
-      </div>
-    </>
-  );
-}
-
-function LandingPages() {
-  const [url, setUrl] = React.useState("");
-  const [analysis, setAnalysis] = React.useState("");
-  const [copy, setCopy] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
-
-  async function analyze(){
-    setLoading(true);
-    setAnalysis("");
-    try{
-      const data = await api("/api/landing/analyze", {
-        method:"POST",
-        body: JSON.stringify({url})
-      });
-      setAnalysis(JSON.stringify(data, null, 2));
-    }catch(err){
-      setAnalysis("Erro: " + err.message);
-    }finally{
-      setLoading(false);
+        </>
+      );
     }
-  }
 
-  async function generateCopy(){
-    setCopy("Gerando...");
-    try{
-      const data = await api("/api/landing/generate-copy", {
-        method:"POST",
-        body: JSON.stringify({
-          product:"Serviço premium",
-          audience:"Público de alta intenção",
-          goal:"Conversão"
-        })
-      });
-      setCopy(data.copy || JSON.stringify(data, null, 2));
-    }catch(err){
-      setCopy("Erro: " + err.message);
-    }
-  }
+    function FlowsAdvanced() {
+      const [form, setForm] = React.useState({goal:"",product:"",audience:"",awareness:""});
+      const [flow, setFlow] = React.useState("");
+      const [emailResult, setEmailResult] = React.useState("");
+      const [loading, setLoading] = React.useState(false);
 
-  return (
-    <>
-      <div className="topbar">
-        <div>
-          <h1 className="title">Landing Pages</h1>
-          <p className="subtitle">Analise SEO, copy, conversão e performance por página</p>
-        </div>
-      </div>
+      function update(key, value){
+        setForm(prev => ({...prev,[key]:value}));
+      }
 
-      <div className="card">
-        <div className="small muted" style={{marginBottom:"8px"}}>URL da página</div>
-        <input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://seudominio.com/pagina" />
-        <div className="actions" style={{marginTop:"16px"}}>
-          <button className="btn" onClick={analyze}>{loading ? "Analisando..." : "Analisar página"}</button>
-          <button className="btn secondary" onClick={generateCopy}>Gerar nova copy</button>
-        </div>
-        {analysis && <div className="result-box">{analysis}</div>}
-        {copy && <div className="result-box">{copy}</div>}
-      </div>
-    </>
-  );
-}
+      async function generateFlow(){
+        setLoading(true);
+        setFlow("");
+        try{
+          const data = await api("/api/flows-adv/generate-flow", {
+            method:"POST",
+            body: JSON.stringify(form)
+          });
+          setFlow(data.flow || JSON.stringify(data, null, 2));
+        }catch(err){
+          setFlow("Erro: " + err.message);
+        }finally{
+          setLoading(false);
+        }
+      }
 
-function Leads() {
-  const [dataText, setDataText] = React.useState("");
-  const [result, setResult] = React.useState("");
+      async function generateEmail(context){
+        setEmailResult("Gerando...");
+        try{
+          const data = await api("/api/flows-adv/generate-email", {
+            method:"POST",
+            body: JSON.stringify({context})
+          });
+          setEmailResult(data.email || JSON.stringify(data, null, 2));
+        }catch(err){
+          setEmailResult("Erro: " + err.message);
+        }
+      }
 
-  async function analyzeBase(){
-    try{
-      const data = await api("/api/leads/analyze-base", {
-        method:"POST",
-        body: JSON.stringify({raw: dataText})
-      });
-      setResult(data.analysis || JSON.stringify(data, null, 2));
-    }catch(err){
-      setResult("Erro: " + err.message);
-    }
-  }
+      const suggested = [
+        {name:"Email 1 — Contexto e conexão", reason:"Criar abertura e conexão inicial", timing:"D+0"},
+        {name:"Email 2 — Quebra de objeção", reason:"Reduzir barreiras e aumentar confiança", timing:"D+2"},
+        {name:"Email 3 — Prova e CTA", reason:"Empurrar o lead para decisão", timing:"D+4"},
+      ];
 
-  return (
-    <>
-      <div className="topbar">
-        <div>
-          <h1 className="title">Leads & Segmentação</h1>
-          <p className="subtitle">Leia a base, identifique oportunidades e gere ações</p>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="small muted" style={{marginBottom:"8px"}}>Cole os dados da base ou resumo</div>
-        <textarea value={dataText} onChange={e=>setDataText(e.target.value)} placeholder="Cole sua base, resumo ou export..." />
-        <div className="actions" style={{marginTop:"16px"}}>
-          <button className="btn" onClick={analyzeBase}>Analisar base</button>
-        </div>
-        {result && <div className="result-box">{result}</div>}
-      </div>
-    </>
-  );
-}
-
-function Insights() {
-  const [text, setText] = React.useState("");
-  const [result, setResult] = React.useState("");
-
-  async function generate(){
-    try{
-      const data = await api("/api/insights/generate", {
-        method:"POST",
-        body: JSON.stringify({raw: text})
-      });
-      setResult(data.insights || JSON.stringify(data, null, 2));
-    }catch(err){
-      setResult("Erro: " + err.message);
-    }
-  }
-
-  return (
-    <>
-      <div className="topbar">
-        <div>
-          <h1 className="title">Insights automáticos</h1>
-          <p className="subtitle">Transforme dados em direção prática</p>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="small muted" style={{marginBottom:"8px"}}>Dados ou contexto</div>
-        <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="Cole dados, métricas ou resumos..." />
-        <div className="actions" style={{marginTop:"16px"}}>
-          <button className="btn" onClick={generate}>Gerar insights</button>
-        </div>
-        {result && <div className="result-box">{result}</div>}
-      </div>
-    </>
-  );
-}
-
-function Prospect() {
-  const [form, setForm] = React.useState({niche:"", city:"", site:""});
-  const [result, setResult] = React.useState("");
-
-  async function analyze(){
-    try{
-      const data = await api("/api/prospect/analyze-business", {
-        method:"POST",
-        body: JSON.stringify(form)
-      });
-      setResult(data.analysis || JSON.stringify(data, null, 2));
-    }catch(err){
-      setResult("Erro: " + err.message);
-    }
-  }
-
-  return (
-    <>
-      <div className="topbar">
-        <div>
-          <h1 className="title">Prospecção inteligente</h1>
-          <p className="subtitle">Ache oportunidade, gere diagnóstico e monte abordagem</p>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="form-grid">
-          <div>
-            <div className="small muted" style={{marginBottom:"8px"}}>Nicho</div>
-            <input value={form.niche} onChange={e=>setForm({...form, niche:e.target.value})} placeholder="Ex.: clínica, indústria, loja" />
+      return (
+        <>
+          <div className="topbar">
+            <div>
+              <h1 className="title">Flows avançados</h1>
+              <p className="subtitle">Planeje a sequência e gere cada email em 1 clique</p>
+            </div>
           </div>
-          <div>
-            <div className="small muted" style={{marginBottom:"8px"}}>Cidade</div>
-            <input value={form.city} onChange={e=>setForm({...form, city:e.target.value})} placeholder="Ex.: Linhares" />
+
+          <div className="card">
+            <div className="form-grid">
+              <div>
+                <div className="small muted" style={{marginBottom:"8px"}}>Objetivo</div>
+                <input value={form.goal} onChange={e=>update("goal", e.target.value)} placeholder="Ex.: vender serviço premium" />
+              </div>
+              <div>
+                <div className="small muted" style={{marginBottom:"8px"}}>Produto/Oferta</div>
+                <input value={form.product} onChange={e=>update("product", e.target.value)} placeholder="Ex.: consultoria estratégica" />
+              </div>
+              <div>
+                <div className="small muted" style={{marginBottom:"8px"}}>Público</div>
+                <input value={form.audience} onChange={e=>update("audience", e.target.value)} placeholder="Ex.: empresários locais" />
+              </div>
+              <div>
+                <div className="small muted" style={{marginBottom:"8px"}}>Nível de consciência</div>
+                <input value={form.awareness} onChange={e=>update("awareness", e.target.value)} placeholder="Frio, morno, quente" />
+              </div>
+            </div>
+
+            <div className="actions" style={{marginTop:"16px"}}>
+              <button className="btn" onClick={generateFlow}>{loading ? "Gerando..." : "Gerar fluxo estratégico"}</button>
+            </div>
+
+            <div style={{marginTop:"18px"}}>
+              <h3>Estrutura sugerida</h3>
+              <div className="stack">
+                {suggested.map((item, idx) => (
+                  <div className="flow-email" key={idx}>
+                    <div className="row-between">
+                      <div>
+                        <strong>{item.name}</strong>
+                        <div className="muted small">Motivo: {item.reason}</div>
+                        <div className="muted small">Timing: {item.timing}</div>
+                      </div>
+                      <button
+                        className="btn small"
+                        onClick={() => generateEmail(`${item.name}. ${item.reason}. Timing: ${item.timing}. Contexto: ${JSON.stringify(form)}`)}
+                      >
+                        Gerar email
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {flow && <div className="result-box">{flow}</div>}
+            {emailResult && <div className="result-box" style={{marginTop:"14px"}}>{emailResult}</div>}
           </div>
-          <div style={{gridColumn:"1 / -1"}}>
-            <div className="small muted" style={{marginBottom:"8px"}}>Site</div>
-            <input value={form.site} onChange={e=>setForm({...form, site:e.target.value})} placeholder="https://empresa.com.br" />
-          </div>
-        </div>
-
-        <div className="actions" style={{marginTop:"16px"}}>
-          <button className="btn" onClick={analyze}>Analisar negócio</button>
-        </div>
-
-        {result && <div className="result-box">{result}</div>}
-      </div>
-    </>
-  );
-}
-
-function App() {
-  const [authed, setAuthed] = React.useState(!!getToken());
-  const [section, setSection] = React.useState("dashboard");
-  const [clients, setClients] = React.useState([]);
-
-  async function loadClients(){
-    try{
-      const data = await api("/api/clients/");
-      setClients(Array.isArray(data) ? data : []);
-    }catch(err){
-      console.error(err);
+        </>
+      );
     }
-  }
 
-  React.useEffect(()=>{
-    if(authed) loadClients();
-  }, [authed]);
+    function LandingPages() {
+      const [url, setUrl] = React.useState("");
+      const [analysis, setAnalysis] = React.useState("");
+      const [copy, setCopy] = React.useState("");
 
-  if(!authed){
-    return <LoginScreen onLogin={()=>setAuthed(true)} />;
-  }
+      async function analyze(){
+        try{
+          const data = await api("/api/landing/analyze", {
+            method:"POST",
+            body: JSON.stringify({url})
+          });
+          setAnalysis(JSON.stringify(data, null, 2));
+        }catch(err){
+          setAnalysis("Erro: " + err.message);
+        }
+      }
 
-  return (
-    <div className="app">
-      <Sidebar section={section} setSection={setSection} />
-      <main className="main">
-        {section === "dashboard" && <Dashboard clients={clients} />}
-        {section === "clients" && <Clients clients={clients} refreshClients={loadClients} />}
-        {section === "analysis" && <Analysis clients={clients} />}
-        {section === "flows" && <FlowsAdvanced clients={clients} />}
-        {section === "landing" && <LandingPages />}
-        {section === "leads" && <Leads />}
-        {section === "insights" && <Insights />}
-        {section === "prospect" && <Prospect />}
-      </main>
-    </div>
-  );
-}
+      async function generateCopy(){
+        try{
+          const data = await api("/api/landing/generate-copy", {
+            method:"POST",
+            body: JSON.stringify({
+              product:"Serviço premium",
+              audience:"Público de alta intenção",
+              goal:"Conversão"
+            })
+          });
+          setCopy(data.copy || JSON.stringify(data, null, 2));
+        }catch(err){
+          setCopy("Erro: " + err.message);
+        }
+      }
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
-root.render(<App />);
-</script>
+      return (
+        <>
+          <div className="topbar">
+            <div>
+              <h1 className="title">Landing Pages</h1>
+              <p className="subtitle">Análise de SEO, copy e conversão</p>
+            </div>
+          </div>
 
-<script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+          <div className="card">
+            <div className="small muted" style={{marginBottom:"8px"}}>URL da página</div>
+            <input value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://seudominio.com/pagina" />
+            <div className="actions" style={{marginTop:"16px"}}>
+              <button className="btn" onClick={analyze}>Analisar página</button>
+              <button className="btn secondary" onClick={generateCopy}>Gerar nova copy</button>
+            </div>
+            {analysis && <div className="result-box">{analysis}</div>}
+            {copy && <div className="result-box">{copy}</div>}
+          </div>
+        </>
+      );
+    }
+
+    function Leads() {
+      const [dataText, setDataText] = React.useState("");
+      const [result, setResult] = React.useState("");
+
+      async function analyzeBase(){
+        try{
+          const data = await api("/api/leads/analyze-base", {
+            method:"POST",
+            body: JSON.stringify({raw: dataText})
+          });
+          setResult(data.analysis || JSON.stringify(data, null, 2));
+        }catch(err){
+          setResult("Erro: " + err.message);
+        }
+      }
+
+      return (
+        <>
+          <div className="topbar">
+            <div>
+              <h1 className="title">Leads & Segmentação</h1>
+              <p className="subtitle">Leia a base e gere ação</p>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="small muted" style={{marginBottom:"8px"}}>Cole os dados da base</div>
+            <textarea value={dataText} onChange={e=>setDataText(e.target.value)} placeholder="Cole sua base, resumo ou export..." />
+            <div className="actions" style={{marginTop:"16px"}}>
+              <button className="btn" onClick={analyzeBase}>Analisar base</button>
+            </div>
+            {result && <div className="result-box">{result}</div>}
+          </div>
+        </>
+      );
+    }
+
+    function Insights() {
+      const [text, setText] = React.useState("");
+      const [result, setResult] = React.useState("");
+
+      async function generate(){
+        try{
+          const data = await api("/api/insights/generate", {
+            method:"POST",
+            body: JSON.stringify({raw: text})
+          });
+          setResult(data.insights || JSON.stringify(data, null, 2));
+        }catch(err){
+          setResult("Erro: " + err.message);
+        }
+      }
+
+      return (
+        <>
+          <div className="topbar">
+            <div>
+              <h1 className="title">Insights automáticos</h1>
+              <p className="subtitle">Transforme dados em direção prática</p>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="small muted" style={{marginBottom:"8px"}}>Dados ou contexto</div>
+            <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="Cole dados, métricas ou contexto..." />
+            <div className="actions" style={{marginTop:"16px"}}>
+              <button className="btn" onClick={generate}>Gerar insights</button>
+            </div>
+            {result && <div className="result-box">{result}</div>}
+          </div>
+        </>
+      );
+    }
+
+    function Prospect() {
+      const [form, setForm] = React.useState({niche:"", city:"", site:""});
+      const [result, setResult] = React.useState("");
+
+      async function analyze(){
+        try{
+          const data = await api("/api/prospect/analyze-business", {
+            method:"POST",
+            body: JSON.stringify(form)
+          });
+          setResult(data.analysis || JSON.stringify(data, null, 2));
+        }catch(err){
+          setResult("Erro: " + err.message);
+        }
+      }
+
+      return (
+        <>
+          <div className="topbar">
+            <div>
+              <h1 className="title">Prospecção inteligente</h1>
+              <p className="subtitle">Diagnóstico e abordagem comercial</p>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="form-grid">
+              <div>
+                <div className="small muted" style={{marginBottom:"8px"}}>Nicho</div>
+                <input value={form.niche} onChange={e=>setForm({...form, niche:e.target.value})} placeholder="Ex.: clínica, indústria, loja" />
+              </div>
+              <div>
+                <div className="small muted" style={{marginBottom:"8px"}}>Cidade</div>
+                <input value={form.city} onChange={e=>setForm({...form, city:e.target.value})} placeholder="Ex.: Linhares" />
+              </div>
+              <div style={{gridColumn:"1 / -1"}}>
+                <div className="small muted" style={{marginBottom:"8px"}}>Site</div>
+                <input value={form.site} onChange={e=>setForm({...form, site:e.target.value})} placeholder="https://empresa.com.br" />
+              </div>
+            </div>
+
+            <div className="actions" style={{marginTop:"16px"}}>
+              <button className="btn" onClick={analyze}>Analisar negócio</button>
+            </div>
+
+            {result && <div className="result-box">{result}</div>}
+          </div>
+        </>
+      );
+    }
+
+    function App() {
+      const [authed, setAuthed] = React.useState(!!getToken());
+      const [section, setSection] = React.useState("dashboard");
+
+      if (!authed) {
+        return <LoginScreen onLogin={() => setAuthed(true)} />;
+      }
+
+      return (
+        <div className="app">
+          <Sidebar section={section} setSection={setSection} />
+          <main className="main">
+            {section === "dashboard" && <Dashboard />}
+            {section === "flows" && <FlowsAdvanced />}
+            {section === "landing" && <LandingPages />}
+            {section === "leads" && <Leads />}
+            {section === "insights" && <Insights />}
+            {section === "prospect" && <Prospect />}
+          </main>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
 </body>
 </html>
