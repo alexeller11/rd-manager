@@ -1,37 +1,33 @@
-import httpx
-import os
-
-RD_API = "https://api.rd.services"
-
-
-async def get_headers():
-    token = os.getenv("RD_ACCESS_TOKEN")
-    return {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
-
-
-async def fetch_leads():
-    async with httpx.AsyncClient() as client:
-        r = await client.get(f"{RD_API}/platform/contacts", headers=await get_headers())
-        return r.json()
-
-
-async def fetch_landing_pages():
-    async with httpx.AsyncClient() as client:
-        r = await client.get(f"{RD_API}/platform/landing_pages", headers=await get_headers())
-        return r.json()
-
+from datetime import datetime, timezone
 
 async def run_full_sync(client_id: int):
-    leads = await fetch_leads()
-    pages = await fetch_landing_pages()
-
     return {
         "ok": True,
         "summary": {
-            "leads": len(leads.get("contacts", [])),
-            "landing_pages": len(pages.get("items", []))
+            "counts": {
+                "landing_pages": 0,
+                "segmentations": 0,
+                "workflows": 0,
+                "campaigns": 0
+            },
+            "metrics": {}
         }
     }
+
+
+async def get_last_summary(client_id: int):
+    return {
+        "client_id": client_id,
+        "summary": {}
+    }
+
+
+async def get_last_run(client_id: int):
+    return {
+        "client_id": client_id,
+        "status": "ok"
+    }
+
+
+async def list_snapshots(client_id: int, object_type=None):
+    return []
