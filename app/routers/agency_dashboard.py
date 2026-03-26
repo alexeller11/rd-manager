@@ -1,9 +1,21 @@
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.auth_core import get_current_user
-from app.database import db_fetch_all, db_fetch_one
+from app.database import db_execute, db_fetch_all, db_fetch_one
 
 router = APIRouter()
+
+
+async def _ensure_sync_summary_table():
+    await db_execute(
+        """
+        CREATE TABLE IF NOT EXISTS rd_sync_summaries (
+            client_id INTEGER PRIMARY KEY,
+            summary JSONB NOT NULL,
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """
+    )
 
 
 def _build_score_from_summary(client: dict, summary_payload: dict | None) -> dict:
@@ -97,6 +109,8 @@ def _build_score_from_summary(client: dict, summary_payload: dict | None) -> dic
 
 @router.get("/overview", dependencies=[Depends(get_current_user)])
 async def agency_overview():
+    await _ensure_sync_summary_table()
+
     clients = await db_fetch_all(
         """
         SELECT
@@ -138,7 +152,10 @@ async def agency_overview():
             client["id"],
         )
 
-        summary_payload = summary_row["summary"] if summary_row and summary_row.get("summary") else None
+        summary_payload = None
+        if summary_row and summary_row.get("summary"):
+            summary_payload = summary_row["summary"]
+
         item = _build_score_from_summary(client, summary_payload)
 
         if item["rd_connected"]:
@@ -159,7 +176,7 @@ async def agency_overview():
         alerts.append("Existem clientes sem RD conectada")
     if high_priority_total > 0:
         alerts.append(f"{high_priority_total} cliente(s) com prioridade alta")
-    if avg_score < 60:
+    if avg_score < 60 and len(clients) > 0:
         alerts.append("A maturidade média da carteira ainda está baixa")
 
     weekly_priorities = []
@@ -186,6 +203,8 @@ async def agency_overview():
 
 @router.get("/client/{client_id}", dependencies=[Depends(get_current_user)])
 async def agency_client_detail(client_id: int):
+    await _ensure_sync_summary_table()
+
     client = await db_fetch_one(
         """
         SELECT
@@ -224,7 +243,10 @@ async def agency_client_detail(client_id: int):
         client_id,
     )
 
-    summary_payload = summary_row["summary"] if summary_row and summary_row.get("summary") else None
+    summary_payload = None
+    if summary_row and summary_row.get("summary"):
+        summary_payload = summary_row["summary"]
+
     score_data = _build_score_from_summary(client, summary_payload)
 
     return {
