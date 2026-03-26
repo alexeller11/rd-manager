@@ -5,9 +5,12 @@ httpx
 python-multipart
 
 passlib[bcrypt]
+bcrypt==3.2.2
+
 python-jose
 
 asyncpg
+aiosqlite
 
 beautifulsoup4
 lxml
@@ -18,5 +21,3 @@ pydantic
 pydantic-settings
 
 jinja2
-
-aiosqlite
