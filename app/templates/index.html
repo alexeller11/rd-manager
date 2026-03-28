@@ -11,41 +11,50 @@
   <style>
     body {
       margin: 0;
-      font-family: Arial;
+      font-family: Arial, sans-serif;
       background: #0b0f14;
       color: white;
     }
 
     .app {
       display: flex;
+      min-height: 100vh;
     }
 
     .sidebar {
       width: 240px;
       background: #0f141a;
       padding: 20px;
-      height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .sidebar h2 {
+      margin-top: 0;
+      margin-bottom: 30px;
+      font-size: 22px;
     }
 
     .sidebar button {
       width: 100%;
       margin-bottom: 10px;
-      padding: 10px;
+      padding: 12px;
       background: none;
       border: none;
       color: white;
       text-align: left;
       cursor: pointer;
+      border-radius: 8px;
+      font-size: 16px;
     }
 
     .sidebar button.active {
       background: #1f8f5f;
-      border-radius: 8px;
     }
 
     .main {
       flex: 1;
       padding: 30px;
+      box-sizing: border-box;
     }
 
     .card {
@@ -53,29 +62,147 @@
       padding: 20px;
       border-radius: 12px;
       margin-bottom: 15px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.2);
     }
 
     .btn {
       background: #1f8f5f;
       border: none;
-      padding: 8px 12px;
+      padding: 10px 14px;
       border-radius: 8px;
       color: white;
       cursor: pointer;
-      margin-right: 5px;
+      margin-right: 8px;
+      font-size: 14px;
+    }
+
+    .btn:hover {
+      opacity: 0.92;
+    }
+
+    .btn.secondary {
+      background: #24303d;
     }
 
     .error-box {
       background: #5c1a1a;
-      padding: 10px;
+      padding: 12px;
       border-radius: 8px;
+      margin-bottom: 15px;
+      white-space: pre-wrap;
     }
 
     input {
       display: block;
       margin-bottom: 10px;
       padding: 10px;
-      width: 200px;
+      width: 260px;
+      border-radius: 8px;
+      border: 1px solid #2e3945;
+      background: #11161d;
+      color: white;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .muted {
+      color: #b7c0c8;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-top: 8px;
+      margin-right: 8px;
+    }
+
+    .badge.green {
+      background: #173f2d;
+      color: #7ff0b8;
+    }
+
+    .badge.yellow {
+      background: #4f3a10;
+      color: #ffd36b;
+    }
+
+    .badge.red {
+      background: #4f1d1d;
+      color: #ff8f8f;
+    }
+
+    .section-title {
+      margin-top: 0;
+      margin-bottom: 18px;
+      font-size: 34px;
+    }
+
+    .sub {
+      color: #aab4bd;
+      margin-top: -6px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .kpi-card {
+      background: #141a21;
+      padding: 18px;
+      border-radius: 12px;
+    }
+
+    .kpi-label {
+      color: #9eadb8;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .kpi-value {
+      font-size: 32px;
+      font-weight: bold;
+    }
+
+    .list-line {
+      margin: 6px 0;
+      color: #d9e0e5;
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+      }
+
+      .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+
+      input {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -84,74 +211,105 @@
 <div id="root"></div>
 
 <script type="text/babel">
-
 const API = "";
 
 /* =========================
    AUTH
 ========================= */
-
 function getToken() {
   return localStorage.getItem("rdm_token");
 }
 
 function saveSession(data) {
   localStorage.setItem("rdm_token", data.access_token);
+  if (data.username) {
+    localStorage.setItem("rdm_user", data.username);
+  }
 }
 
 function clearSession() {
-  localStorage.clear();
+  localStorage.removeItem("rdm_token");
+  localStorage.removeItem("rdm_user");
 }
 
 /* =========================
    API
 ========================= */
-
 async function api(url, options = {}) {
   const token = getToken();
 
+  const headers = {
+    ...(options.body ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { Authorization: "Bearer " + token } : {}),
+    ...(options.headers || {})
+  };
+
   const res = await fetch(API + url, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Bearer " + token,
-      ...(options.headers || {})
-    }
+    headers
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text);
+  const text = await res.text();
+
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch (e) {
+    if (!res.ok) {
+      throw new Error(text || "Erro do servidor");
+    }
+    return text;
   }
 
-  return res.json();
+  if (!res.ok) {
+    throw new Error(data?.detail || text || "Erro do servidor");
+  }
+
+  return data;
 }
 
 /* =========================
    LOGIN
 ========================= */
-
 function Login({ onLogin }) {
   const [user, setUser] = React.useState("");
   const [pass, setPass] = React.useState("");
   const [error, setError] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
 
   async function handleLogin() {
     try {
+      setLoading(true);
+      setError("");
+
+      const form = new URLSearchParams();
+      form.append("username", user);
+      form.append("password", pass);
+
       const res = await fetch("/api/auth/login", {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ username: user, password: pass })
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: form.toString()
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        throw new Error(text || "Erro no login");
+      }
 
-      if (!res.ok) throw new Error(data.detail);
+      if (!res.ok) {
+        throw new Error(data?.detail || "Usuário ou senha inválidos");
+      }
 
       saveSession(data);
       onLogin();
     } catch (e) {
-      setError(e.message);
+      setError(e.message || "Erro no login");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -159,9 +317,11 @@ function Login({ onLogin }) {
     <div style={{padding:40}}>
       <h2>Login</h2>
       {error && <div className="error-box">{error}</div>}
-      <input placeholder="Usuário" onChange={e => setUser(e.target.value)} />
-      <input type="password" placeholder="Senha" onChange={e => setPass(e.target.value)} />
-      <button className="btn" onClick={handleLogin}>Entrar</button>
+      <input placeholder="Usuário" value={user} onChange={e => setUser(e.target.value)} />
+      <input type="password" placeholder="Senha" value={pass} onChange={e => setPass(e.target.value)} />
+      <button className="btn" onClick={handleLogin} disabled={loading}>
+        {loading ? "Entrando..." : "Entrar"}
+      </button>
     </div>
   );
 }
@@ -169,14 +329,18 @@ function Login({ onLogin }) {
 /* =========================
    SIDEBAR
 ========================= */
-
 function Sidebar({ section, setSection, logout }) {
   return (
     <div className="sidebar">
-      <h3>RD Manager IA</h3>
+      <h2>RD Manager IA</h2>
 
-      <button className={section==="dashboard"?"active":""} onClick={()=>setSection("dashboard")}>Dashboard</button>
-      <button className={section==="clients"?"active":""} onClick={()=>setSection("clients")}>Clientes</button>
+      <button className={section==="dashboard"?"active":""} onClick={()=>setSection("dashboard")}>
+        Dashboard
+      </button>
+
+      <button className={section==="clients"?"active":""} onClick={()=>setSection("clients")}>
+        Clientes
+      </button>
 
       <button onClick={logout}>Sair</button>
     </div>
@@ -186,15 +350,90 @@ function Sidebar({ section, setSection, logout }) {
 /* =========================
    DASHBOARD
 ========================= */
-
-function Dashboard({ data }) {
-  if (!data) return <div>Carregando...</div>;
+function Dashboard({ data, reload }) {
+  const agency = data?.agency || {};
+  const ranking = agency?.ranking || [];
+  const alerts = agency?.alerts || [];
+  const priorities = agency?.weekly_priorities || [];
 
   return (
     <div>
-      <h2>Dashboard</h2>
+      <div className="row">
+        <div>
+          <h1 className="section-title">Dashboard</h1>
+          <div className="sub">Visão executiva da agência</div>
+        </div>
+        <div>
+          <button className="btn" onClick={reload}>Atualizar</button>
+        </div>
+      </div>
+
+      <div className="kpi-grid">
+        <div className="kpi-card">
+          <div className="kpi-label">Score da agência</div>
+          <div className="kpi-value">{agency?.score ?? 0}</div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-label">Clientes totais</div>
+          <div className="kpi-value">{agency?.clients_total ?? 0}</div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-label">RD conectados</div>
+          <div className="kpi-value">{agency?.connected_total ?? 0}</div>
+        </div>
+
+        <div className="kpi-card">
+          <div className="kpi-label">Prioridade alta</div>
+          <div className="kpi-value">{agency?.high_priority_total ?? 0}</div>
+        </div>
+      </div>
+
       <div className="card">
-        <strong>Total clientes:</strong> {data.total_clients}
+        <h3>Alertas</h3>
+        {alerts.length === 0 ? (
+          <div className="muted">Nenhum alerta no momento.</div>
+        ) : alerts.map((a, i) => (
+          <div className="list-line" key={i}>⚠ {a}</div>
+        ))}
+      </div>
+
+      <div className="card">
+        <h3>Prioridades da semana</h3>
+        {priorities.length === 0 ? (
+          <div className="muted">Nenhuma prioridade no momento.</div>
+        ) : priorities.map((p, i) => (
+          <div className="list-line" key={i}>👉 {p}</div>
+        ))}
+      </div>
+
+      <div className="card">
+        <h3>Ranking de clientes</h3>
+        {ranking.length === 0 ? (
+          <div className="muted">Nenhum cliente ranqueado ainda.</div>
+        ) : ranking.map((c) => (
+          <div key={c.client_id} style={{borderBottom:"1px solid #25303b", padding:"14px 0"}}>
+            <div className="row">
+              <strong>{c.client_name}</strong>
+              <div>Score: <strong>{c.score}</strong></div>
+            </div>
+
+            <div className="muted" style={{marginTop:8}}>{c.summary}</div>
+
+            <div style={{marginTop:10}}>
+              <span className={`badge ${
+                c.priority === "alta" ? "red" : c.priority === "média" ? "yellow" : "green"
+              }`}>
+                Prioridade {c.priority}
+              </span>
+
+              <span className={`badge ${c.rd_connected ? "green" : "red"}`}>
+                {c.rd_connected ? "RD conectada" : "RD desconectada"}
+              </span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -203,78 +442,246 @@ function Dashboard({ data }) {
 /* =========================
    CLIENTES
 ========================= */
+function Clients({ refreshAll }) {
+  const [data, setData] = React.useState([]);
+  const [clientsRaw, setClientsRaw] = React.useState([]);
+  const [error, setError] = React.useState("");
+  const [syncLoading, setSyncLoading] = React.useState({});
+  const [syncSummary, setSyncSummary] = React.useState({});
 
-function Clients({ clients, refresh }) {
+  React.useEffect(() => {
+    load();
+  }, []);
+
+  async function load() {
+    try {
+      setError("");
+      const [agencyRes, clientsRes] = await Promise.all([
+        api("/api/agency/overview"),
+        api("/api/clients/")
+      ]);
+
+      setData(agencyRes?.agency?.ranking || []);
+      setClientsRaw(Array.isArray(clientsRes) ? clientsRes : []);
+    } catch (e) {
+      setError(e.message || "Erro ao carregar clientes");
+    }
+  }
+
+  async function runSync(id) {
+    try {
+      setError("");
+      setSyncLoading(prev => ({ ...prev, [id]: true }));
+
+      const res = await api("/api/rdsync/run/" + id, { method: "POST" });
+
+      setSyncSummary(prev => ({
+        ...prev,
+        [id]: res?.summary || null
+      }));
+
+      await load();
+      if (refreshAll) await refreshAll();
+    } catch (e) {
+      setError(e.message || "Erro no sync");
+    } finally {
+      setSyncLoading(prev => ({ ...prev, [id]: false }));
+    }
+  }
+
+  async function loadSummary(id) {
+    try {
+      setError("");
+      const res = await api("/api/rdsync/summary/" + id);
+
+      setSyncSummary(prev => ({
+        ...prev,
+        [id]: res?.data?.summary || res?.data || null
+      }));
+    } catch (e) {
+      setError(e.message || "Erro ao buscar resumo");
+    }
+  }
+
+  function findRawClient(id) {
+    return clientsRaw.find(c => c.id === id) || {};
+  }
+
   return (
     <div>
-      <h2>Clientes</h2>
-
-      {clients.map(c => (
-        <div className="card" key={c.id}>
-          <strong>{c.name}</strong>
-
-          <div style={{marginTop:10}}>
-            <button className="btn" onClick={()=>runSync(c.id, refresh)}>Rodar Sync RD</button>
-          </div>
+      <div className="row">
+        <div>
+          <h1 className="section-title">Clientes</h1>
+          <div className="sub">Score, alertas, ações e sync da RD</div>
         </div>
-      ))}
+        <div>
+          <button className="btn" onClick={load}>Atualizar</button>
+        </div>
+      </div>
+
+      {error && <div className="error-box">{error}</div>}
+
+      {data.length === 0 && !error && (
+        <div className="card">Nenhum dado de ranking ainda.</div>
+      )}
+
+      {data.map(c => {
+        const raw = findRawClient(c.client_id);
+        const summary = syncSummary[c.client_id];
+        const counts = summary?.counts || {};
+
+        return (
+          <div className="card" key={c.client_id}>
+            <div className="row">
+              <strong style={{fontSize:22}}>{c.client_name}</strong>
+              <div>Score: <strong>{c.score}</strong></div>
+            </div>
+
+            <div className="muted" style={{marginTop:10}}>
+              {raw.segment ? `Segmento: ${raw.segment}` : "Sem segmento"}
+              {raw.website ? ` | Site: ${raw.website}` : ""}
+            </div>
+
+            <div style={{marginTop:12}}>
+              <span className={`badge ${
+                c.priority === "alta" ? "red" : c.priority === "média" ? "yellow" : "green"
+              }`}>
+                Prioridade {c.priority}
+              </span>
+
+              <span className={`badge ${c.rd_connected ? "green" : "red"}`}>
+                {c.rd_connected ? "RD conectada" : "RD desconectada"}
+              </span>
+            </div>
+
+            <div style={{marginTop:14}}>
+              <strong>Alertas</strong>
+              <div style={{marginTop:8}}>
+                {(c.alerts || []).length === 0 ? (
+                  <div className="muted">Sem alertas.</div>
+                ) : (c.alerts || []).map((a, i) => (
+                  <div key={i} style={{color:"#ff8f8f", marginBottom:6}}>⚠ {a}</div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{marginTop:14}}>
+              <strong>Ações sugeridas</strong>
+              <div style={{marginTop:8}}>
+                {(c.actions || []).length === 0 ? (
+                  <div className="muted">Sem ações sugeridas.</div>
+                ) : (c.actions || []).map((a, i) => (
+                  <div key={i} style={{marginBottom:6}}>👉 {a}</div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{marginTop:18}}>
+              <button className="btn" onClick={() => runSync(c.client_id)} disabled={!!syncLoading[c.client_id]}>
+                {syncLoading[c.client_id] ? "Sincronizando..." : "Rodar Sync RD"}
+              </button>
+
+              <button className="btn secondary" onClick={() => loadSummary(c.client_id)}>
+                Ver resumo
+              </button>
+
+              {!c.rd_connected && (
+                <button
+                  className="btn secondary"
+                  onClick={() => window.open("/oauth/authorize/" + c.client_id, "_blank")}
+                >
+                  Conectar RD
+                </button>
+              )}
+            </div>
+
+            {summary && (
+              <div style={{marginTop:18, padding:16, background:"#11161d", borderRadius:10}}>
+                <strong>Resumo do Sync</strong>
+
+                <div style={{marginTop:10}}>
+                  <div className="list-line">Landing Pages: {counts.landing_pages || 0}</div>
+                  <div className="list-line">Segmentações: {counts.segmentations || 0}</div>
+                  <div className="list-line">Workflows: {counts.workflows || 0}</div>
+                  <div className="list-line">Campanhas: {counts.campaigns || 0}</div>
+                </div>
+
+                {summary?.module_errors && Object.keys(summary.module_errors).length > 0 && (
+                  <div style={{marginTop:12, color:"#ff9a9a"}}>
+                    <strong>Erros:</strong>
+                    <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(summary.module_errors, null, 2)}</pre>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
-}
-
-async function runSync(id, refresh) {
-  await api("/api/rdsync/run/" + id, { method: "POST" });
-  refresh();
 }
 
 /* =========================
    APP
 ========================= */
-
 function App() {
   const [authed, setAuthed] = React.useState(!!getToken());
   const [section, setSection] = React.useState("dashboard");
-
-  const [clients, setClients] = React.useState([]);
   const [dashboard, setDashboard] = React.useState(null);
+  const [globalError, setGlobalError] = React.useState("");
 
-  async function loadAll() {
-    if (!getToken()) return;
-
-    const [c, d] = await Promise.all([
-      api("/api/clients/"),
-      api("/api/agency/overview")
-    ]);
-
-    setClients(c);
+  async function loadDashboard() {
+    const d = await api("/api/agency/overview");
     setDashboard(d);
   }
 
+  async function refreshAll() {
+    if (!getToken()) return;
+
+    try {
+      setGlobalError("");
+      await loadDashboard();
+    } catch (e) {
+      setGlobalError(e.message || "Erro ao atualizar dados");
+    }
+  }
+
   React.useEffect(() => {
-    loadAll();
+    if (getToken()) {
+      refreshAll();
+    }
   }, []);
+
+  async function handleLogged() {
+    setAuthed(true);
+    await refreshAll();
+  }
 
   function logout() {
     clearSession();
     setAuthed(false);
+    setDashboard(null);
   }
 
-  if (!authed) return <Login onLogin={()=>setAuthed(true)} />;
+  if (!authed) {
+    return <Login onLogin={handleLogged} />;
+  }
 
   return (
     <div className="app">
       <Sidebar section={section} setSection={setSection} logout={logout} />
 
       <div className="main">
-        {section === "dashboard" && <Dashboard data={dashboard} />}
-        {section === "clients" && <Clients clients={clients} refresh={loadAll} />}
+        {globalError && <div className="error-box">{globalError}</div>}
+
+        {section === "dashboard" && <Dashboard data={dashboard} reload={refreshAll} />}
+        {section === "clients" && <Clients refreshAll={refreshAll} />}
       </div>
     </div>
   );
 }
 
 ReactDOM.render(<App />, document.getElementById("root"));
-
 </script>
 </body>
 </html>
