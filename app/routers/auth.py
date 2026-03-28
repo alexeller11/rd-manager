@@ -21,7 +21,10 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     if not user:
         raise HTTPException(status_code=401, detail="Usuário ou senha inválidos")
 
-    access_token = create_access_token({"sub": user["username"]}, expires_delta=timedelta(days=1))
+    access_token = create_access_token(
+        {"sub": user["username"]},
+        expires_delta=timedelta(days=1),
+    )
 
     return {
         "access_token": access_token,
@@ -32,4 +35,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @router.get("/me")
 async def me(current_user: dict = Depends(get_current_user)):
-    return current_user
+    return {
+        "ok": True,
+        "user": current_user,
+    }
