@@ -1,12 +1,14 @@
 from fastapi import APIRouter
 
+from app.services.prospecting import build_prospect_diagnosis
+
 router = APIRouter()
 
 
-@router.post("/")
-async def prospect(data: dict):
+@router.post("/analyze-business")
+async def analyze_business(payload: dict):
+    diagnosis = build_prospect_diagnosis(payload)
     return {
-        "diagnostico": "Empresa não utiliza automações",
-        "oportunidade": "Implantar funil de nutrição",
-        "potencial": "R$ 5.000/mês"
+        "ok": True,
+        "analysis": diagnosis,
     }
