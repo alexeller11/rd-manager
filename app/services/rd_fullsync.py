@@ -173,7 +173,7 @@ async def _fetch_paginated_debug(token: str, path: str, limit: int = 100, max_pa
         result = await _rd_get_debug(
             token,
             path,
-            params={"page": page, "limit": limit},
+            params={"page": page, "page_size": limit},
         )
 
         pages_info.append({
@@ -212,8 +212,8 @@ async def _fetch_paginated_debug(token: str, path: str, limit: int = 100, max_pa
 async def _fetch_segment_contacts_debug(
     token: str,
     segmentation_id: str,
-    limit: int = 100,
-    max_pages: int = 5,
+    limit: int = 125,
+    max_pages: int = 25,
 ) -> dict:
     all_items: List[dict] = []
     pages_info: List[dict] = []
@@ -222,7 +222,7 @@ async def _fetch_segment_contacts_debug(
         result = await _rd_get_debug(
             token,
             f"/segmentations/{segmentation_id}/contacts",
-            params={"page": page, "limit": limit},
+            params={"page": page, "page_size": limit},
         )
 
         pages_info.append({
@@ -276,6 +276,31 @@ async def _fetch_email_metrics_debug(token: str) -> dict:
         "error": None,
         "text_preview": result["text_preview"],
         "payload": _json_safe(payload),
+    }
+
+
+async def _fetch_lp_analytics(token: str, conversion_identifier: str) -> dict:
+    """Busca métricas reais de Landing Page pelo conversion_identifier.
+    Endpoint: GET /platform/analytics/conversions?asset_type=LandingPage&conversion_identifier={id}
+    Retorna: visits_count, conversions_count, conversion_rate
+    """
+    result = await _rd_get_debug(
+        token,
+        "/analytics/conversions",
+        params={"asset_type": "LandingPage", "conversion_identifier": conversion_identifier},
+    )
+    if not result["ok"] or not isinstance(result["payload"], dict):
+        return {"visits_count": 0, "conversions_count": 0, "conversion_rate": 0.0}
+
+    data = result["payload"]
+    # A API retorna uma lista ou um objeto
+    if isinstance(data, list):
+        data = data[0] if data else {}
+
+    return {
+        "visits_count": int(data.get("visits_count", 0) or 0),
+        "conversions_count": int(data.get("conversions_count", 0) or 0),
+        "conversion_rate": float(data.get("conversion_rate", 0.0) or 0.0),
     }
 
 
@@ -364,53 +389,38 @@ async def _finish_run(run_id: int, status: str, summary: dict | None = None, err
     )
 
 
-    # Tenta capturar métricas de diversas formas (direta ou aninhada)
-    data = metrics_payload or {}
+def _extract_metrics(metrics_payload: dict) -> dict:
+    """Extrai métricas de email (open_rate, click_rate e campos raw do .analytics/emails)."""
+    if not isinstance(metrics_payload, dict):
+        return {"open_rate": 0.0, "click_rate": 0.0}
+
+    data = metrics_payload
     open_rate = 0.0
     click_rate = 0.0
-    visitors = 0
-    conversions = 0
 
-    # Possíveis chaves para taxa de abertura
+    # Campos reais da API /analytics/emails da RD Station
     for key in ("open_rate", "opens_rate", "avg_open_rate", "opening_rate"):
         val = data.get(key)
         if val is not None:
             try:
                 open_rate = float(val)
                 break
-            except: pass
+            except Exception:
+                pass
 
-    # Possíveis chaves para taxa de clique
     for key in ("click_rate", "clicks_rate", "avg_click_rate", "ctr"):
         val = data.get(key)
         if val is not None:
             try:
                 click_rate = float(val)
                 break
-            except: pass
-
-    # Possíveis chaves para volume (para modules como LPs)
-    for key in ("visitors_count", "visits", "view_count", "total_visits"):
-        val = data.get(key)
-        if val is not None:
-            try:
-                visitors = int(val)
-                break
-            except: pass
-
-    for key in ("conversions_count", "conversions", "leads_count", "leads"):
-        val = data.get(key)
-        if val is not None:
-            try:
-                conversions = int(val)
-                break
-            except: pass
+            except Exception:
+                pass
 
     return {
         "open_rate": open_rate,
         "click_rate": click_rate,
-        "visitors": visitors,
-        "conversions": conversions,
+        "raw": data,
     }
 
 
@@ -440,8 +450,24 @@ async def run_full_sync(client_id: int):
             if result["ok"]:
                 landing_pages = result["items"]
                 for i, item in enumerate(landing_pages):
-                    # Tenta enriquecer o item com métricas se estiverem disponíveis no payload
-                    item["_metrics"] = _extract_metrics(item)
+                    # A API v2 NÃO retorna URL pública da LP.
+                    # Construímos a URL usando o conversion_identifier (slug).
+                    conv_id = item.get("conversion_identifier") or item.get("identifier") or ""
+                    if conv_id:
+                        item["public_url"] = f"https://conteudo.rdstation.com/{conv_id}"
+                    else:
+                        item["public_url"] = ""
+
+                    # Busca métricas reais via endpoint /analytics/conversions
+                    if conv_id:
+                        try:
+                            lp_analytics = await _fetch_lp_analytics(token, conv_id)
+                            item["visits_count"] = lp_analytics["visits_count"]
+                            item["conversions_count"] = lp_analytics["conversions_count"]
+                            item["conversion_rate"] = lp_analytics["conversion_rate"]
+                        except Exception:
+                            pass
+
                     await _upsert_snapshot(client_id, "landing_page", _pick_object_key(item, "landing_page", i), item)
             else:
                 module_errors["landing_pages"] = result["error"]

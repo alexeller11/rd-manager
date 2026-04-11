@@ -418,7 +418,7 @@
 
 <script type="text/babel">
 const API = "";
-const BUILD_TAG = "2026-04-11-v1.1-blindagem-ia";
+const BUILD_TAG = "2026-04-11-v1.2-api-v2-corrected";
 console.log("RD Manager IA build:", BUILD_TAG);
 
 function getToken() {
@@ -1054,28 +1054,28 @@ function ModulePage({ moduleName, title, description }) {
 
   function extractLandingUrl(item) {
     if (!item || !item.payload) return "";
-    const payload = item.payload || {};
+    const p = item.payload || {};
 
-    const direct = [
-      payload.url,
-      payload.page_url,
-      payload.link,
-      payload.canonical_url,
-      payload.public_url,
-      payload.preview_url,
-      payload.landing_page_url,
-      payload?.meta?.url,
-      payload?.site?.url,
-      payload?.links?.public_url,
-    ].filter(Boolean);
+    // Ordem de preferência dos campos de URL
+    // O backend agora constrói public_url via conversion_identifier
+    const candidates = [
+      p.public_url,
+      p.url,
+      p.page_url,
+      p.link,
+      p.canonical_url,
+      p.landing_page_url,
+      p?.meta?.url,
+      p?.site?.url,
+      p?.links?.public_url,
+    ].filter(u => typeof u === "string" && u.startsWith("http"));
 
-    const linksArray = Array.isArray(payload.links) ? payload.links : [];
-    const fromLinks = linksArray
-      .map((l) => l?.href || l?.url || l?.link)
-      .filter((u) => typeof u === "string" && u.startsWith("http"));
+    // Fallback: constrói a URL a partir do conversion_identifier
+    if (!candidates.length && p.conversion_identifier) {
+      return `https://conteudo.rdstation.com/${p.conversion_identifier}`;
+    }
 
-    const candidates = [...direct, ...fromLinks];
-    return candidates.find((u) => typeof u === "string" && u.startsWith("http")) || "";
+    return candidates[0] || "";
   }
 
   function normalizeLead(item) {
@@ -1361,21 +1361,24 @@ function ModulePage({ moduleName, title, description }) {
                   </div>
                   <div className="metric-row">
                     <div className="mini-metric">
-                      <div className="mini-metric-label">Conversão</div>
+                      <div className="mini-metric-label">Visitas</div>
                       <div className="mini-metric-value" style={{fontSize:14}}>
-                        {item.payload?._metrics?.conversions || item.payload?.conversion_count || "—"} 
-                        <span style={{fontSize:10, opacity:0.7, marginLeft:4}}>({item.payload?._metrics?.conversion_rate || item.payload?.conversion_rate || "0"}%)</span>
+                        {item.payload?.visits_count ?? "—"}
                       </div>
                     </div>
                     <div className="mini-metric">
-                      <div className="mini-metric-label">Tráfego</div>
+                      <div className="mini-metric-label">Conversões</div>
                       <div className="mini-metric-value" style={{fontSize:14}}>
-                        {item.payload?._metrics?.visitors || item.payload?.visitors_count || item.payload?.visits || "—"}
+                        {item.payload?.conversions_count ?? "—"}
                       </div>
                     </div>
                     <div className="mini-metric">
-                      <div className="mini-metric-label">Score</div>
-                      <div className="mini-metric-value" style={{fontSize:14}}>{item.payload?.score || "—"}</div>
+                      <div className="mini-metric-label">Taxa</div>
+                      <div className="mini-metric-value" style={{fontSize:14}}>
+                        {item.payload?.conversion_rate != null
+                          ? `${(item.payload.conversion_rate * 100).toFixed(1)}%`
+                          : "—"}
+                      </div>
                     </div>
                   </div>
                   <div style={{marginTop: 12}}>
