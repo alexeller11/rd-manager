@@ -499,28 +499,31 @@ function parseFlowPlan(text) {
   const steps = [];
 
   lines.forEach((line, idx) => {
-    const dayMatch = line.match(/dia\s*(\d+)/i);
-    if (!dayMatch) return;
-    const day = Number(dayMatch[1]);
+    const dayMatch = line.match(/(?:dia|espera|aguardar)\s*(\d+)/i);
+    const isStep = dayMatch || line.includes("Email") || line.includes("Etapa") || line.includes("Passo");
+    if (!isStep) return;
+
+    const day = dayMatch ? Number(dayMatch[1]) : (steps.length > 0 ? steps[steps.length-1].day + 2 : 1);
     const next = lines[idx + 1] || "";
     const theme =
-      (line.match(/tema[^:]*:\s*([^|-]+)/i) || [])[1] ||
-      (next.match(/tema[^:]*:\s*([^|-]+)/i) || [])[1] ||
+      (line.match(/(?:tema|assunto|título)[^:]*:\s*([^|-]+)/i) || [])[1] ||
+      (next.match(/(?:tema|assunto|título)[^:]*:\s*([^|-]+)/i) || [])[1] ||
       "";
     const objective =
-      (line.match(/objetivo[^:]*:\s*([^|-]+)/i) || [])[1] ||
-      (next.match(/objetivo[^:]*:\s*([^|-]+)/i) || [])[1] ||
+      (line.match(/(?:objetivo|meta)[^:]*:\s*([^|-]+)/i) || [])[1] ||
+      (next.match(/(?:objetivo|meta)[^:]*:\s*([^|-]+)/i) || [])[1] ||
       "";
     const cta =
       (line.match(/cta[^:]*:\s*([^|-]+)/i) || [])[1] ||
       (next.match(/cta[^:]*:\s*([^|-]+)/i) || [])[1] ||
       "Continuar no fluxo";
+
     steps.push({
       id: `${day}-${idx}`,
       day,
-      title: theme ? theme.trim() : `Email do dia ${day}`,
-      objective: objective ? objective.trim() : "Evoluir lead na jornada",
-      cta: cta.trim(),
+      title: theme ? theme.trim().replace(/\*\*/g, "") : `Etapa dia ${day}`,
+      objective: objective ? objective.trim().replace(/\*\*/g, "") : "Evoluir lead na jornada",
+      cta: cta.trim().replace(/\*\*/g, ""),
       raw: line,
     });
   });
@@ -1322,10 +1325,10 @@ function ModulePage({ moduleName, title, description }) {
 
       {moduleInfo && (
         <div className="kpi-grid">
-          <div className="kpi-card"><div className="kpi-label">Itens</div><div className="kpi-value">{moduleInfo.count || 0}</div></div>
-          <div className="kpi-card"><div className="kpi-label">No banco</div><div className="kpi-value">{moduleInfo.db_count || 0}</div></div>
-          <div className="kpi-card"><div className="kpi-label">No resumo</div><div className="kpi-value">{moduleInfo.summary_count || 0}</div></div>
-          <div className="kpi-card"><div className="kpi-label">Último sync</div><div className="kpi-value" style={{fontSize:"18px"}}>{moduleInfo.synced_at ? "OK" : "—"}</div></div>
+          <div className="kpi-card"><div className="kpi-label">Total Localizado (RD)</div><div className="kpi-value">{moduleInfo.summary_count || moduleInfo.count || 0}</div></div>
+          <div className="kpi-card"><div className="kpi-label">Sincronizados (Nesta lista)</div><div className="kpi-value">{moduleInfo.db_count || items.length || 0}</div></div>
+          <div className="kpi-card"><div className="kpi-label">Módulo</div><div className="kpi-value" style={{fontSize:18}}>{moduleInfo.label}</div></div>
+          <div className="kpi-card"><div className="kpi-label">Status Sync</div><div className="kpi-value" style={{fontSize:"18px"}}>{moduleInfo.synced_at ? "OK" : "Pendente"}</div></div>
         </div>
       )}
 
@@ -1357,9 +1360,23 @@ function ModulePage({ moduleName, title, description }) {
                     {url ? <a href={url} target="_blank" rel="noreferrer">{url}</a> : "URL não encontrada"}
                   </div>
                   <div className="metric-row">
-                    <div className="mini-metric"><div className="mini-metric-label">Conversão</div><div className="mini-metric-value" style={{fontSize:14}}>{item.payload?.conversion_rate || "—"}</div></div>
-                    <div className="mini-metric"><div className="mini-metric-label">Tráfego</div><div className="mini-metric-value" style={{fontSize:14}}>{item.payload?.visitors_count || item.payload?.visits || "—"}</div></div>
-                    <div className="mini-metric"><div className="mini-metric-label">Score</div><div className="mini-metric-value" style={{fontSize:14}}>{item.payload?.score || "—"}</div></div>
+                    <div className="mini-metric">
+                      <div className="mini-metric-label">Conversão</div>
+                      <div className="mini-metric-value" style={{fontSize:14}}>
+                        {item.payload?._metrics?.conversions || item.payload?.conversion_count || "—"} 
+                        <span style={{fontSize:10, opacity:0.7, marginLeft:4}}>({item.payload?._metrics?.conversion_rate || item.payload?.conversion_rate || "0"}%)</span>
+                      </div>
+                    </div>
+                    <div className="mini-metric">
+                      <div className="mini-metric-label">Tráfego</div>
+                      <div className="mini-metric-value" style={{fontSize:14}}>
+                        {item.payload?._metrics?.visitors || item.payload?.visitors_count || item.payload?.visits || "—"}
+                      </div>
+                    </div>
+                    <div className="mini-metric">
+                      <div className="mini-metric-label">Score</div>
+                      <div className="mini-metric-value" style={{fontSize:14}}>{item.payload?.score || "—"}</div>
+                    </div>
                   </div>
                   <div style={{marginTop: 12}}>
                     <button type="button" className="btn blue" onClick={() => runAiAnalysis(item)} disabled={aiLoading || !url}>
@@ -1564,13 +1581,13 @@ function ModulePage({ moduleName, title, description }) {
 }
 
 function FlowStudio() {
-  const [goal, setGoal] = React.useState("Reengajar leads inativos");
-  const [product, setProduct] = React.useState("Serviços de marketing digital");
-  const [audience, setAudience] = React.useState("Leads captados via landing pages");
-  const [awareness, setAwareness] = React.useState("Médio");
-  const [flowType, setFlowType] = React.useState("Reengajamento");
-  const [flowDays, setFlowDays] = React.useState(10);
-  const [emailCount, setEmailCount] = React.useState(4);
+  const [goal, setGoal] = React.useState("Qualificação de Lead");
+  const [product, setProduct] = React.useState("");
+  const [audience, setAudience] = React.useState("");
+  const [awareness, setAwareness] = React.useState("Misto");
+  const [flowType, setFlowType] = React.useState("Nutrição");
+  const [flowDays, setFlowDays] = React.useState(14);
+  const [emailCount, setEmailCount] = React.useState(5);
   const [flow, setFlow] = React.useState("");
   const [emailContext, setEmailContext] = React.useState("");
   const [emailTheme, setEmailTheme] = React.useState("");
@@ -1664,14 +1681,53 @@ function FlowStudio() {
       {error && <div className="error-box">{error}</div>}
 
       <div className="card">
-        <input value={goal} onChange={e => setGoal(e.target.value)} placeholder="Objetivo do fluxo" />
-        <input value={product} onChange={e => setProduct(e.target.value)} placeholder="Produto/serviço" />
-        <input value={audience} onChange={e => setAudience(e.target.value)} placeholder="Público" />
-        <input value={awareness} onChange={e => setAwareness(e.target.value)} placeholder="Nível de consciência" />
-        <input value={flowType} onChange={e => setFlowType(e.target.value)} placeholder="Tipo de fluxo (reengajamento, qualificação, vendas...)" />
-        <input type="number" value={flowDays} onChange={e => setFlowDays(e.target.value)} placeholder="Dias do fluxo" />
-        <input type="number" value={emailCount} onChange={e => setEmailCount(e.target.value)} placeholder="Quantidade de emails" />
-        <button type="button" className="btn" onClick={generateFlow} disabled={loadingFlow}>{loadingFlow ? "Gerando..." : "Gerar fluxo"}</button>
+        <div className="row" style={{gap:15, marginBottom:15}}>
+          <div style={{flex:1}}>
+            <label className="muted" style={{fontSize:12, display:"block", marginBottom:4}}>Objetivo Estratégico</label>
+            <select value={goal} onChange={e => setGoal(e.target.value)} style={{width:"100%"}}>
+              <option value="Qualificação de Lead">🎯 Qualificação de Lead</option>
+              <option value="Newsletter">📰 Newsletter / Conteúdo</option>
+              <option value="Recuperação de Carrinho">🛒 Recuperação de Carrinho</option>
+              <option value="Promoção / Venda Direta">💰 Promoção / Venda Direta</option>
+              <option value="Engajamento de Base">🔥 Engajamento de Base</option>
+              <option value="Reaquecimento de Leads Cold">❄️ Reaquecimento (Cold Leads)</option>
+              <option value="Crescimento / Expansão">📈 Crescimento / Expansão</option>
+              <option value="Boas-vindas / Onboarding">👋 Boas-vindas / Onboarding</option>
+            </select>
+          </div>
+          <div style={{flex:1}}>
+            <label className="muted" style={{fontSize:12, display:"block", marginBottom:4}}>Tipo de Automação</label>
+            <select value={flowType} onChange={e => setFlowType(e.target.value)} style={{width:"100%"}}>
+              <option value="Nutrição">Nutrição Padrão</option>
+              <option value="Vendas">Foco em Vendas</option>
+              <option value="Educativo">Educativo / Autoridade</option>
+              <option value="Híbrido">Híbrido (Conteúdo + Promo)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="row" style={{gap:15, marginBottom:15}}>
+          <input value={product} onChange={e => setProduct(e.target.value)} placeholder="Produto ou serviço da agência/cliente" />
+          <input value={audience} onChange={e => setAudience(e.target.value)} placeholder="Persona / Público-alvo" />
+        </div>
+
+        <div className="row" style={{gap:15, marginBottom:15}}>
+          <div style={{flex:1}}>
+            <label className="muted" style={{fontSize:12, display:"block", marginBottom:4}}>Nível de Consciência</label>
+            <select value={awareness} onChange={e => setAwareness(e.target.value)} style={{width:"100%"}}>
+              <option value="Inconsciente">Inconsciente</option>
+              <option value="Consciente do Problema">Consciente do Problema</option>
+              <option value="Consciente da Solução">Consciente da Solução</option>
+              <option value="Misto">Misto / Amplo</option>
+            </select>
+          </div>
+          <input type="number" style={{width:100}} value={flowDays} onChange={e => setFlowDays(e.target.value)} placeholder="Dias" />
+          <input type="number" style={{width:100}} value={emailCount} onChange={e => setEmailCount(e.target.value)} placeholder="Emails" />
+        </div>
+
+        <button type="button" className="btn" onClick={generateFlow} disabled={loadingFlow} style={{width:"100%"}}>
+          {loadingFlow ? "Arquitetando Estratégia..." : "Gerar Estrutura de Fluxo (Padrão RD Station)"}
+        </button>
       </div>
 
       {flow && <div className="card"><h3>Fluxo sugerido</h3><pre>{flow}</pre></div>}

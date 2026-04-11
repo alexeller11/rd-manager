@@ -364,32 +364,53 @@ async def _finish_run(run_id: int, status: str, summary: dict | None = None, err
     )
 
 
-def _extract_metrics(metrics_payload: dict) -> dict:
-    if not isinstance(metrics_payload, dict):
-        return {"open_rate": 0.0, "click_rate": 0.0}
-
+    # Tenta capturar métricas de diversas formas (direta ou aninhada)
+    data = metrics_payload or {}
     open_rate = 0.0
     click_rate = 0.0
+    visitors = 0
+    conversions = 0
 
-    for key in ("open_rate", "opens_rate", "avg_open_rate"):
-        if key in metrics_payload:
+    # Possíveis chaves para taxa de abertura
+    for key in ("open_rate", "opens_rate", "avg_open_rate", "opening_rate"):
+        val = data.get(key)
+        if val is not None:
             try:
-                open_rate = float(metrics_payload[key] or 0)
+                open_rate = float(val)
                 break
-            except Exception:
-                pass
+            except: pass
 
-    for key in ("click_rate", "clicks_rate", "avg_click_rate"):
-        if key in metrics_payload:
+    # Possíveis chaves para taxa de clique
+    for key in ("click_rate", "clicks_rate", "avg_click_rate", "ctr"):
+        val = data.get(key)
+        if val is not None:
             try:
-                click_rate = float(metrics_payload[key] or 0)
+                click_rate = float(val)
                 break
-            except Exception:
-                pass
+            except: pass
+
+    # Possíveis chaves para volume (para modules como LPs)
+    for key in ("visitors_count", "visits", "view_count", "total_visits"):
+        val = data.get(key)
+        if val is not None:
+            try:
+                visitors = int(val)
+                break
+            except: pass
+
+    for key in ("conversions_count", "conversions", "leads_count", "leads"):
+        val = data.get(key)
+        if val is not None:
+            try:
+                conversions = int(val)
+                break
+            except: pass
 
     return {
         "open_rate": open_rate,
         "click_rate": click_rate,
+        "visitors": visitors,
+        "conversions": conversions,
     }
 
 
@@ -419,6 +440,8 @@ async def run_full_sync(client_id: int):
             if result["ok"]:
                 landing_pages = result["items"]
                 for i, item in enumerate(landing_pages):
+                    # Tenta enriquecer o item com métricas se estiverem disponíveis no payload
+                    item["_metrics"] = _extract_metrics(item)
                     await _upsert_snapshot(client_id, "landing_page", _pick_object_key(item, "landing_page", i), item)
             else:
                 module_errors["landing_pages"] = result["error"]
@@ -465,10 +488,11 @@ async def run_full_sync(client_id: int):
                     "count": len(contacts_result["items"]),
                 })
 
-                if not contacts_result["ok"]:
-                    continue
-
                 contacts = contacts_result["items"]
+                
+                # Atualiza a contagem na segmentação original para facilitar a exibição
+                segmentation["contacts_count"] = len(contacts)
+                await _upsert_snapshot(client_id, "segmentation", _pick_object_key(segmentation, "segmentation", 0), segmentation)
 
                 for c_index, contact in enumerate(contacts):
                     identity = _lead_identity(contact, c_index)
@@ -494,7 +518,7 @@ async def run_full_sync(client_id: int):
                 "count": len(unique_leads),
             }
 
-            for i, lead in enumerate(unique_leads[:500]):
+            for i, lead in enumerate(unique_leads[:1500]):
                 await _upsert_snapshot(client_id, "lead", _pick_object_key(lead, "lead", i), lead)
 
         except Exception as e:
