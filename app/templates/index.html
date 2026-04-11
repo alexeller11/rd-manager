@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>RD Manager IA</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0a0f14;
+      --panel: #111821;
+      --panel-2: #16202b;
+      --line: #22303e;
+      --text: #f4f7fa;
+      --muted: #9fb0bf;
+      --green: #22a06b;
+      --green-soft: #143526;
+      --yellow: #f0b429;
+      --yellow-soft: #4f3a10;
+      --red: #e45b5b;
+      --red-soft: #4f1d1d;
+      --blue: #4da3ff;
+      --blue-soft: #13283f;
+      --shadow: 0 14px 30px rgba(0,0,0,.22);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: radial-gradient(circle at top right, #12202e 0%, var(--bg) 40%);
+      color: var(--text);
+    }
+
+    .app {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 290px;
+      background: rgba(10, 15, 20, .88);
+      border-right: 1px solid var(--line);
+      padding: 24px 18px;
+      backdrop-filter: blur(8px);
+    }
+
+    .brand {
+      margin-bottom: 28px;
+    }
+
+    .brand h2 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      letter-spacing: -.03em;
+    }
+
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .nav-title {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin: 20px 0 10px;
+    }
+
+    .sidebar button {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 12px 14px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+      border-radius: 12px;
+      font-size: 15px;
+      transition: .18s ease;
+    }
+
+    .sidebar button:hover {
+      background: #131d27;
+      border-color: var(--line);
+    }
+
+    .sidebar button.active {
+      background: linear-gradient(180deg, #1f8f5f 0%, #17724b 100%);
+      border-color: #269864;
+    }
+
+    .main {
+      flex: 1;
+      padding: 28px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #131d27 0%, #10161d 100%);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 34px;
+      letter-spacing: -.04em;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 900px;
+      line-height: 1.5;
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--panel) 0%, #10161d 100%);
+      padding: 20px;
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .btn {
+      background: linear-gradient(180deg, #22a06b 0%, #1b8257 100%);
+      border: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      color: white;
+      cursor: pointer;
+      margin-right: 8px;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    .btn.secondary {
+      background: #1a2530;
+      border: 1px solid var(--line);
+    }
+
+    .btn.blue {
+      background: linear-gradient(180deg, #3182ce 0%, #2468a6 100%);
+    }
+
+    .btn:disabled {
+      opacity: .65;
+      cursor: not-allowed;
+    }
+
+    .error-box {
+      background: #401c1c;
+      border: 1px solid #6d3030;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      white-space: pre-wrap;
+      color: #ffb0b0;
+    }
+
+    .success-box {
+      background: #143526;
+      border: 1px solid #216844;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      white-space: pre-wrap;
+      color: #b7ffd7;
+    }
+
+    input, textarea, select {
+      display: block;
+      margin-bottom: 10px;
+      padding: 12px;
+      width: 360px;
+      max-width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #0f161d;
+      color: white;
+      box-sizing: border-box;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 7px 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-top: 8px;
+      margin-right: 8px;
+      border: 1px solid transparent;
+    }
+
+    .badge.green {
+      background: var(--green-soft);
+      color: #7ff0b8;
+      border-color: #21583f;
+    }
+
+    .badge.yellow {
+      background: var(--yellow-soft);
+      color: #ffd36b;
+      border-color: #73571a;
+    }
+
+    .badge.red {
+      background: var(--red-soft);
+      color: #ff9d9d;
+      border-color: #703333;
+    }
+
+    .badge.blue {
+      background: var(--blue-soft);
+      color: #8fc6ff;
+      border-color: #294f75;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .kpi-card {
+      background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+      padding: 18px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .kpi-label {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .kpi-value {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -.03em;
+    }
+
+    .list-line {
+      margin: 8px 0;
+      color: #d9e0e5;
+      line-height: 1.45;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .mini-metric {
+      background: #0f161d;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .mini-metric-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .mini-metric-value {
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .table-card {
+      background: #0f161d;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .table-row {
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .table-row:last-child {
+      border-bottom: none;
+    }
+
+    .status-box {
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: #0f161d;
+      margin-bottom: 12px;
+    }
+
+    .status-box.urgent {
+      border-color: #703333;
+      background: #221313;
+    }
+
+    .status-box.expansion {
+      border-color: #73571a;
+      background: #241d10;
+    }
+
+    .status-box.maintenance {
+      border-color: #21583f;
+      background: #112218;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0f161d;
+      padding: 12px;
+      border-radius: 8px;
+      overflow: auto;
+      border: 1px solid var(--line);
+    }
+
+    .ai-report {
+      background: linear-gradient(180deg, #0f161d 0%, #0c1218 100%);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+      line-height: 1.55;
+    }
+
+    .ai-report h4 {
+      margin: 0 0 8px;
+      color: #8fc6ff;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+
+    .ai-report p {
+      margin: 0 0 8px;
+      color: #d9e0e5;
+    }
+
+    .ai-report p:last-child {
+      margin-bottom: 0;
+    }
+
+    @media (max-width: 1100px) {
+      .metric-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 980px) {
+      .app { flex-direction: column; }
+      .sidebar { width: 100%; }
+      .kpi-grid, .two-col, .metric-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .kpi-grid, .two-col, .metric-row {
+        grid-template-columns: 1fr;
+      }
+
+      input, textarea, select {
+        width: 100%;
+      }
+
+      .main {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const API = "";
+const BUILD_TAG = "2026-04-11-v1.1-blindagem-ia";
+console.log("RD Manager IA build:", BUILD_TAG);
+
+function getToken() {
+  try {
+    return localStorage.getItem("rd_manager_token");
+  } catch (_err) {
+    return null;
+  }
+}
+
+function saveSession(data) {
+  try {
+    if (data?.access_token) {
+      localStorage.setItem("rd_manager_token", data.access_token);
+    }
+    if (data?.username) {
+      localStorage.setItem("rd_manager_username", data.username);
+    }
+  } catch (_err) {}
+}
+
+function clearSession() {
+  try {
+    localStorage.removeItem("rd_manager_token");
+    localStorage.removeItem("rd_manager_username");
+  } catch (_err) {}
+}
+
+function normalizeAiReport(payload) {
+  if (payload == null) return "";
+  if (typeof payload === "string") return payload;
+  try {
+    return JSON.stringify(payload, null, 2);
+  } catch (_err) {
+    return String(payload);
+  }
+}
+
+function renderAiReport(reportText) {
+  const text = (reportText || "").trim();
+  if (!text) return null;
+
+  if (text.startsWith("{") || text.startsWith("[")) {
+    return <pre>{text}</pre>;
+  }
+
+  const blocks = text.split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
+
+  return (
+    <div className="ai-report">
+      {blocks.map((block, i) => {
+        const lines = block.split("\n").map((l) => l.trim()).filter(Boolean);
+        const first = lines[0] || "";
+        const isTitle = first.endsWith(":") && first.length < 90;
+
+        if (isTitle) {
+          return (
+            <div key={i} style={{marginBottom: 12}}>
+              <h4>{first.replace(/:$/, "")}</h4>
+              {lines.slice(1).map((line, idx) => <p key={idx}>{line}</p>)}
+            </div>
+          );
+        }
+
+        return <p key={i}>{block}</p>;
+      })}
+    </div>
+  );
+}
+
+function parseFlowPlan(text) {
+  const raw = (text || "").trim();
+  if (!raw) return { name: "", objective: "", steps: [] };
+
+  const lines = raw.split("\n").map((l) => l.trim()).filter(Boolean);
+  const nameLine = lines.find((l) => /nome do fluxo/i.test(l)) || "";
+  const objectiveLine = lines.find((l) => /objetivo do fluxo/i.test(l)) || "";
+  const steps = [];
+
+  lines.forEach((line, idx) => {
+    const dayMatch = line.match(/dia\s*(\d+)/i);
+    if (!dayMatch) return;
+    const day = Number(dayMatch[1]);
+    const next = lines[idx + 1] || "";
+    const theme =
+      (line.match(/tema[^:]*:\s*([^|-]+)/i) || [])[1] ||
+      (next.match(/tema[^:]*:\s*([^|-]+)/i) || [])[1] ||
+      "";
+    const objective =
+      (line.match(/objetivo[^:]*:\s*([^|-]+)/i) || [])[1] ||
+      (next.match(/objetivo[^:]*:\s*([^|-]+)/i) || [])[1] ||
+      "";
+    const cta =
+      (line.match(/cta[^:]*:\s*([^|-]+)/i) || [])[1] ||
+      (next.match(/cta[^:]*:\s*([^|-]+)/i) || [])[1] ||
+      "Continuar no fluxo";
+    steps.push({
+      id: `${day}-${idx}`,
+      day,
+      title: theme ? theme.trim() : `Email do dia ${day}`,
+      objective: objective ? objective.trim() : "Evoluir lead na jornada",
+      cta: cta.trim(),
+      raw: line,
+    });
+  });
+
+  return {
+    name: nameLine.replace(/\*\*/g, ""),
+    objective: objectiveLine.replace(/\*\*/g, ""),
+    steps,
+  };
+}
+
+async function api(url, options = {}) {
+  const token = getToken();
+  const headers = {
+    ...(options.body ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers || {})
+  };
+
+  const res = await fetch(API + url, {
+    ...options,
+    headers
+  });
+
+  const text = await res.text();
+
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch (e) {
+    if (!res.ok) throw new Error(text || "Erro do servidor");
+    return text;
+  }
+
+  if (!res.ok) {
+    const detail = data?.detail || text || "Erro do servidor";
+    if (res.status === 401) {
+      clearSession();
+    }
+
+    throw new Error(detail);
+  }
+
+  return data;
+}
+
+function Sidebar({ section, setSection, logout }) {
+  return (
+    <div className="sidebar">
+      <div className="brand">
+        <h2>RD Manager IA</h2>
+        <p>Ferramenta de agência para score, risco, expansão, relatórios e módulos reais da RD.</p>
+        <div style={{fontSize:"11px", color:"var(--blue)", marginTop:"10px", fontWeight:"bold"}}>
+          SISTEMA ATUALIZADO (v1.1)
+        </div>
+      </div>
+
+      <div className="nav-title">Operação</div>
+      <button type="button" className={section==="dashboard"?"active":""} onClick={()=>setSection("dashboard")}>Dashboard</button>
+      <button type="button" className={section==="clients"?"active":""} onClick={()=>setSection("clients")}>Clientes</button>
+      <button type="button" className={section==="portfolio"?"active":""} onClick={()=>setSection("portfolio")}>Carteira Inteligente</button>
+
+      <div className="nav-title">Módulos RD</div>
+      <button type="button" className={section==="landing_pages"?"active":""} onClick={()=>setSection("landing_pages")}>Landing Pages</button>
+      <button type="button" className={section==="leads"?"active":""} onClick={()=>setSection("leads")}>Leads</button>
+      <button type="button" className={section==="segmentations"?"active":""} onClick={()=>setSection("segmentations")}>Segmentações</button>
+      <button type="button" className={section==="workflows"?"active":""} onClick={()=>setSection("workflows")}>Workflows</button>
+      <button type="button" className={section==="campaigns"?"active":""} onClick={()=>setSection("campaigns")}>Campanhas</button>
+      <button type="button" className={section==="flow_studio"?"active":""} onClick={()=>setSection("flow_studio")}>Flow Studio IA</button>
+
+      <div className="nav-title">Crescimento</div>
+      <button type="button" className={section==="prospect"?"active":""} onClick={()=>setSection("prospect")}>Prospecção</button>
+      <button type="button" className={section==="report"?"active":""} onClick={()=>setSection("report")}>Relatório Executivo</button>
+      <button type="button" className={section==="alerts"?"active":""} onClick={()=>setSection("alerts")}>Alertas</button>
+
+      <div className="nav-title">Sessão</div>
+      <button type="button" onClick={logout}>Sair</button>
+    </div>
+  );
+}
+
+function LoginPage({ onLogin }) {
+  const [username, setUsername] = React.useState("admin");
+  const [password, setPassword] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  async function submit(e) {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      setError("");
+
+      const body = new URLSearchParams();
+      body.set("username", username);
+      body.set("password", password);
+
+      const loginRes = await fetch(API + "/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+      });
+
+      const text = await loginRes.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (_parseErr) {
+        data = { detail: text || "Falha no login" };
+      }
+
+      if (!loginRes.ok) {
+        throw new Error(data?.detail || "Falha no login");
+      }
+
+      saveSession(data);
+      onLogin();
+    } catch (err) {
+      setError(err.message || "Erro ao autenticar");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="main" style={{maxWidth: 460, margin: "40px auto"}}>
+      <div className="hero">
+        <h1>RD Manager IA</h1>
+        <p>Entre com usuário e senha para acessar o painel.</p>
+      </div>
+
+      <form className="card" onSubmit={submit}>
+        {error && <div className="error-box">{error}</div>}
+        <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Usuário" />
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Senha" />
+        <button className="btn" type="submit" disabled={loading}>
+          {loading ? "Entrando..." : "Entrar"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+
+
+function ClientsPanel({ reloadDashboard }) {
+  const [clients, setClients] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [syncingId, setSyncingId] = React.useState(null);
+  const [error, setError] = React.useState("");
+  const [form, setForm] = React.useState({
+    name: "",
+    segment: "",
+    website: "",
+    description: "",
+  });
+
+  async function loadClients() {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await api("/api/clients/");
+      setClients(Array.isArray(res) ? res : []);
+    } catch (e) {
+      setError(e.message || "Erro ao carregar clientes");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  React.useEffect(() => {
+    loadClients();
+  }, []);
+
+  async function createClient() {
+    if (!form.name.trim()) {
+      setError("Informe o nome do cliente.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError("");
+      await api("/api/clients/", {
+        method: "POST",
+        body: JSON.stringify(form),
+      });
+      setForm({ name: "", segment: "", website: "", description: "" });
+      await loadClients();
+      if (reloadDashboard) await reloadDashboard();
+    } catch (e) {
+      setError(e.message || "Erro ao criar cliente");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function syncClient(clientId) {
+    try {
+      setSyncingId(clientId);
+      setError("");
+      await api(`/api/rdsync/run/${clientId}`, { method: "POST" });
+      await loadClients();
+      if (reloadDashboard) await reloadDashboard();
+    } catch (e) {
+      setError(e.message || "Erro ao sincronizar cliente");
+    } finally {
+      setSyncingId(null);
+    }
+  }
+
+  return (
+    <div>
+      <div className="hero">
+        <h1>Clientes</h1>
+        <p>Cadastre clientes, conecte RD e execute sincronização completa.</p>
+      </div>
+
+      {error && <div className="error-box">{error}</div>}
+
+      <div className="card">
+        <h3>Novo cliente</h3>
+        <input
+          placeholder="Nome"
+          value={form.name}
+          onChange={e => setForm({ ...form, name: e.target.value })}
+        />
+        <input
+          placeholder="Segmento"
+          value={form.segment}
+          onChange={e => setForm({ ...form, segment: e.target.value })}
+        />
+        <input
+          placeholder="Website"
+          value={form.website}
+          onChange={e => setForm({ ...form, website: e.target.value })}
+        />
+        <textarea
+          placeholder="Descrição"
+          value={form.description}
+          onChange={e => setForm({ ...form, description: e.target.value })}
+        />
+        <button type="button" className="btn" onClick={createClient} disabled={saving}>
+          {saving ? "Salvando..." : "Adicionar cliente"}
+        </button>
+      </div>
+
+      <div className="card">
+        <div className="row">
+          <h3 style={{ margin: 0 }}>Carteira</h3>
+          <button type="button" className="btn secondary" onClick={loadClients} disabled={loading}>
+            {loading ? "Atualizando..." : "Atualizar"}
+          </button>
+        </div>
+
+        {clients.length === 0 ? (
+          <div className="muted" style={{ marginTop: 12 }}>Nenhum cliente cadastrado.</div>
+        ) : clients.map((c) => (
+          <div key={c.id} className="status-box" style={{ marginTop: 12 }}>
+            <div className="row">
+              <strong>{c.name}</strong>
+              <span className={`badge ${c.rd_connected ? "green" : "red"}`}>
+                {c.rd_connected ? "RD conectada" : "RD não conectada"}
+              </span>
+            </div>
+
+            <div className="muted" style={{ marginTop: 8 }}>
+              {c.segment || "Sem segmento"}
+              {c.website ? ` • ${c.website}` : ""}
+            </div>
+
+            <div style={{ marginTop: 10 }}>
+              <a className="btn blue" href={`/oauth/authorize/${c.id}`}>Conectar RD</a>
+              <button type="button" className="btn" onClick={() => syncClient(c.id)} disabled={syncingId === c.id}>
+                {syncingId === c.id ? "Sincronizando..." : "Sincronizar"}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Dashboard({ data, reload }) {
+  const agency = data?.agency || {};
+  const ranking = agency?.ranking || [];
+  const alerts = agency?.alerts || [];
+  const priorities = agency?.weekly_priorities || [];
+  const directorView = agency?.director_view || {};
+
+  return (
+    <div>
+      <div className="hero">
+        <div className="row">
+          <div>
+            <h1>Dashboard da Agência</h1>
+            <p>Visão executiva da carteira com foco em risco, expansão e potencial comercial.</p>
+          </div>
+          <div>
+            <button type="button" className="btn" onClick={reload}>Atualizar</button>
+          </div>
+        </div>
+      </div>
+
+      {agency.executive_briefing && (
+        <div className="card" style={{borderLeft: "4px solid var(--blue)"}}>
+          <h3 style={{marginTop: 0, color: "var(--blue)"}}>🧠 Briefing Estratégico da IA</h3>
+          {renderAiReport(agency.executive_briefing)}
+        </div>
+      )}
+
+      <div className="kpi-grid">
+        <div className="kpi-card">
+          <div className="kpi-label">Score da agência</div>
+          <div className="kpi-value">{agency?.score ?? 0}</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Clientes em risco</div>
+          <div className="kpi-value">{directorView?.at_risk_total ?? 0}</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Clientes em expansão</div>
+          <div className="kpi-value">{directorView?.expansion_total ?? 0}</div>
+        </div>
+        <div className="kpi-card">
+          <div className="kpi-label">Potencial estimado</div>
+          <div className="kpi-value">R$ {directorView?.potential_revenue ?? 0}</div>
+        </div>
+      </div>
+
+      <div className="two-col">
+        <div className="card">
+          <h3>Alertas</h3>
+          {alerts.length === 0 ? (
+            <div className="muted">Nenhum alerta no momento.</div>
+          ) : alerts.map((a, i) => (
+            <div className="list-line" key={i}>⚠ {a}</div>
+          ))}
+        </div>
+
+        <div className="card">
+          <h3>Prioridades da semana</h3>
+          {priorities.length === 0 ? (
+            <div className="muted">Nenhuma prioridade no momento.</div>
+          ) : priorities.map((p, i) => (
+            <div className="list-line" key={i}>👉 {p}</div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <h3>Ranking de clientes</h3>
+        {ranking.length === 0 ? (
+          <div className="muted">Nenhum cliente ranqueado ainda.</div>
+        ) : ranking.map((c) => (
+          <div key={c.client_id} style={{borderBottom:"1px solid #25303b", padding:"14px 0"}}>
+            <div className="row">
+              <strong>{c.client_name}</strong>
+              <div>Score: <strong>{c.score}</strong></div>
+            </div>
+
+            <div className="muted" style={{marginTop:8}}>{c.summary}</div>
+
+            <div style={{marginTop:10}}>
+              <span className={`badge ${
+                c.stage === "urgente" ? "red" : c.stage === "expansão" ? "yellow" : "green"
+              }`}>
+                {c.stage}
+              </span>
+
+              <span className={`badge ${c.rd_connected ? "green" : "red"}`}>
+                {c.rd_connected ? "RD conectada" : "RD desconectada"}
+              </span>
+
+              {c.last_sync && <span className="badge blue">Sync OK</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PortfolioPage({ data }) {
+  const agency = data?.agency || {};
+  const portfolio = agency?.portfolio || {};
+  const atRisk = portfolio?.at_risk || [];
+  const expansion = portfolio?.expansion || [];
+  const maintenance = portfolio?.maintenance || [];
+
+  return (
+    <div>
+      <div className="hero">
+        <h1>Carteira Inteligente</h1>
+        <p>Classificação automática da carteira por risco, expansão e manutenção.</p>
+      </div>
+
+      <div className="two-col">
+        <div className="card">
+          <h3>Em risco</h3>
+          {atRisk.length === 0 ? (
+            <div className="muted">Nenhum cliente em risco.</div>
+          ) : atRisk.map((client) => (
+            <div key={client.client_id} className="status-box urgent">
+              <strong>{client.client_name}</strong>
+              <div className="list-line">Score: {client.score}</div>
+              <div className="list-line">{client.summary}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="card">
+          <h3>Em expansão</h3>
+          {expansion.length === 0 ? (
+            <div className="muted">Nenhum cliente em expansão.</div>
+          ) : expansion.map((client) => (
+            <div key={client.client_id} className="status-box expansion">
+              <strong>{client.client_name}</strong>
+              <div className="list-line">Score: {client.score}</div>
+              {(client.upsell_opportunities || []).slice(0, 3).map((item, idx) => (
+                <div className="list-line" key={idx}>💡 {item}</div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <h3>Manutenção</h3>
+        {maintenance.length === 0 ? (
+          <div className="muted">Nenhum cliente em manutenção.</div>
+        ) : maintenance.map((client) => (
+          <div key={client.client_id} className="status-box maintenance">
+            <strong>{client.client_name}</strong>
+            <div className="list-line">Score: {client.score}</div>
+            <div className="list-line">{client.summary}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ModulePage({ moduleName, title, description }) {
+  const [clients, setClients] = React.useState([]);
+  const [clientId, setClientId] = React.useState("");
+  const [overview, setOverview] = React.useState(null);
+  const [data, setData] = React.useState(null);
+  const [error, setError] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [aiLoading, setAiLoading] = React.useState(false);
+  const [aiReport, setAiReport] = React.useState("");
+  const [landingModalOpen, setLandingModalOpen] = React.useState(false);
+  const [landingModalTitle, setLandingModalTitle] = React.useState("");
+  const [leadFilter, setLeadFilter] = React.useState("all");
+  const [leadSourceFilter, setLeadSourceFilter] = React.useState("all");
+  const [leadSearch, setLeadSearch] = React.useState("");
+  const [segSearch, setSegSearch] = React.useState("");
+  const [workflowOpenKey, setWorkflowOpenKey] = React.useState("");
+  const [stepEmailLoading, setStepEmailLoading] = React.useState("");
+
+  React.useEffect(() => {
+    loadClients();
+  }, []);
+
+  async function loadClients() {
+    try {
+      const res = await api("/api/clients/");
+      const list = Array.isArray(res) ? res : [];
+      setClients(list);
+      if (list.length > 0 && !clientId) setClientId(String(list[0].id));
+    } catch (e) {
+      setError(e.message || "Erro ao carregar clientes");
+    }
+  }
+
+  async function loadModule() {
+    if (!clientId) return;
+
+    try {
+      setLoading(true);
+      setError("");
+      setAiReport("");
+
+      const [overviewRes, itemsRes] = await Promise.all([
+        api(`/api/rd-modules/client/${clientId}/overview`),
+        api(`/api/rd-modules/client/${clientId}/${moduleName}?limit=100`),
+      ]);
+
+      setOverview(overviewRes?.data || null);
+      setData(itemsRes?.data || null);
+    } catch (e) {
+      setError(e.message || "Erro ao carregar módulo");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function normalizeItems() {
+    const items = data?.items || [];
+    return items.map((it) => ({
+      key: it.object_key,
+      synced_at: it.synced_at,
+      payload: it.payload || {},
+      title:
+        it.payload?.title ||
+        it.payload?.name ||
+        it.payload?.email ||
+        it.payload?.subject ||
+        it.object_key,
+      status:
+        it.payload?.status ||
+        it.payload?.state ||
+        it.payload?.workflow_status ||
+        "—",
+      metric:
+        it.payload?.conversion_rate ||
+        it.payload?.open_rate ||
+        it.payload?.click_rate ||
+        it.payload?.contacts_count ||
+        it.payload?.visitors_count ||
+        it.payload?.created_at ||
+        "—",
+    }));
+  }
+
+  function extractLandingUrl(item) {
+    if (!item || !item.payload) return "";
+    const payload = item.payload || {};
+
+    const direct = [
+      payload.url,
+      payload.page_url,
+      payload.link,
+      payload.canonical_url,
+      payload.public_url,
+      payload.preview_url,
+      payload.landing_page_url,
+      payload?.meta?.url,
+      payload?.site?.url,
+      payload?.links?.public_url,
+    ].filter(Boolean);
+
+    const linksArray = Array.isArray(payload.links) ? payload.links : [];
+    const fromLinks = linksArray
+      .map((l) => l?.href || l?.url || l?.link)
+      .filter((u) => typeof u === "string" && u.startsWith("http"));
+
+    const candidates = [...direct, ...fromLinks];
+    return candidates.find((u) => typeof u === "string" && u.startsWith("http")) || "";
+  }
+
+  function normalizeLead(item) {
+    const p = item.payload || {};
+    const lc = p.last_conversion || {};
+    const firstConversion = Array.isArray(p.conversions) ? p.conversions[0] : null;
+
+    const source =
+      p.source ||
+      p.traffic_source ||
+      p.utm_source ||
+      p.origin ||
+      lc.source ||
+      lc.channel ||
+      lc.conversion_origin ||
+      firstConversion?.source ||
+      firstConversion?.origin ||
+      firstConversion?.conversion_origin ||
+      p?.last_conversion?.content?.identificador ||
+      "indefinido";
+
+    const conversions = Number(
+      p.conversions_count ||
+      p.conversions ||
+      p.conversion_count ||
+      (Array.isArray(p.conversions) ? p.conversions.length : 0) ||
+      0
+    );
+
+    const lastInteractionRaw =
+      p.last_interaction_at ||
+      p.last_conversion_date ||
+      lc.created_at ||
+      p.updated_at ||
+      p.created_at ||
+      null;
+
+    const lastDate = lastInteractionRaw ? new Date(lastInteractionRaw) : null;
+    const inactiveDays = lastDate && !Number.isNaN(lastDate.getTime())
+      ? Math.max(0, Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24)))
+      : null;
+
+    const engagement = Math.max(0, Math.min(100, (conversions * 18) + (inactiveDays !== null ? Math.max(0, 35 - inactiveDays) : 0)));
+    const score = Math.max(0, Math.min(100, (conversions * 20) + (p.email ? 10 : 0) + (source !== "indefinido" ? 10 : 0)));
+
+    return {
+      key: item.key,
+      name: p.name || (p.email ? p.email.split("@")[0] : "Lead sem nome"),
+      email: p.email || p.personal_email || "—",
+      stage: p.lifecycle_stage || p.stage || p.status || "—",
+      lastConversion: lastInteractionRaw || "—",
+      source,
+      score,
+      engagement,
+      inactiveDays,
+      isActive: (p.status || "").toLowerCase() !== "inactive",
+    };
+  }
+
+  async function runAiAnalysis(selectedItem = null) {
+    const items = normalizeItems();
+    if (!items.length) return;
+
+    try {
+      setAiLoading(true);
+      setError("");
+      const rawItems = selectedItem ? [selectedItem.payload] : items.map(i => i.payload);
+
+      if (moduleName === "landing_pages") {
+        const item = selectedItem || items[0];
+        const url = extractLandingUrl(item);
+        if (!url) {
+          const res = await api("/api/flows-advanced/generate-email", {
+            method: "POST",
+            body: JSON.stringify({
+              context: `Faça uma análise estratégica da landing page apenas pelo payload sincronizado: ${JSON.stringify(item?.payload || {}).slice(0, 4000)}`,
+              theme: "Análise SEO/CRO de landing page sem URL pública",
+              objective: "sugerir melhorias práticas",
+              tone: "consultivo",
+              cta: "aplicar melhorias",
+            }),
+          });
+          setLandingModalTitle(item?.title || "Landing Page");
+          setAiReport(normalizeAiReport(res?.email || res));
+          setLandingModalOpen(true);
+          return;
+        }
+        const res = await api("/api/landing-pages/analyze", {
+          method: "POST",
+          body: JSON.stringify({ url }),
+        });
+        setLandingModalTitle(item?.title || "Landing Page");
+        setAiReport(normalizeAiReport(res?.analysis || res));
+        setLandingModalOpen(true);
+        return;
+      }
+
+      if (moduleName === "leads") {
+        const res = await api("/api/leads/analyze-base", {
+          method: "POST",
+          body: JSON.stringify({ client_id: Number(clientId), leads: rawItems }),
+        });
+        setAiReport(normalizeAiReport(res?.analysis || res));
+        return;
+      }
+
+      if (moduleName === "segmentations") {
+        const target = selectedItem ? [selectedItem.payload] : rawItems;
+        const res = await api("/api/leads/segment", {
+          method: "POST",
+          body: JSON.stringify({ client_id: Number(clientId), segmentations: target }),
+        });
+        setAiReport(normalizeAiReport(res?.segments || res));
+        return;
+      }
+
+      if (moduleName === "workflows") {
+        const contextPayload = selectedItem ? [selectedItem.payload] : rawItems;
+        const res = await api("/api/flows-advanced/generate-flow", {
+          method: "POST",
+          body: JSON.stringify({
+            goal: "melhorar engajamento e conversão de workflows RD",
+            product: "Serviços de agência",
+            audience: "base ativa e inativa",
+            awareness: "misto",
+            flow_type: "workflow RD",
+            flow_days: 14,
+            email_count: 5,
+            context: contextPayload,
+          }),
+        });
+        setAiReport(normalizeAiReport(res?.flow || res));
+        return;
+      }
+
+      if (moduleName === "campaigns") {
+        const contextPayload = selectedItem ? [selectedItem.payload] : rawItems;
+        const res = await api("/api/flows-advanced/generate-email", {
+          method: "POST",
+          body: JSON.stringify({
+            context: `Monte um relatório da campanha e melhorias práticas: ${JSON.stringify(contextPayload).slice(0, 4000)}`,
+            theme: "relatório de campanha",
+            objective: "aumentar performance",
+            tone: "estratégico",
+            cta: "aplicar melhorias sugeridas",
+          }),
+        });
+        setAiReport(normalizeAiReport(res?.email || res));
+        return;
+      }
+
+      setAiReport(normalizeAiReport("Análise IA não configurada para este módulo."));
+    } catch (e) {
+      setError(e.message || "Erro ao rodar análise IA");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  const moduleInfo = overview?.modules?.[moduleName];
+  const items = normalizeItems();
+  const leads = items.map(normalizeLead);
+  const leadSources = Array.from(new Set(leads.map((l) => l.source))).sort();
+  const filteredLeads = leads.filter((lead) => {
+    if (leadFilter === "active" && !lead.isActive) return false;
+    if (leadFilter === "inactive" && lead.isActive) return false;
+    if (leadFilter === "high" && lead.score < 70) return false;
+    if (leadSourceFilter !== "all" && lead.source !== leadSourceFilter) return false;
+    if (leadSearch && !`${lead.name} ${lead.email}`.toLowerCase().includes(leadSearch.toLowerCase())) return false;
+    return true;
+  });
+  const segmentationItems = items.filter((it) => moduleName === "segmentations").map((it) => {
+    const p = it.payload || {};
+    const updatedRaw = p.updated_at || p.last_updated_at || it.synced_at;
+    const updatedDate = updatedRaw ? new Date(updatedRaw) : null;
+    const inactiveDays = updatedDate && !Number.isNaN(updatedDate.getTime())
+      ? Math.max(0, Math.floor((Date.now() - updatedDate.getTime()) / (1000 * 60 * 60 * 24)))
+      : null;
+    return {
+      ...it,
+      name: p.name || p.title || it.title,
+      contacts: p.contacts || p.contacts_count || p.leads || 0,
+      updatedRaw: updatedRaw || "—",
+      inactiveDays,
+      lastInteraction: p.last_interaction_at || p.last_conversion_date || updatedRaw || "—",
+    };
+  });
+  const filteredSegmentations = segmentationItems.filter((seg) =>
+    !segSearch || String(seg.name || "").toLowerCase().includes(segSearch.toLowerCase())
+  );
+  const workflowItems = items.filter((it) => moduleName === "workflows");
+  const campaignItems = items.filter((it) => moduleName === "campaigns");
+  const parsedWorkflowReport = parseFlowPlan(aiReport);
+
+  async function generateStepEmail(step, contextLabel = "workflow") {
+    try {
+      setStepEmailLoading(step.id || `${step.day}`);
+      setError("");
+      const res = await api("/api/flows-advanced/generate-email", {
+        method: "POST",
+        body: JSON.stringify({
+          context: `Crie um email para etapa do ${contextLabel}. Contexto da etapa: ${JSON.stringify(step)}`,
+          theme: step.title || `Email dia ${step.day}`,
+          objective: step.objective || "Avançar lead no fluxo",
+          cta: step.cta || "Continuar no fluxo",
+          tone: "consultivo e objetivo",
+          target: "lead da automação",
+        }),
+      });
+      setAiReport(normalizeAiReport(res?.email || res));
+    } catch (e) {
+      setError(e.message || "Erro ao gerar email da etapa");
+    } finally {
+      setStepEmailLoading("");
+    }
+  }
+
+  return (
+    <div>
+      <div className="hero">
+        <h1>{title}</h1>
+        <p>{description}</p>
+      </div>
+
+      {error && <div className="error-box">{error}</div>}
+
+      <div className="card">
+        <div className="row">
+          <select value={clientId} onChange={(e) => setClientId(e.target.value)}>
+            <option value="">Selecione um cliente</option>
+            {clients.map((client) => (
+              <option key={client.id} value={client.id}>{client.name}</option>
+            ))}
+          </select>
+          <div>
+            <button type="button" className="btn" onClick={loadModule} disabled={loading || !clientId}>
+              {loading ? "Carregando..." : "Carregar módulo"}
+            </button>
+            {moduleName !== "landing_pages" && (
+              <button type="button" className="btn blue" onClick={() => runAiAnalysis()} disabled={aiLoading || !data}>
+                {aiLoading ? "Analisando IA..." : "Analisar com IA"}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {moduleInfo && (
+        <div className="kpi-grid">
+          <div className="kpi-card"><div className="kpi-label">Itens</div><div className="kpi-value">{moduleInfo.count || 0}</div></div>
+          <div className="kpi-card"><div className="kpi-label">No banco</div><div className="kpi-value">{moduleInfo.db_count || 0}</div></div>
+          <div className="kpi-card"><div className="kpi-label">No resumo</div><div className="kpi-value">{moduleInfo.summary_count || 0}</div></div>
+          <div className="kpi-card"><div className="kpi-label">Último sync</div><div className="kpi-value" style={{fontSize:"18px"}}>{moduleInfo.synced_at ? "OK" : "—"}</div></div>
+        </div>
+      )}
+
+      {aiReport && (
+        <div className="card">
+          <h3>Relatório IA ({title})</h3>
+          {renderAiReport(aiReport)}
+        </div>
+      )}
+
+      {!loading && data && items.length === 0 && (
+        <div className="card">Nenhum item sincronizado para este módulo.</div>
+      )}
+
+      {moduleName === "landing_pages" && items.length > 0 && (
+        <div className="card">
+          <h3>Landing Pages v2</h3>
+          <div className="two-col">
+            {items.map((item, index) => {
+              const url = extractLandingUrl(item);
+              return (
+                <div className="status-box" key={item.key || index}>
+                  <div className="row">
+                    <strong>{item.title}</strong>
+                    <span className="badge blue">{item.status}</span>
+                  </div>
+                  <div className="muted" style={{marginTop: 8}}>{item.synced_at || "Sem data"}</div>
+                  <div className="muted" style={{marginTop: 6}}>
+                    {url ? <a href={url} target="_blank" rel="noreferrer">{url}</a> : "URL não encontrada"}
+                  </div>
+                  <div className="metric-row">
+                    <div className="mini-metric"><div className="mini-metric-label">Conversão</div><div className="mini-metric-value" style={{fontSize:14}}>{item.payload?.conversion_rate || "—"}</div></div>
+                    <div className="mini-metric"><div className="mini-metric-label">Tráfego</div><div className="mini-metric-value" style={{fontSize:14}}>{item.payload?.visitors_count || item.payload?.visits || "—"}</div></div>
+                    <div className="mini-metric"><div className="mini-metric-label">Score</div><div className="mini-metric-value" style={{fontSize:14}}>{item.payload?.score || "—"}</div></div>
+                  </div>
+                  <div style={{marginTop: 12}}>
+                    <button type="button" className="btn blue" onClick={() => runAiAnalysis(item)} disabled={aiLoading || !url}>
+                      {aiLoading ? "Analisando..." : "Analisar SEO+GEO com IA"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {moduleName === "leads" && items.length > 0 && (
+        <div className="card">
+          <h3>Leads v2</h3>
+          <div className="row">
+            <input placeholder="Buscar lead" value={leadSearch} onChange={(e) => setLeadSearch(e.target.value)} />
+            <select value={leadFilter} onChange={(e) => setLeadFilter(e.target.value)}>
+              <option value="all">Todos</option>
+              <option value="active">Ativos</option>
+              <option value="inactive">Inativos</option>
+              <option value="high">Alto potencial</option>
+            </select>
+            <select value={leadSourceFilter} onChange={(e) => setLeadSourceFilter(e.target.value)}>
+              <option value="all">Todas as fontes</option>
+              {leadSources.map((src) => <option key={src} value={src}>{src}</option>)}
+            </select>
+          </div>
+          <div className="table-card">
+            {filteredLeads.map((lead, idx) => (
+              <div className="table-row" key={lead.key || idx}>
+                <div className="row">
+                  <strong>{lead.name}</strong>
+                  <span className="badge blue">{lead.stage}</span>
+                </div>
+                <div className="metric-row">
+                  <div className="mini-metric"><div className="mini-metric-label">Email</div><div className="mini-metric-value" style={{fontSize:14}}>{lead.email}</div></div>
+                  <div className="mini-metric"><div className="mini-metric-label">Última conversão</div><div className="mini-metric-value" style={{fontSize:14}}>{lead.lastConversion}</div></div>
+                  <div className="mini-metric"><div className="mini-metric-label">Origem</div><div className="mini-metric-value" style={{fontSize:14}}>{lead.source}</div></div>
+                  <div className="mini-metric"><div className="mini-metric-label">Score</div><div className="mini-metric-value" style={{fontSize:14}}>{lead.score}</div></div>
+                  <div className="mini-metric"><div className="mini-metric-label">Engajamento</div><div className="mini-metric-value" style={{fontSize:14}}>{lead.engagement}</div></div>
+                  <div className="mini-metric"><div className="mini-metric-label">Sem interação (dias)</div><div className="mini-metric-value" style={{fontSize:14}}>{lead.inactiveDays ?? "—"}</div></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {moduleName === "segmentations" && filteredSegmentations.length > 0 && (
+        <div className="card">
+          <h3>Segmentações</h3>
+          <div className="row">
+            <input placeholder="Filtrar segmentação por nome" value={segSearch} onChange={(e) => setSegSearch(e.target.value)} />
+          </div>
+          <div className="table-card">
+            {filteredSegmentations.map((item, index) => (
+              <div className="table-row" key={item.key || index}>
+                <div className="row">
+                  <strong>{item.name}</strong>
+                  <span className="muted">{item.updatedRaw}</span>
+                </div>
+                <div className="metric-row" style={{gridTemplateColumns:"repeat(3, 1fr)"}}>
+                  <div className="mini-metric"><div className="mini-metric-label">Leads</div><div className="mini-metric-value" style={{fontSize:14}}>{item.contacts}</div></div>
+                  <div className="mini-metric"><div className="mini-metric-label">Sem interação (dias)</div><div className="mini-metric-value" style={{fontSize:14}}>{item.inactiveDays ?? "—"}</div></div>
+                  <div className="mini-metric"><div className="mini-metric-label">Última interação</div><div className="mini-metric-value" style={{fontSize:14}}>{item.lastInteraction}</div></div>
+                </div>
+                <div style={{marginTop:10}}>
+                  <button type="button" className="btn blue" onClick={() => runAiAnalysis(item)} disabled={aiLoading}>
+                    {aiLoading ? "Analisando..." : "Analisar segmentação com IA"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {moduleName === "workflows" && workflowItems.length > 0 && (
+        <div className="card">
+          <h3>Mapa de Workflows</h3>
+          <div className="table-card">
+            {workflowItems.map((item, index) => {
+              const p = item.payload || {};
+              const emails = p.emails || p.steps || p.nodes || [];
+              const opened = workflowOpenKey === (item.key || String(index));
+              return (
+                <div className="table-row" key={item.key || index}>
+                  <div className="row">
+                    <strong>{item.title}</strong>
+                    <span className="muted">{item.synced_at || "Sem data"}</span>
+                  </div>
+                  <div style={{marginTop:10}}>
+                    <button type="button" className="btn secondary" onClick={() => setWorkflowOpenKey(opened ? "" : (item.key || String(index)))}>
+                      {opened ? "Ocultar emails do fluxo" : "Mostrar emails do fluxo"}
+                    </button>
+                    <button type="button" className="btn blue" onClick={() => runAiAnalysis(item)} disabled={aiLoading}>
+                      {aiLoading ? "Analisando..." : "Analisar fluxo com IA"}
+                    </button>
+                  </div>
+                  {opened && (
+                    <div style={{marginTop:12}}>
+                      {Array.isArray(emails) && emails.length > 0 ? emails.map((em, i) => (
+                        <div key={i} className="status-box">
+                          <div><strong>{em.subject || em.name || `Email ${i+1}`}</strong></div>
+                          <div className="muted" style={{marginTop:6}}>Dia: {em.day || em.delay_days || i + 1}</div>
+                          <button type="button" className="btn blue" style={{marginTop:8}} onClick={() => runAiAnalysis({ payload: em, title: em.subject || em.name || `Email ${i+1}` })} disabled={aiLoading}>
+                            {aiLoading ? "Analisando..." : "Analisar email com IA"}
+                          </button>
+                        </div>
+                      )) : <div className="muted">Este workflow não trouxe mapa detalhado de emails no payload.</div>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {parsedWorkflowReport.steps.length > 0 && (
+            <div style={{marginTop: 16}}>
+              <h3 style={{marginBottom: 10}}>Mapa sugerido pela IA</h3>
+              <div className="metric-row">
+                {parsedWorkflowReport.steps.map((step) => (
+                  <div className="mini-metric" key={step.id}>
+                    <div className="mini-metric-label">Dia {step.day}</div>
+                    <div style={{fontWeight: 700, marginBottom: 6}}>{step.title}</div>
+                    <div className="muted" style={{fontSize: 12, marginBottom: 8}}>{step.objective}</div>
+                    <button
+                      type="button"
+                      className="btn blue"
+                      style={{marginBottom: 0}}
+                      onClick={() => generateStepEmail(step, "mapa de workflow da IA")}
+                      disabled={stepEmailLoading === step.id}
+                    >
+                      {stepEmailLoading === step.id ? "Gerando..." : "Gerar email desta etapa"}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {moduleName === "campaigns" && campaignItems.length > 0 && (
+        <div className="card">
+          <h3>Campanhas</h3>
+          <div className="table-card">
+            {campaignItems.map((item, index) => (
+              <div className="table-row" key={item.key || index}>
+                <div className="row">
+                  <strong>{item.title}</strong>
+                  <span className="muted">{item.synced_at || "Sem data"}</span>
+                </div>
+                <div style={{marginTop:10}}>
+                  <button type="button" className="btn blue" onClick={() => runAiAnalysis(item)} disabled={aiLoading}>
+                    {aiLoading ? "Gerando..." : "Gerar relatório da campanha"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {moduleName !== "landing_pages" && moduleName !== "leads" && moduleName !== "segmentations" && moduleName !== "workflows" && moduleName !== "campaigns" && items.length > 0 && (
+        <div className="card">
+          <h3>Painel executivo do módulo</h3>
+          <div className="table-card">
+            {items.map((item, index) => (
+              <div className="table-row" key={item.key || index}>
+                <div className="row">
+                  <strong>{item.title}</strong>
+                  <span className="muted">{item.synced_at || "Sem data"}</span>
+                </div>
+                <div className="metric-row">
+                  <div className="mini-metric"><div className="mini-metric-label">Chave</div><div className="mini-metric-value" style={{fontSize:14}}>{item.key || "—"}</div></div>
+                  <div className="mini-metric"><div className="mini-metric-label">Status</div><div className="mini-metric-value" style={{fontSize:14}}>{item.status}</div></div>
+                  <div className="mini-metric"><div className="mini-metric-label">Métrica</div><div className="mini-metric-value" style={{fontSize:14}}>{String(item.metric)}</div></div>
+                </div>
+                <details style={{marginTop:12}}>
+                  <summary style={{cursor:"pointer"}}>Ver payload completo</summary>
+                  <pre>{JSON.stringify(item.payload, null, 2)}</pre>
+                </details>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {landingModalOpen && (
+        <div className="card" style={{position:"fixed", inset:"6% 10%", zIndex:999, overflow:"auto"}}>
+          <div className="row">
+            <h3 style={{margin:0}}>Relatório IA — {landingModalTitle}</h3>
+            <button type="button" className="btn secondary" onClick={() => setLandingModalOpen(false)}>Fechar</button>
+          </div>
+          {renderAiReport(aiReport)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FlowStudio() {
+  const [goal, setGoal] = React.useState("Reengajar leads inativos");
+  const [product, setProduct] = React.useState("Serviços de marketing digital");
+  const [audience, setAudience] = React.useState("Leads captados via landing pages");
+  const [awareness, setAwareness] = React.useState("Médio");
+  const [flowType, setFlowType] = React.useState("Reengajamento");
+  const [flowDays, setFlowDays] = React.useState(10);
+  const [emailCount, setEmailCount] = React.useState(4);
+  const [flow, setFlow] = React.useState("");
+  const [emailContext, setEmailContext] = React.useState("");
+  const [emailTheme, setEmailTheme] = React.useState("");
+  const [emailObjective, setEmailObjective] = React.useState("");
+  const [emailTone, setEmailTone] = React.useState("Consultivo");
+  const [emailCta, setEmailCta] = React.useState("Responder este email");
+  const [email, setEmail] = React.useState("");
+  const [loadingFlow, setLoadingFlow] = React.useState(false);
+  const [loadingEmail, setLoadingEmail] = React.useState(false);
+  const [stepEmailLoading, setStepEmailLoading] = React.useState("");
+  const [error, setError] = React.useState("");
+  const parsedFlow = parseFlowPlan(flow);
+
+  async function generateFlow() {
+    try {
+      setLoadingFlow(true);
+      setError("");
+      const res = await api("/api/flows-advanced/generate-flow", {
+        method: "POST",
+        body: JSON.stringify({
+          goal,
+          product,
+          audience,
+          awareness,
+          flow_type: flowType,
+          flow_days: Number(flowDays) || 10,
+          email_count: Number(emailCount) || 4,
+        }),
+      });
+      setFlow(res?.flow || "Sem retorno");
+    } catch (e) {
+      setError(e.message || "Erro ao gerar fluxo");
+    } finally {
+      setLoadingFlow(false);
+    }
+  }
+
+  async function generateEmail() {
+    try {
+      setLoadingEmail(true);
+      setError("");
+      const res = await api("/api/flows-advanced/generate-email", {
+        method: "POST",
+        body: JSON.stringify({
+          context: emailContext || flow || "Gerar email de nutrição",
+          theme: emailTheme || "Nutrição",
+          objective: emailObjective || "Gerar resposta",
+          tone: emailTone,
+          cta: emailCta,
+          target: audience,
+        }),
+      });
+      setEmail(res?.email || "Sem retorno");
+    } catch (e) {
+      setError(e.message || "Erro ao gerar email");
+    } finally {
+      setLoadingEmail(false);
+    }
+  }
+
+  async function generateEmailForStep(step) {
+    try {
+      setStepEmailLoading(step.id || `${step.day}`);
+      setError("");
+      const res = await api("/api/flows-advanced/generate-email", {
+        method: "POST",
+        body: JSON.stringify({
+          context: `Fluxo: ${flow}\n\nEtapa atual: ${JSON.stringify(step)}`,
+          theme: step.title || `Email dia ${step.day}`,
+          objective: step.objective || "Avançar lead",
+          tone: emailTone,
+          cta: step.cta || emailCta,
+          target: audience,
+        }),
+      });
+      setEmail(res?.email || "Sem retorno");
+    } catch (e) {
+      setError(e.message || "Erro ao gerar email da etapa");
+    } finally {
+      setStepEmailLoading("");
+    }
+  }
+
+  return (
+    <div>
+      <div className="hero">
+        <h1>Flow Studio IA</h1>
+        <p>Gere fluxos estratégicos e emails prontos para execução no RD Station.</p>
+      </div>
+
+      {error && <div className="error-box">{error}</div>}
+
+      <div className="card">
+        <input value={goal} onChange={e => setGoal(e.target.value)} placeholder="Objetivo do fluxo" />
+        <input value={product} onChange={e => setProduct(e.target.value)} placeholder="Produto/serviço" />
+        <input value={audience} onChange={e => setAudience(e.target.value)} placeholder="Público" />
+        <input value={awareness} onChange={e => setAwareness(e.target.value)} placeholder="Nível de consciência" />
+        <input value={flowType} onChange={e => setFlowType(e.target.value)} placeholder="Tipo de fluxo (reengajamento, qualificação, vendas...)" />
+        <input type="number" value={flowDays} onChange={e => setFlowDays(e.target.value)} placeholder="Dias do fluxo" />
+        <input type="number" value={emailCount} onChange={e => setEmailCount(e.target.value)} placeholder="Quantidade de emails" />
+        <button type="button" className="btn" onClick={generateFlow} disabled={loadingFlow}>{loadingFlow ? "Gerando..." : "Gerar fluxo"}</button>
+      </div>
+
+      {flow && <div className="card"><h3>Fluxo sugerido</h3><pre>{flow}</pre></div>}
+
+      {parsedFlow.steps.length > 0 && (
+        <div className="card">
+          <h3>Mapa do fluxo (etapas acionáveis)</h3>
+          <div className="metric-row">
+            {parsedFlow.steps.map((step) => (
+              <div className="mini-metric" key={step.id}>
+                <div className="mini-metric-label">Dia {step.day}</div>
+                <div style={{fontWeight: 700, marginBottom: 6}}>{step.title}</div>
+                <div className="muted" style={{fontSize: 12, marginBottom: 8}}>{step.objective}</div>
+                <button
+                  type="button"
+                  className="btn blue"
+                  onClick={() => generateEmailForStep(step)}
+                  disabled={stepEmailLoading === step.id}
+                >
+                  {stepEmailLoading === step.id ? "Gerando..." : "Gerar email desta etapa"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="card">
+        <textarea value={emailContext} onChange={e => setEmailContext(e.target.value)} placeholder="Contexto para geração de email (opcional)" />
+        <input value={emailTheme} onChange={e => setEmailTheme(e.target.value)} placeholder="Tema do email" />
+        <input value={emailObjective} onChange={e => setEmailObjective(e.target.value)} placeholder="Objetivo do email" />
+        <input value={emailTone} onChange={e => setEmailTone(e.target.value)} placeholder="Tom de voz" />
+        <input value={emailCta} onChange={e => setEmailCta(e.target.value)} placeholder="CTA principal" />
+        <button type="button" className="btn blue" onClick={generateEmail} disabled={loadingEmail}>{loadingEmail ? "Gerando..." : "Gerar email"}</button>
+      </div>
+
+      {email && <div className="card"><h3>Email gerado</h3><pre>{email}</pre></div>}
+    </div>
+  );
+}
+
+function Prospecting() {
+  const [form, setForm] = React.useState({
+    company_name: "",
+    niche: "",
+    city: "",
+    website: "",
+    instagram: ""
+  });
+  const [error, setError] = React.useState("");
+  const [result, setResult] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+
+  function updateField(field, value) {
+    setForm(prev => ({ ...prev, [field]: value }));
+  }
+
+  async function analyze() {
+    try {
+      setLoading(true);
+      setError("");
+      setResult(null);
+
+      const res = await api("/api/prospect/analyze-business", {
+        method: "POST",
+        body: JSON.stringify(form)
+      });
+
+      setResult(res?.analysis || null);
+    } catch (e) {
+      setError(e.message || "Erro na prospecção");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div>
+      <div className="hero">
+        <h1>Prospecção</h1>
+        <p>Gere diagnóstico comercial, proposta e plano de ação para abrir novas contas.</p>
+      </div>
+
+      {error && <div className="error-box">{error}</div>}
+
+      <div className="card">
+        <input placeholder="Nome da empresa" value={form.company_name} onChange={e => updateField("company_name", e.target.value)} />
+        <input placeholder="Nicho" value={form.niche} onChange={e => updateField("niche", e.target.value)} />
+        <input placeholder="Cidade" value={form.city} onChange={e => updateField("city", e.target.value)} />
+        <input placeholder="Website" value={form.website} onChange={e => updateField("website", e.target.value)} />
+        <input placeholder="Instagram" value={form.instagram} onChange={e => updateField("instagram", e.target.value)} />
+
+        <button type="button" className="btn" onClick={analyze} disabled={loading}>
+          {loading ? "Analisando..." : "Gerar diagnóstico"}
+        </button>
+      </div>
+
+      {result && (
+        <>
+          <div className="card">
+            <h3>Resumo executivo</h3>
+            <div className="list-line">{result.executive_summary}</div>
+          </div>
+
+          <div className="two-col">
+            <div className="card">
+              <h3>Pontos fracos</h3>
+              {(result.weak_points || []).map((item, i) => (
+                <div className="list-line" key={i}>⚠ {item}</div>
+              ))}
+            </div>
+
+            <div className="card">
+              <h3>Oportunidades</h3>
+              {(result.opportunities || []).map((item, i) => (
+                <div className="list-line" key={i}>👉 {item}</div>
+              ))}
+            </div>
+          </div>
+
+          <div className="two-col">
+            <div className="card">
+              <h3>Argumentos de venda</h3>
+              {(result.sales_angles || []).map((item, i) => (
+                <div className="list-line" key={i}>💬 {item}</div>
+              ))}
+            </div>
+
+            <div className="card">
+              <h3>Plano de ação</h3>
+              {(result.action_plan || []).map((item, i) => (
+                <div className="list-line" key={i}>✅ {item}</div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card">
+            <h3>Proposta automática</h3>
+            <div className="list-line"><strong>Diagnóstico:</strong> {result.proposal?.diagnostico}</div>
+            <div className="list-line"><strong>Pitch:</strong> {result.proposal?.pitch}</div>
+            <div style={{marginTop:10}}>
+              {(result.proposal?.entregas || []).map((item, i) => (
+                <div className="list-line" key={i}>📦 {item}</div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ExecutiveReport() {
+  const [clients, setClients] = React.useState([]);
+  const [clientId, setClientId] = React.useState("");
+  const [error, setError] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [report, setReport] = React.useState(null);
+
+  React.useEffect(() => {
+    loadClients();
+  }, []);
+
+  async function loadClients() {
+    try {
+      const res = await api("/api/clients/");
+      const list = Array.isArray(res) ? res : [];
+      setClients(list);
+      if (list.length > 0) setClientId(String(list[0].id));
+    } catch (e) {
+      setError(e.message || "Erro ao carregar clientes");
+    }
+  }
+
+  async function loadReport() {
+    try {
+      setError("");
+      setLoading(true);
+      setReport(null);
+
+      const res = await api("/api/executive-report/client/" + clientId);
+      setReport(res?.report || null);
+    } catch (e) {
+      setError(e.message || "Erro ao carregar relatório");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div>
+      <div className="hero">
+        <h1>Relatório Executivo</h1>
+        <p>Leitura estratégica pronta para reunião com score, diagnóstico e próximos passos.</p>
+      </div>
+
+      {error && <div className="error-box">{error}</div>}
+
+      <div className="card">
+        <select value={clientId} onChange={(e) => setClientId(e.target.value)}>
+          <option value="">Selecione um cliente</option>
+          {clients.map((client) => (
+            <option key={client.id} value={client.id}>{client.name}</option>
+          ))}
+        </select>
+
+        <button type="button" className="btn" onClick={loadReport} disabled={loading || !clientId}>
+          {loading ? "Carregando..." : "Gerar relatório"}
+        </button>
+      </div>
+
+      {report && (
+        <div className="card">
+          <div className="row">
+            <strong style={{fontSize:24}}>{report.client?.name}</strong>
+            <div>Score: <strong>{report.score_data?.score}</strong></div>
+          </div>
+
+          <div className="muted" style={{marginTop:10}}>
+            {report.executive_resume}
+          </div>
+
+          <div style={{marginTop:12}}>
+            <span className={`badge ${
+              report.score_data?.stage === "urgente"
+                ? "red"
+                : report.score_data?.stage === "expansão"
+                ? "yellow"
+                : "green"
+            }`}>
+              {report.score_data?.stage}
+            </span>
+
+            {report.sync_summary?.synced_at && <span className="badge blue">Último sync OK</span>}
+          </div>
+
+          <div className="two-col" style={{marginTop:15}}>
+            <div className="card">
+              <h3>Diagnóstico estratégico</h3>
+              {(report.strategic_diagnosis || []).map((item, i) => (
+                <div className="list-line" key={i}>📌 {item}</div>
+              ))}
+            </div>
+
+            <div className="card">
+              <h3>Próximos passos</h3>
+              {(report.next_steps || []).map((item, i) => (
+                <div className="list-line" key={i}>✅ {item}</div>
+              ))}
+            </div>
+          </div>
+
+          <div className="two-col" style={{marginTop:15}}>
+            <div className="card">
+              <h3>Riscos críticos</h3>
+              {(report.risk_flags || []).length === 0 ? (
+                <div className="muted">Sem riscos críticos mapeados.</div>
+              ) : (report.risk_flags || []).map((item, i) => (
+                <div className="list-line" key={i}>⚠ {item}</div>
+              ))}
+            </div>
+            <div className="card">
+              <h3>Oportunidades</h3>
+              {(report.opportunity_flags || []).length === 0 ? (
+                <div className="muted">Sem oportunidades adicionais mapeadas.</div>
+              ) : (report.opportunity_flags || []).map((item, i) => (
+                <div className="list-line" key={i}>💡 {item}</div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card">
+            <h3>Resumo sincronizado</h3>
+            <pre>{JSON.stringify(report.sync_summary || {}, null, 2)}</pre>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AlertsPanel() {
+  const [data, setData] = React.useState(null);
+  const [error, setError] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    load();
+  }, []);
+
+  async function load() {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await api("/api/alerts/agency");
+      setData(res?.alerts || null);
+    } catch (e) {
+      setError(e.message || "Erro ao carregar alertas");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div>
+      <div className="hero">
+        <div className="row">
+          <div>
+            <h1>Alertas</h1>
+            <p>Monitoramento automático da carteira com foco em prioridade, risco e ação.</p>
+          </div>
+          <div>
+            <button type="button" className="btn" onClick={load}>Atualizar</button>
+          </div>
+        </div>
+      </div>
+
+      {error && <div className="error-box">{error}</div>}
+      {loading && <div className="card">Carregando...</div>}
+
+      {data && (
+        <>
+          <div className="kpi-grid">
+            <div className="kpi-card">
+              <div className="kpi-label">Críticos</div>
+              <div className="kpi-value">{data.totals?.critical ?? 0}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">Avisos</div>
+              <div className="kpi-value">{data.totals?.warnings ?? 0}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">Ações</div>
+              <div className="kpi-value">{data.totals?.actions ?? 0}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">Status</div>
+              <div className="kpi-value">OK</div>
+            </div>
+          </div>
+
+          <div className="two-col">
+            <div className="card">
+              <h3>Críticos</h3>
+              {(data.critical || []).length === 0 ? (
+                <div className="muted">Nenhum alerta crítico.</div>
+              ) : (data.critical || []).map((item, i) => (
+                <div className="list-line" key={i}>🚨 {item.client_name}: {item.message}</div>
+              ))}
+            </div>
+
+            <div className="card">
+              <h3>Avisos</h3>
+              {(data.warnings || []).length === 0 ? (
+                <div className="muted">Nenhum aviso.</div>
+              ) : (data.warnings || []).map((item, i) => (
+                <div className="list-line" key={i}>⚠ {item.client_name}: {item.message}</div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card">
+            <h3>Ações recomendadas</h3>
+            {(data.actions || []).length === 0 ? (
+              <div className="muted">Nenhuma ação recomendada.</div>
+            ) : (data.actions || []).map((item, i) => (
+              <div className="list-line" key={i}>👉 {item.client_name}: {item.message}</div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function App() {
+  const [authed, setAuthed] = React.useState(false);
+  const [section, setSection] = React.useState("dashboard");
+  const [dashboard, setDashboard] = React.useState(null);
+  const [globalError, setGlobalError] = React.useState("");
+  const [checkingSession, setCheckingSession] = React.useState(true);
+
+  async function validateSession() {
+    try {
+      const token = getToken();
+      if (!token) {
+        setAuthed(false);
+        return false;
+      }
+      await api("/api/auth/me");
+      setAuthed(true);
+      return true;
+    } catch (_e) {
+      clearSession();
+      setAuthed(false);
+      return false;
+    } finally {
+      setCheckingSession(false);
+    }
+  }
+
+  async function loadDashboard() {
+    const d = await api("/api/agency/overview");
+    setDashboard(d);
+  }
+
+  async function refreshAll() {
+    try {
+      setGlobalError("");
+      await loadDashboard();
+    } catch (e) {
+      setGlobalError(e.message || "Erro ao atualizar dados");
+    }
+  }
+
+  React.useEffect(() => {
+    (async () => {
+      const ok = await validateSession();
+      if (ok) await refreshAll();
+    })();
+  }, []);
+
+  function logout() {
+    clearSession();
+    setAuthed(false);
+    setSection("dashboard");
+  }
+
+  if (checkingSession) {
+    return <div style={{padding:40}}>Validando sessão...</div>;
+  }
+
+  if (!authed) {
+    return <LoginPage onLogin={async () => {
+      setAuthed(true);
+      await refreshAll();
+    }} />;
+  }
+
+  return (
+    <div className="app">
+      <Sidebar section={section} setSection={setSection} logout={logout} />
+
+      <div className="main">
+        {globalError && <div className="error-box">{globalError}</div>}
+
+        {section === "dashboard" && <Dashboard data={dashboard} reload={refreshAll} />}
+        {section === "clients" && <ClientsPanel reloadDashboard={refreshAll} />}
+        {section === "portfolio" && <PortfolioPage data={dashboard} />}
+        {section === "landing_pages" && <ModulePage moduleName="landing_pages" title="Landing Pages" description="Lista das landing pages sincronizadas por cliente." />}
+        {section === "leads" && <ModulePage moduleName="leads" title="Leads" description="Lista dos leads sincronizados e salvos a partir das segmentações." />}
+        {section === "segmentations" && <ModulePage moduleName="segmentations" title="Segmentações" description="Lista das segmentações sincronizadas por cliente." />}
+        {section === "workflows" && <ModulePage moduleName="workflows" title="Workflows" description="Lista dos workflows sincronizados por cliente." />}
+        {section === "campaigns" && <ModulePage moduleName="campaigns" title="Campanhas" description="Lista das campanhas sincronizadas por cliente." />}
+        {section === "flow_studio" && <FlowStudio />}
+        {section === "prospect" && <Prospecting />}
+        {section === "report" && <ExecutiveReport />}
+        {section === "alerts" && <AlertsPanel />}
+      </div>
+    </div>
+  );
+}
+
+const rootElement = document.getElementById("root");
+if (ReactDOM.createRoot) {
+  ReactDOM.createRoot(rootElement).render(<App />);
+} else {
+  ReactDOM.render(<App />, rootElement);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+httpx
+asyncpg
+aiosqlite
+python-multipart
+pydantic
+pydantic-settings
+jinja2
+passlib[bcrypt]
+bcrypt<4.1
+python-jose[cryptography]
+google-generativeai
+beautifulsoup4
