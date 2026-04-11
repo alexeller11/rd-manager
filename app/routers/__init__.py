@@ -5,6 +5,7 @@ from . import auth
 from . import clients
 from . import executive_report
 from . import flows_advanced
+from . import health_audit
 from . import landing_pages
 from . import leads
 from . import oauth
@@ -22,6 +23,7 @@ __all__ = [
     "clients",
     "executive_report",
     "flows_advanced",
+    "health_audit",
     "landing_pages",
     "leads",
     "oauth",

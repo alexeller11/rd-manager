@@ -595,6 +595,7 @@ function Sidebar({ section, setSection, logout }) {
       <button type="button" className={section==="flow_studio"?"active":""} onClick={()=>setSection("flow_studio")}>Flow Studio IA</button>
 
       <div className="nav-title">Crescimento</div>
+      <button type="button" className={section==="health_audit"?"active":""} onClick={()=>setSection("health_audit")}>🩺 Auditoria de Saúde</button>
       <button type="button" className={section==="prospect"?"active":""} onClick={()=>setSection("prospect")}>Prospecção</button>
       <button type="button" className={section==="report"?"active":""} onClick={()=>setSection("report")}>Relatório Executivo</button>
       <button type="button" className={section==="alerts"?"active":""} onClick={()=>setSection("alerts")}>Alertas</button>
@@ -2106,6 +2107,236 @@ function AlertsPanel() {
   );
 }
 
+function HealthAudit() {
+  const [clients, setClients] = React.useState([]);
+  const [clientId, setClientId] = React.useState("");
+  const [audit, setAudit] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+  const [aiLoading, setAiLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  React.useEffect(() => {
+    api("/api/clients/").then(res => {
+      const list = Array.isArray(res) ? res : [];
+      setClients(list);
+      if (list.length > 0) setClientId(String(list[0].id));
+    }).catch(() => {});
+  }, []);
+
+  async function runAudit() {
+    if (!clientId) return;
+    try {
+      setLoading(true);
+      setError("");
+      setAudit(null);
+      const res = await api(`/api/health-audit/client/${clientId}`);
+      setAudit(res?.data || null);
+    } catch(e) {
+      setError(e.message || "Erro na auditoria");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function runAiComment() {
+    if (!clientId) return;
+    try {
+      setAiLoading(true);
+      setError("");
+      const res = await api(`/api/health-audit/client/${clientId}?ai=true`);
+      setAudit(res?.data || null);
+    } catch(e) {
+      setError(e.message || "Erro ao gerar diagnóstico IA");
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  const statusColor = {
+    healthy: "#22c55e",
+    warning: "#f59e0b",
+    critical: "#ef4444",
+  };
+
+  function ScoreRing({ score, color }) {
+    const r = 38;
+    const circ = 2 * Math.PI * r;
+    const offset = circ - (score / 100) * circ;
+    return (
+      <svg width="100" height="100" viewBox="0 0 100 100" style={{display:"block",margin:"0 auto"}}>
+        <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="10" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke={color} strokeWidth="10"
+          strokeDasharray={circ} strokeDashoffset={offset}
+          strokeLinecap="round"
+          style={{transform:"rotate(-90deg)", transformOrigin:"50% 50%", transition:"stroke-dashoffset 0.6s ease"}} />
+        <text x="50" y="56" textAnchor="middle" fill="#fff" fontSize="22" fontWeight="bold">{score}</text>
+      </svg>
+    );
+  }
+
+  return (
+    <div>
+      <div className="hero">
+        <h1>🩺 Auditoria de Saúde da Conta</h1>
+        <p>Diagnóstico completo: leads por engajamento, workflows parados, LPs críticas e score geral de operação.</p>
+      </div>
+
+      {error && <div className="error-box">{error}</div>}
+
+      <div className="card">
+        <div className="row">
+          <select value={clientId} onChange={e => setClientId(e.target.value)} style={{flex:1}}>
+            <option value="">Selecione um cliente</option>
+            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <button type="button" className="btn" onClick={runAudit} disabled={loading || !clientId}>
+            {loading ? "Auditando..." : "Rodar Auditoria"}
+          </button>
+          {audit && (
+            <button type="button" className="btn blue" onClick={runAiComment} disabled={aiLoading}>
+              {aiLoading ? "Analisando IA..." : "🧠 Diagnóstico IA"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {audit && (
+        <>
+          {/* Score Geral */}
+          <div className="kpi-grid">
+            <div className="kpi-card" style={{gridColumn:"span 1", textAlign:"center"}}>
+              <div className="kpi-label">Score de Saúde</div>
+              <ScoreRing score={audit.overall_score} color={statusColor[audit.health_status] || "#64748b"} />
+              <div style={{marginTop:8, fontWeight:700, color: statusColor[audit.health_status]}}>{audit.health_label}</div>
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">Score Workflows</div>
+              <div className="kpi-value">{audit.workflows?.score ?? "—"}<span style={{fontSize:14}}>/100</span></div>
+              <div className="muted" style={{fontSize:12, marginTop:4}}>{audit.workflows?.active} ativos · {audit.workflows?.paused} pausados</div>
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">Score Leads</div>
+              <div className="kpi-value">{audit.leads?.score ?? "—"}<span style={{fontSize:14}}>/100</span></div>
+              <div className="muted" style={{fontSize:12, marginTop:4}}>{audit.leads?.engagement_rate}% engajados</div>
+            </div>
+            <div className="kpi-card">
+              <div className="kpi-label">Score Landing Pages</div>
+              <div className="kpi-value">{audit.landing_pages?.score ?? "—"}<span style={{fontSize:14}}>/100</span></div>
+              <div className="muted" style={{fontSize:12, marginTop:4}}>{audit.landing_pages?.top} top · {audit.landing_pages?.critical} críticas</div>
+            </div>
+          </div>
+
+          {/* Problemas */}
+          {(audit.issues || []).length > 0 && (
+            <div className="card" style={{borderLeft:"4px solid #ef4444"}}>
+              <h3 style={{marginTop:0, color:"#ef4444"}}>⚠️ Problemas Identificados</h3>
+              {audit.issues.map((issue, i) => (
+                <div className="list-line" key={i}>🔴 {issue}</div>
+              ))}
+            </div>
+          )}
+
+          {/* Diagnóstico IA */}
+          {audit.ai_commentary && (
+            <div className="card" style={{borderLeft:"4px solid var(--blue)"}}>
+              <h3 style={{marginTop:0, color:"var(--blue)"}}>🧠 Diagnóstico Consultivo da IA</h3>
+              {renderAiReport(audit.ai_commentary)}
+            </div>
+          )}
+
+          <div className="two-col">
+            {/* Leads */}
+            <div className="card">
+              <h3>👥 Base de Leads por Engajamento</h3>
+              <div className="metric-row" style={{marginBottom:16}}>
+                <div className="mini-metric"><div className="mini-metric-label" style={{color:"#22c55e"}}>🔥 Quentes</div><div className="mini-metric-value">{audit.leads?.hot}</div></div>
+                <div className="mini-metric"><div className="mini-metric-label" style={{color:"#f59e0b"}}>🌡 Mornos</div><div className="mini-metric-value">{audit.leads?.warm}</div></div>
+                <div className="mini-metric"><div className="mini-metric-label" style={{color:"#60a5fa"}}>❄️ Frios</div><div className="mini-metric-value">{audit.leads?.cold}</div></div>
+                <div className="mini-metric"><div className="mini-metric-label" style={{color:"#94a3b8"}}>💀 Mortos</div><div className="mini-metric-value">{audit.leads?.dead}</div></div>
+              </div>
+              {(audit.leads?.hot_leads || []).length > 0 && (
+                <>
+                  <div className="muted" style={{fontSize:12, marginBottom:6}}>Top leads quentes:</div>
+                  {audit.leads.hot_leads.slice(0,5).map((l,i) => (
+                    <div className="list-line" key={i}>🔥 {l.name} <span className="muted" style={{fontSize:11}}>({l.email})</span></div>
+                  ))}
+                </>
+              )}
+            </div>
+
+            {/* Workflows */}
+            <div className="card">
+              <h3>⚙️ Auditoria de Workflows</h3>
+              <div className="metric-row" style={{marginBottom:16}}>
+                <div className="mini-metric"><div className="mini-metric-label" style={{color:"#22c55e"}}>✅ Ativos</div><div className="mini-metric-value">{audit.workflows?.active}</div></div>
+                <div className="mini-metric"><div className="mini-metric-label" style={{color:"#ef4444"}}>⏸ Pausados</div><div className="mini-metric-value">{audit.workflows?.paused}</div></div>
+                <div className="mini-metric"><div className="mini-metric-label" style={{color:"#f59e0b"}}>⏰ Desatualizados</div><div className="mini-metric-value">{audit.workflows?.stale}</div></div>
+              </div>
+              {(audit.workflows?.details?.paused || []).length > 0 && (
+                <>
+                  <div className="muted" style={{fontSize:12, marginBottom:6}}>Workflows pausados:</div>
+                  {audit.workflows.details.paused.slice(0,5).map((wf,i) => (
+                    <div className="list-line" key={i}>⏸ {wf.name}</div>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Landing Pages */}
+          <div className="card">
+            <h3>📄 Performance das Landing Pages</h3>
+            <div className="metric-row" style={{marginBottom:16}}>
+              <div className="mini-metric"><div className="mini-metric-label" style={{color:"#22c55e"}}>🏆 Top (>10%)</div><div className="mini-metric-value">{audit.landing_pages?.top}</div></div>
+              <div className="mini-metric"><div className="mini-metric-label" style={{color:"#f59e0b"}}>📊 Médias (3-10%)</div><div className="mini-metric-value">{audit.landing_pages?.average}</div></div>
+              <div className="mini-metric"><div className="mini-metric-label" style={{color:"#ef4444"}}>🔴 Críticas (&lt;3%)</div><div className="mini-metric-value">{audit.landing_pages?.critical}</div></div>
+              <div className="mini-metric"><div className="mini-metric-label" style={{color:"#94a3b8"}}>📝 N Publicadas</div><div className="mini-metric-value">{audit.landing_pages?.unpublished}</div></div>
+            </div>
+
+            {(audit.landing_pages?.critical_lps || []).length > 0 && (
+              <>
+                <div className="muted" style={{fontSize:12, marginBottom:8}}>LPs críticas que precisam de atenção:</div>
+                {audit.landing_pages.critical_lps.map((lp, i) => (
+                  <div className="status-box urgent" key={i} style={{marginBottom:8}}>
+                    <div className="row">
+                      <strong>{lp.name}</strong>
+                      <span className="badge" style={{background:"#ef4444"}}>{lp.conversion_rate}% conversão</span>
+                    </div>
+                    <div className="muted" style={{fontSize:12}}>{lp.visits} visitas · {lp.conversions} conversões</div>
+                    {lp.url && <div style={{marginTop:4}}><a href={lp.url} target="_blank" rel="noreferrer" style={{fontSize:12}}>{lp.url}</a></div>}
+                  </div>
+                ))}
+              </>
+            )}
+
+            {(audit.landing_pages?.top_lps || []).length > 0 && (
+              <>
+                <div className="muted" style={{fontSize:12, marginBottom:8, marginTop:16}}>Top performers:</div>
+                {audit.landing_pages.top_lps.map((lp, i) => (
+                  <div className="status-box" key={i} style={{marginBottom:8, borderLeft:"3px solid #22c55e"}}>
+                    <div className="row">
+                      <strong>{lp.name}</strong>
+                      <span className="badge" style={{background:"#22c55e"}}>{lp.conversion_rate}% conversão</span>
+                    </div>
+                    <div className="muted" style={{fontSize:12}}>{lp.visits} visitas · {lp.conversions} conversões</div>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        </>
+      )}
+
+      {!audit && !loading && (
+        <div className="card" style={{textAlign:"center", padding:40, opacity:0.6}}>
+          <div style={{fontSize:48, marginBottom:12}}>🩺</div>
+          <div>Selecione um cliente e clique em <strong>Rodar Auditoria</strong> para ver o diagnóstico completo da conta.</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [authed, setAuthed] = React.useState(false);
   const [section, setSection] = React.useState("dashboard");
@@ -2186,6 +2417,7 @@ function App() {
         {section === "workflows" && <ModulePage moduleName="workflows" title="Workflows" description="Lista dos workflows sincronizados por cliente." />}
         {section === "campaigns" && <ModulePage moduleName="campaigns" title="Campanhas" description="Lista das campanhas sincronizadas por cliente." />}
         {section === "flow_studio" && <FlowStudio />}
+        {section === "health_audit" && <HealthAudit />}
         {section === "prospect" && <Prospecting />}
         {section === "report" && <ExecutiveReport />}
         {section === "alerts" && <AlertsPanel />}

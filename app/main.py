@@ -16,6 +16,7 @@ from app.routers import (
     clients,
     executive_report,
     flows_advanced,
+    health_audit,
     landing_pages,
     leads,
     oauth,
@@ -158,6 +159,13 @@ app.include_router(
     alerts.router,
     prefix="/api/alerts",
     tags=["alerts"],
+    dependencies=private_dependencies,
+)
+
+app.include_router(
+    health_audit.router,
+    prefix="/api/health-audit",
+    tags=["health_audit"],
     dependencies=private_dependencies,
 )
 
