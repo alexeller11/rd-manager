@@ -1,12 +1,21 @@
+import asyncio
 import json
-import httpx
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 
+import httpx
+
 from app.auth_core import get_valid_mkt_token
-from app.database import db_execute, db_fetch_all, db_fetch_one, db_fetchval, using_postgres
+from app.database import (
+    db_execute,
+    db_fetch_all,
+    db_fetch_one,
+    db_fetchval,
+    using_postgres,
+)
 
 RD_PLATFORM_BASE = "https://api.rd.services/platform"
+
 
 def _now():
     return datetime.now(timezone.utc)
@@ -138,16 +147,17 @@ async def ensure_sync_tables():
     )
 
 
-async def _rd_get_debug(token: str, path: str, params: Optional[dict] = None) -> dict:
-    async with httpx.AsyncClient(timeout=45.0) as client:
-        response = await client.get(
-            f"{RD_PLATFORM_BASE}{path}",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-            },
-            params=params or {},
-        )
+async def _rd_get_debug(
+    client: httpx.AsyncClient, token: str, path: str, params: Optional[dict] = None
+) -> dict:
+    response = await client.get(
+        f"{RD_PLATFORM_BASE}{path}",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        params=params or {},
+    )
 
     text_preview = response.text[:800]
 
@@ -165,22 +175,27 @@ async def _rd_get_debug(token: str, path: str, params: Optional[dict] = None) ->
     }
 
 
-async def _fetch_paginated_debug(token: str, path: str, limit: int = 100, max_pages: int = 5) -> dict:
+async def _fetch_paginated_debug(
+    client: httpx.AsyncClient, token: str, path: str, limit: int = 100, max_pages: int = 5
+) -> dict:
     all_items: List[dict] = []
     pages_info: List[dict] = []
 
     for page in range(1, max_pages + 1):
         result = await _rd_get_debug(
+            client,
             token,
             path,
             params={"page": page, "page_size": limit},
         )
 
-        pages_info.append({
-            "page": page,
-            "status_code": result["status_code"],
-            "text_preview": result["text_preview"],
-        })
+        pages_info.append(
+            {
+                "page": page,
+                "status_code": result["status_code"],
+                "text_preview": result["text_preview"],
+            }
+        )
 
         if not result["ok"]:
             return {
@@ -210,26 +225,30 @@ async def _fetch_paginated_debug(token: str, path: str, limit: int = 100, max_pa
 
 
 async def _fetch_segment_contacts_debug(
+    client: httpx.AsyncClient,
     token: str,
     segmentation_id: str,
     limit: int = 125,
-    max_pages: int = 25,
+    max_pages: int = 10,
 ) -> dict:
     all_items: List[dict] = []
     pages_info: List[dict] = []
 
     for page in range(1, max_pages + 1):
         result = await _rd_get_debug(
+            client,
             token,
             f"/segmentations/{segmentation_id}/contacts",
             params={"page": page, "page_size": limit},
         )
 
-        pages_info.append({
-            "page": page,
-            "status_code": result["status_code"],
-            "text_preview": result["text_preview"],
-        })
+        pages_info.append(
+            {
+                "page": page,
+                "status_code": result["status_code"],
+                "text_preview": result["text_preview"],
+            }
+        )
 
         if not result["ok"]:
             return {
@@ -258,8 +277,8 @@ async def _fetch_segment_contacts_debug(
     }
 
 
-async def _fetch_email_metrics_debug(token: str) -> dict:
-    result = await _rd_get_debug(token, "/analytics/emails")
+async def _fetch_email_metrics_debug(client: httpx.AsyncClient, token: str) -> dict:
+    result = await _rd_get_debug(client, token, "/analytics/emails")
     if not result["ok"]:
         return {
             "ok": False,
@@ -279,127 +298,181 @@ async def _fetch_email_metrics_debug(token: str) -> dict:
     }
 
 
-async def _fetch_lp_analytics(token: str, conversion_identifier: str) -> dict:
-    """Busca métricas reais de Landing Page pelo conversion_identifier.
-    Endpoint: GET /platform/analytics/conversions?asset_type=LandingPage&conversion_identifier={id}
-    Retorna: visits_count, conversions_count, conversion_rate
-    """
+async def _fetch_lp_analytics(
+    client: httpx.AsyncClient, token: str, conversion_identifier: str
+) -> dict:
     result = await _rd_get_debug(
+        client,
         token,
         "/analytics/conversions",
-        params={"asset_type": "LandingPage", "conversion_identifier": conversion_identifier},
+        params={
+            "asset_type": "LandingPage",
+            "conversion_identifier": conversion_identifier,
+        },
     )
     if not result["ok"] or not isinstance(result["payload"], dict):
         return {"visits_count": 0, "conversions_count": 0, "conversion_rate": 0.0}
 
     data = result["payload"]
-    # A API retorna uma lista ou um objeto
     if isinstance(data, list):
         data = data[0] if data else {}
 
     return {
-        "visits_count": int(data.get("visits_count", 0) or 0),
-        "conversions_count": int(data.get("conversions_count", 0) or 0),
-        "conversion_rate": float(data.get("conversion_rate", 0.0) or 0.0),
+        "visits_count": int(data.get("visits_count") or 0),
+        "conversions_count": int(data.get("conversions_count") or 0),
+        "conversion_rate": float(data.get("conversion_rate") or 0.0),
     }
 
 
-def _pick_object_key(item: dict, fallback_prefix: str, index: int) -> str:
-    for key in ("id", "uuid", "identifier", "slug", "name", "title", "email"):
-        value = item.get(key)
-        if value is not None and str(value).strip():
-            return str(value)
-    return f"{fallback_prefix}_{index}"
+async def _create_run(client_id: int) -> int:
+    if using_postgres():
+        return await db_fetchval(
+            """
+            INSERT INTO rd_sync_runs (client_id, status, started_at)
+            VALUES ($1, $2, $3)
+            RETURNING id
+            """,
+            client_id,
+            "running",
+            _now(),
+        )
+    else:
+        cursor = await db_execute(
+            """
+            INSERT INTO rd_sync_runs (client_id, status, started_at)
+            VALUES (?, ?, ?)
+            """,
+            client_id,
+            "running",
+            _now().isoformat(),
+        )
+        return cursor.lastrowid
 
 
-def _lead_identity(item: dict, index: int) -> str:
-    for key in ("email", "id", "uuid", "identifier"):
-        value = item.get(key)
-        if value is not None and str(value).strip():
-            return str(value).strip().lower()
-    return f"lead_{index}"
+async def _finish_run(run_id: int, status: str, summary: dict = None, error: str = None):
+    if using_postgres():
+        await db_execute(
+            """
+            UPDATE rd_sync_runs
+            SET status = $1, finished_at = $2, summary = $3, error = $4
+            WHERE id = $5
+            """,
+            status,
+            _now(),
+            _jsonb(summary or {}),
+            error,
+            run_id,
+        )
+    else:
+        await db_execute(
+            """
+            UPDATE rd_sync_runs
+            SET status = ?, finished_at = ?, summary = ?, error = ?
+            WHERE id = ?
+            """,
+            status,
+            _now().isoformat(),
+            _jsonb(summary or {}),
+            error,
+            run_id,
+        )
 
 
 async def _upsert_snapshot(client_id: int, object_type: str, object_key: str, payload: dict):
-    await db_execute(
-        """
-        INSERT INTO rd_sync_snapshots (
+    if using_postgres():
+        await db_execute(
+            """
+            INSERT INTO rd_sync_snapshots (client_id, object_type, object_key, payload, synced_at)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (client_id, object_type, object_key)
+            DO UPDATE SET payload = $4, synced_at = $5
+            """,
             client_id,
             object_type,
             object_key,
-            payload,
-            synced_at
+            _jsonb(payload),
+            _now(),
         )
-        VALUES ($1, $2, $3, $4::jsonb, $5)
-        ON CONFLICT (client_id, object_type, object_key)
-        DO UPDATE SET
-            payload = EXCLUDED.payload,
-            synced_at = EXCLUDED.synced_at
-        """,
-        client_id,
-        object_type,
-        object_key,
-        _jsonb(payload),
-        _now(),
-    )
+    else:
+        exists = await db_fetchval(
+            "SELECT 1 FROM rd_sync_snapshots WHERE client_id = ? AND object_type = ? AND object_key = ?",
+            client_id,
+            object_type,
+            object_key,
+        )
+        if exists:
+            await db_execute(
+                "UPDATE rd_sync_snapshots SET payload = ?, synced_at = ? WHERE client_id = ? AND object_type = ? AND object_key = ?",
+                _jsonb(payload),
+                _now().isoformat(),
+                client_id,
+                object_type,
+                object_key,
+            )
+        else:
+            await db_execute(
+                "INSERT INTO rd_sync_snapshots (client_id, object_type, object_key, payload, synced_at) VALUES (?, ?, ?, ?, ?)",
+                client_id,
+                object_type,
+                object_key,
+                _jsonb(payload),
+                _now().isoformat(),
+            )
 
 
 async def _save_summary(client_id: int, summary: dict):
-    await db_execute(
-        """
-        INSERT INTO rd_sync_summaries (client_id, summary, updated_at)
-        VALUES ($1, $2::jsonb, $3)
-        ON CONFLICT (client_id)
-        DO UPDATE SET
-            summary = EXCLUDED.summary,
-            updated_at = EXCLUDED.updated_at
-        """,
-        client_id,
-        _jsonb(summary),
-        _now(),
+    if using_postgres():
+        await db_execute(
+            """
+            INSERT INTO rd_sync_summaries (client_id, summary, updated_at)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (client_id)
+            DO UPDATE SET summary = $2, updated_at = $3
+            """,
+            client_id,
+            _jsonb(summary),
+            _now(),
+        )
+    else:
+        exists = await db_fetchval(
+            "SELECT 1 FROM rd_sync_summaries WHERE client_id = ?", client_id
+        )
+        if exists:
+            await db_execute(
+                "UPDATE rd_sync_summaries SET summary = ?, updated_at = ? WHERE client_id = ?",
+                _jsonb(summary),
+                _now().isoformat(),
+                client_id,
+            )
+        else:
+            await db_execute(
+                "INSERT INTO rd_sync_summaries (client_id, summary, updated_at) VALUES (?, ?, ?)",
+                client_id,
+                _jsonb(summary),
+                _now().isoformat(),
+            )
+
+
+def _pick_object_key(item: dict, prefix: str, index: int) -> str:
+    key = (
+        item.get("id")
+        or item.get("uuid")
+        or item.get("identifier")
+        or item.get("email")
+        or f"{prefix}_{index}"
     )
+    return str(key)
 
 
-async def _create_run(client_id: int) -> int:
-    run_id = await db_fetchval(
-        """
-        INSERT INTO rd_sync_runs (client_id, status, started_at)
-        VALUES ($1, $2, $3)
-        RETURNING id
-        """,
-        client_id,
-        "running",
-        _now(),
-    )
-    return int(run_id)
+def _lead_identity(lead: dict, index: int) -> str:
+    return str(lead.get("uuid") or lead.get("id") or lead.get("email") or f"lead_{index}")
 
 
-async def _finish_run(run_id: int, status: str, summary: dict | None = None, error: str | None = None):
-    await db_execute(
-        """
-        UPDATE rd_sync_runs
-        SET status = $2, finished_at = $3, summary = $4::jsonb, error = $5
-        WHERE id = $1
-        """,
-        run_id,
-        status,
-        _now(),
-        _jsonb(summary or {}),
-        str(error) if error else None,
-    )
-
-
-def _extract_metrics(metrics_payload: dict) -> dict:
-    """Extrai métricas de email (open_rate, click_rate e campos raw do .analytics/emails)."""
-    if not isinstance(metrics_payload, dict):
-        return {"open_rate": 0.0, "click_rate": 0.0}
-
-    data = metrics_payload
+def _extract_metrics(data: dict) -> dict:
     open_rate = 0.0
     click_rate = 0.0
 
-    # Campos reais da API /analytics/emails da RD Station
-    for key in ("open_rate", "opens_rate", "avg_open_rate", "opening_rate"):
+    for key in ("open_rate", "opens_rate", "avg_open_rate"):
         val = data.get(key)
         if val is not None:
             try:
@@ -433,157 +506,166 @@ async def run_full_sync(client_id: int):
     try:
         token = await get_valid_mkt_token(client_id)
 
-        landing_pages: List[dict] = []
-        segmentations: List[dict] = []
-        workflows: List[dict] = []
-        campaigns: List[dict] = []
-        metrics_raw: dict = {}
         module_errors: Dict[str, str] = {}
         module_debug: Dict[str, dict] = {}
 
-        unique_leads: List[dict] = []
-        seen_leads: Set[str] = set()
+        async with httpx.AsyncClient(timeout=45.0) as client:
+            # Parallel fetching of main modules
+            (
+                res_lp,
+                res_seg,
+                res_wf,
+                res_cp,
+                res_metrics,
+            ) = await asyncio.gather(
+                _fetch_paginated_debug(client, token, "/landing_pages", limit=100),
+                _fetch_paginated_debug(client, token, "/segmentations", limit=100),
+                _fetch_paginated_debug(client, token, "/workflows", limit=100),
+                _fetch_paginated_debug(client, token, "/campaigns", limit=100),
+                _fetch_email_metrics_debug(client, token),
+                return_exceptions=True,
+            )
 
-        try:
-            result = await _fetch_paginated_debug(token, "/landing_pages", limit=100, max_pages=25)
-            module_debug["landing_pages"] = result
-            if result["ok"]:
-                landing_pages = result["items"]
+            # Processing Landing Pages
+            landing_pages = []
+            if not isinstance(res_lp, Exception) and res_lp["ok"]:
+                landing_pages = res_lp["items"]
+                # LP Analytics can also be done in parallel if needed, but let's do it sequentially for now
+                # to avoid hitting rate limits too fast, or use a limited gather.
                 for i, item in enumerate(landing_pages):
-                    # A API v2 NÃO retorna URL pública da LP.
-                    # Construímos a URL usando o conversion_identifier (slug).
-                    conv_id = item.get("conversion_identifier") or item.get("identifier") or ""
+                    conv_id = (
+                        item.get("conversion_identifier") or item.get("identifier") or ""
+                    )
                     if conv_id:
                         item["public_url"] = f"https://conteudo.rdstation.com/{conv_id}"
+                        try:
+                            lp_analytics = await _fetch_lp_analytics(
+                                client, token, conv_id
+                            )
+                            item.update(lp_analytics)
+                        except Exception:
+                            pass
                     else:
                         item["public_url"] = ""
 
-                    # Busca métricas reais via endpoint /analytics/conversions
-                    if conv_id:
-                        try:
-                            lp_analytics = await _fetch_lp_analytics(token, conv_id)
-                            item["visits_count"] = lp_analytics["visits_count"]
-                            item["conversions_count"] = lp_analytics["conversions_count"]
-                            item["conversion_rate"] = lp_analytics["conversion_rate"]
-                        except Exception:
-                            pass
-
-                    await _upsert_snapshot(client_id, "landing_page", _pick_object_key(item, "landing_page", i), item)
+                    await _upsert_snapshot(
+                        client_id,
+                        "landing_page",
+                        _pick_object_key(item, "landing_page", i),
+                        item,
+                    )
+                module_debug["landing_pages"] = res_lp
             else:
-                module_errors["landing_pages"] = result["error"]
-        except Exception as e:
-            module_errors["landing_pages"] = str(e)
+                module_errors["landing_pages"] = str(res_lp)
 
-        try:
-            result = await _fetch_paginated_debug(token, "/segmentations", limit=100, max_pages=25)
-            module_debug["segmentations"] = result
-            if result["ok"]:
-                segmentations = result["items"]
-                for i, item in enumerate(segmentations):
-                    await _upsert_snapshot(client_id, "segmentation", _pick_object_key(item, "segmentation", i), item)
-            else:
-                module_errors["segmentations"] = result["error"]
-        except Exception as e:
-            module_errors["segmentations"] = str(e)
-
-        try:
+            # Processing Segmentations and Leads
+            segmentations = []
+            unique_leads: List[dict] = []
+            seen_leads: Set[str] = set()
             leads_debug = []
 
-            for segmentation in segmentations:
-                segmentation_id = (
-                    segmentation.get("id")
-                    or segmentation.get("uuid")
-                    or segmentation.get("identifier")
-                )
+            if not isinstance(res_seg, Exception) and res_seg["ok"]:
+                segmentations = res_seg["items"]
+                for i, item in enumerate(segmentations):
+                    await _upsert_snapshot(
+                        client_id,
+                        "segmentation",
+                        _pick_object_key(item, "segmentation", i),
+                        item,
+                    )
 
-                if not segmentation_id:
-                    continue
-
-                contacts_result = await _fetch_segment_contacts_debug(
-                    token,
-                    str(segmentation_id),
-                    limit=100,
-                    max_pages=25,
-                )
-
-                leads_debug.append({
-                    "segmentation_id": str(segmentation_id),
-                    "ok": contacts_result["ok"],
-                    "error": contacts_result["error"],
-                    "pages": contacts_result["pages"],
-                    "count": len(contacts_result["items"]),
-                })
-
-                contacts = contacts_result["items"]
-                
-                # Atualiza a contagem na segmentação original para facilitar a exibição
-                segmentation["contacts_count"] = len(contacts)
-                await _upsert_snapshot(client_id, "segmentation", _pick_object_key(segmentation, "segmentation", 0), segmentation)
-
-                for c_index, contact in enumerate(contacts):
-                    identity = _lead_identity(contact, c_index)
-                    if identity in seen_leads:
+                # Fetch contacts for each segmentation
+                # We limit this to avoid excessive calls
+                for segmentation in segmentations[:15]:
+                    seg_id = (
+                        segmentation.get("id")
+                        or segmentation.get("uuid")
+                        or segmentation.get("identifier")
+                    )
+                    if not seg_id:
                         continue
-                    seen_leads.add(identity)
-                    unique_leads.append(contact)
 
-                await _upsert_snapshot(
-                    client_id,
-                    "segmentation_contacts",
-                    str(segmentation_id),
-                    {
-                        "segmentation": segmentation,
-                        "contacts_count": len(contacts),
-                        "contacts_preview": contacts[:50],
-                    },
-                )
+                    contacts_res = await _fetch_segment_contacts_debug(
+                        client, token, str(seg_id), limit=100, max_pages=10
+                    )
+                    leads_debug.append(
+                        {
+                            "segmentation_id": str(seg_id),
+                            "ok": contacts_res["ok"],
+                            "count": len(contacts_res["items"]),
+                        }
+                    )
 
-            module_debug["leads"] = {
-                "ok": True,
-                "details": leads_debug,
-                "count": len(unique_leads),
-            }
+                    if contacts_res["ok"]:
+                        contacts = contacts_res["items"]
+                        segmentation["contacts_count"] = len(contacts)
+                        await _upsert_snapshot(
+                            client_id,
+                            "segmentation",
+                            _pick_object_key(segmentation, "segmentation", 0),
+                            segmentation,
+                        )
 
-            for i, lead in enumerate(unique_leads[:1500]):
-                await _upsert_snapshot(client_id, "lead", _pick_object_key(lead, "lead", i), lead)
+                        for c_index, contact in enumerate(contacts):
+                            identity = _lead_identity(contact, c_index)
+                            if identity not in seen_leads:
+                                seen_leads.add(identity)
+                                unique_leads.append(contact)
 
-        except Exception as e:
-            module_errors["leads"] = str(e)
+                        await _upsert_snapshot(
+                            client_id,
+                            "segmentation_contacts",
+                            str(seg_id),
+                            {
+                                "segmentation": segmentation,
+                                "contacts_count": len(contacts),
+                                "contacts_preview": contacts[:50],
+                            },
+                        )
 
-        try:
-            result = await _fetch_paginated_debug(token, "/workflows", limit=100, max_pages=25)
-            module_debug["workflows"] = result
-            if result["ok"]:
-                workflows = result["items"]
+                module_debug["leads"] = {"ok": True, "count": len(unique_leads)}
+                for i, lead in enumerate(unique_leads[:1000]):
+                    await _upsert_snapshot(
+                        client_id, "lead", _pick_object_key(lead, "lead", i), lead
+                    )
+                module_debug["segmentations"] = res_seg
+            else:
+                module_errors["segmentations"] = str(res_seg)
+
+            # Processing Workflows
+            workflows = []
+            if not isinstance(res_wf, Exception) and res_wf["ok"]:
+                workflows = res_wf["items"]
                 for i, item in enumerate(workflows):
-                    await _upsert_snapshot(client_id, "workflow", _pick_object_key(item, "workflow", i), item)
+                    await _upsert_snapshot(
+                        client_id, "workflow", _pick_object_key(item, "workflow", i), item
+                    )
+                module_debug["workflows"] = res_wf
             else:
-                module_errors["workflows"] = result["error"]
-        except Exception as e:
-            module_errors["workflows"] = str(e)
+                module_errors["workflows"] = str(res_wf)
 
-        try:
-            result = await _fetch_paginated_debug(token, "/campaigns", limit=100, max_pages=25)
-            module_debug["campaigns"] = result
-            if result["ok"]:
-                campaigns = result["items"]
+            # Processing Campaigns
+            campaigns = []
+            if not isinstance(res_cp, Exception) and res_cp["ok"]:
+                campaigns = res_cp["items"]
                 for i, item in enumerate(campaigns):
-                    await _upsert_snapshot(client_id, "campaign", _pick_object_key(item, "campaign", i), item)
+                    await _upsert_snapshot(
+                        client_id, "campaign", _pick_object_key(item, "campaign", i), item
+                    )
+                module_debug["campaigns"] = res_cp
             else:
-                module_errors["campaigns"] = result["error"]
-        except Exception as e:
-            module_errors["campaigns"] = str(e)
+                module_errors["campaigns"] = str(res_cp)
 
-        try:
-            result = await _fetch_email_metrics_debug(token)
-            module_debug["metrics"] = result
-            if result["ok"]:
-                metrics_raw = result["metrics"]
-                await _upsert_snapshot(client_id, "metrics", "email_metrics", metrics_raw)
+            # Processing Metrics
+            metrics_raw = {}
+            if not isinstance(res_metrics, Exception) and res_metrics["ok"]:
+                metrics_raw = res_metrics["metrics"]
+                await _upsert_snapshot(
+                    client_id, "metrics", "email_metrics", metrics_raw
+                )
+                module_debug["metrics"] = res_metrics
             else:
-                module_errors["metrics"] = result["error"]
-        except Exception as e:
-            module_errors["metrics"] = str(e)
+                module_errors["metrics"] = str(res_metrics)
 
         metrics = _extract_metrics(metrics_raw)
 
