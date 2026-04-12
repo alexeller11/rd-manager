@@ -1,18 +1,20 @@
 import json
+import logging
 from typing import Any
 
-import httpx
 import google.generativeai as genai
+import httpx
 
 from app.core.settings import get_settings
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 if settings.gemini_api_key:
     try:
         genai.configure(api_key=settings.gemini_api_key)
     except Exception as e:
-        print(f"Erro ao configurar Gemini: {e}")
+        logger.error(f"Erro ao configurar Gemini: {e}")
 
 
 SYSTEM_EXPERT = (
@@ -42,7 +44,9 @@ def _strip_markdown_json(raw: str) -> str:
     return raw.strip().replace("```json", "").replace("```", "").strip()
 
 
-async def _call_groq(prompt: str, system: str | None = None, max_tokens: int = 2000, temperature: float = 0.4) -> str:
+async def _call_groq(
+    prompt: str, system: str | None = None, max_tokens: int = 2000, temperature: float = 0.4
+) -> str:
     if not settings.groq_api_key:
         raise RuntimeError("Groq não configurado")
 
@@ -72,7 +76,9 @@ async def _call_groq(prompt: str, system: str | None = None, max_tokens: int = 2
     return res.json()["choices"][0]["message"]["content"]
 
 
-async def _call_openai(prompt: str, system: str | None = None, max_tokens: int = 2000, temperature: float = 0.4) -> str:
+async def _call_openai(
+    prompt: str, system: str | None = None, max_tokens: int = 2000, temperature: float = 0.4
+) -> str:
     if not settings.openai_api_key:
         raise RuntimeError("OpenAI não configurada")
 
@@ -102,7 +108,9 @@ async def _call_openai(prompt: str, system: str | None = None, max_tokens: int =
     return res.json()["choices"][0]["message"]["content"]
 
 
-async def _call_gemini(prompt: str, system: str | None = None, max_tokens: int = 2000, temperature: float = 0.4) -> str:
+async def _call_gemini(
+    prompt: str, system: str | None = None, max_tokens: int = 2000, temperature: float = 0.4
+) -> str:
     if not settings.gemini_api_key:
         raise RuntimeError("Gemini não configurado")
 
@@ -125,7 +133,9 @@ async def _call_gemini(prompt: str, system: str | None = None, max_tokens: int =
     return response.text
 
 
-async def _call_sambanova(prompt: str, system: str | None = None, max_tokens: int = 2000, temperature: float = 0.4) -> str:
+async def _call_sambanova(
+    prompt: str, system: str | None = None, max_tokens: int = 2000, temperature: float = 0.4
+) -> str:
     if not settings.sambanova_api_key:
         raise RuntimeError("SambaNova não configurada")
 
@@ -169,21 +179,32 @@ async def call_ai(
     for provider in providers:
         try:
             if provider == "gemini" and settings.gemini_api_key:
-                return await _call_gemini(prompt, system=system, max_tokens=max_tokens, temperature=temperature)
+                return await _call_gemini(
+                    prompt, system=system, max_tokens=max_tokens, temperature=temperature
+                )
             if provider == "sambanova" and settings.sambanova_api_key:
-                return await _call_sambanova(prompt, system=system, max_tokens=max_tokens, temperature=temperature)
+                return await _call_sambanova(
+                    prompt, system=system, max_tokens=max_tokens, temperature=temperature
+                )
             if provider == "groq" and settings.groq_api_key:
-                return await _call_groq(prompt, system=system, max_tokens=max_tokens, temperature=temperature)
+                return await _call_groq(
+                    prompt, system=system, max_tokens=max_tokens, temperature=temperature
+                )
             if provider == "openai" and settings.openai_api_key:
-                return await _call_openai(prompt, system=system, max_tokens=max_tokens, temperature=temperature)
+                return await _call_openai(
+                    prompt, system=system, max_tokens=max_tokens, temperature=temperature
+                )
         except Exception as e:
+            logger.error(f"AI Provider {provider} failed: {e}")
             errors.append(f"{provider}: {e}")
 
     return "IA indisponível no momento.\n" + "\n".join(errors)
 
 
 async def generate_text(prompt: str) -> str:
-    return await call_ai(prompt=prompt, system=SYSTEM_DEFAULT, max_tokens=2000, temperature=0.4)
+    return await call_ai(
+        prompt=prompt, system=SYSTEM_DEFAULT, max_tokens=2000, temperature=0.4
+    )
 
 
 async def call_ai_json(
@@ -214,7 +235,8 @@ Não explique depois.
         if isinstance(parsed, dict):
             return parsed
         return {"data": parsed}
-    except Exception:
+    except Exception as e:
+        logger.error(f"Failed to parse AI JSON response: {e}. Raw: {raw}")
         return {
             "error": "json_parse_failed",
             "raw": raw,
