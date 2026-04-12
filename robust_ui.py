@@ -1,4 +1,8 @@
-<!DOCTYPE html>
+import os
+
+path = "app/templates/index.html"
+
+html_content = """<!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
@@ -304,3 +308,7 @@
   </script>
 </body>
 </html>
+"""
+
+with open(path, "w", encoding="utf-8") as f:
+    f.write(html_content)
