@@ -41,3 +41,13 @@ async def snapshots(client_id: int, object_type: str | None = Query(default=None
         "count": len(rows or []),
         "items": rows or [],
     }
+
+@router.post("/run-all")
+async def run_sync_all():
+    from app.database import db_fetch_all
+    clients = await db_fetch_all("SELECT id FROM clients")
+    results = []
+    for c in clients:
+        res = await run_full_sync(c["id"])
+        results.append({"client_id": c["id"], "ok": res["ok"]})
+    return {"ok": True, "results": results}

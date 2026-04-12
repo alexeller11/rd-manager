@@ -14,4 +14,3 @@ google-generativeai
 beautifulsoup4
 pytest
 pytest-asyncio
-httpx

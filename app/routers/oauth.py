@@ -18,23 +18,40 @@ def get_redirect_uri() -> str:
     if explicit:
         return explicit
 
+    # Try Render's external URL
+    render_url = os.getenv("RENDER_EXTERNAL_URL")
+    if render_url:
+        return f"{render_url.rstrip('/')}/oauth/callback"
+
     origins = getattr(settings, "allowed_origins", None) or []
     if origins:
-        return origins[0].rstrip("/") + "/oauth/callback"
+        # Avoid using "*" for redirect URI construction
+        base = origins[0] if origins[0] != "*" else "http://localhost:8000"
+        return f"{base.rstrip('/')}/oauth/callback"
 
     return "http://localhost:8000/oauth/callback"
 
 
 def _html(title: str, msg: str, ok: bool = True) -> str:
-    color = "#22a06b" if ok else "#d64c4c"
+    color = "#10b981" if ok else "#ef4444"
     return f"""
     <html>
-      <head><title>{title}</title></head>
-      <body style="font-family:Arial;padding:40px;text-align:center;background:#f7f7f7;">
-        <div style="max-width:620px;margin:0 auto;background:#fff;padding:32px;border-radius:18px;border:1px solid #ddd;">
-          <h1 style="color:{color};margin-bottom:12px;">{title}</h1>
-          <p style="font-size:16px;line-height:1.5;color:#333;">{msg}</p>
-          <p style="color:#666;">Você já pode fechar esta aba e voltar ao sistema.</p>
+      <head>
+        <title>{title}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {{ font-family: 'Inter', sans-serif; background: #030708; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }}
+            .card {{ background: #0b0f13; padding: 40px; border-radius: 16px; border: 1px solid #1e2933; text-align: center; max-width: 400px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }}
+            h1 {{ color: {color}; margin-top: 0; font-size: 24px; }}
+            p {{ color: #94a3b8; line-height: 1.6; }}
+            .btn {{ display: inline-block; margin-top: 20px; padding: 10px 20px; background: #10b981; color: #000; text-decoration: none; border-radius: 8px; font-weight: 600; }}
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <h1>{title}</h1>
+          <p>{msg}</p>
+          <p>Você já pode fechar esta aba e voltar ao sistema.</p>
         </div>
       </body>
     </html>

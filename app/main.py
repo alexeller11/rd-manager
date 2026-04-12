@@ -37,10 +37,14 @@ app = FastAPI(
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# CORS logic fix for wildcard + credentials
+origins = settings.allowed_origins
+allow_all = "*" in origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=getattr(settings, "allowed_origins", ["*"]),
-    allow_credentials=True,
+    allow_origins=origins if not allow_all else ["*"],
+    allow_credentials=not allow_all, # credentials cannot be used with "*"
     allow_methods=["*"],
     allow_headers=["*"],
 )
