@@ -12,3 +12,6 @@ bcrypt<4.1
 python-jose[cryptography]
 google-generativeai
 beautifulsoup4
+pytest
+pytest-asyncio
+httpx
