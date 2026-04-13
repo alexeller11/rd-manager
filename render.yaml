@@ -10,55 +10,35 @@ services:
     autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.9
-
+        value: 3.11.0
       - key: APP_ENV
         value: production
-
       - key: DEBUG_MODE
         value: "false"
-
       - key: DATABASE_URL
         fromDatabase:
           name: rd-manager-db
           property: connectionString
-
       - key: SECRET_KEY
-        sync: false
-
-      - key: ADMIN_USERNAME
-        sync: false
-
-      - key: ADMIN_PASSWORD
-        sync: false
-
+        generateValue: true
       - key: ALLOWED_ORIGINS
-        sync: false
-
+        value: "*"
       - key: GROQ_API_KEY
         sync: false
-
       - key: OPENAI_API_KEY
         sync: false
-
       - key: INVITE_CODE
         sync: false
-
       - key: RD_CLIENT_ID
         sync: false
-
       - key: RD_CLIENT_SECRET
         sync: false
-
       - key: RD_CRM_CLIENT_ID
         sync: false
-
       - key: RD_CRM_CLIENT_SECRET
         sync: false
-
       - key: RD_REDIRECT_URI
         sync: false
-
       - key: TOKEN_EXPIRE_MINUTES
         value: "1440"
 

@@ -174,13 +174,16 @@ app.include_router(
 )
 
 
-@app.get("/health")
+@app.get(\"/health\")
 async def health_check():
-    return {
-        "status": "ok",
-        "env": getattr(settings, "app_env", "production"),
-        "version": "1.0.0",
-    }
+    try:
+        from app.database import engine
+        async with engine.connect() as conn:
+            await conn.run_sync(lambda sync_conn: sync_conn.execute(text(\"SELECT 1\")))
+        return {\"status\": \"ok\", \"db\": \"connected\"}
+    except Exception as e:
+        return {\"status\": \"degraded\", \"error\": str(e)}, 503
+from sqlalchemy import text
 
 
 @app.get("/", response_class=HTMLResponse)
