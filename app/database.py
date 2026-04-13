@@ -35,8 +35,9 @@ async def init_db():
         _pg_pool = await asyncpg.create_pool(
             dsn=database_url,
             min_size=1,
-            max_size=5,
-            ssl='require' if 'render.com' in database_url or settings.app_env == 'production' else None
+            max_size=2,
+            ssl='require' if 'render.com' in database_url or settings.app_env == 'production' else None,
+            command_timeout=60
         )
         print("✅ PostgreSQL inicializado com sucesso.")
     else:
