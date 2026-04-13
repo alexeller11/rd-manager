@@ -4,8 +4,8 @@ services:
     runtime: python
     plan: starter
     region: oregon
-    buildCommand: ./build.sh
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r requirements.txt
+    startCommand: python3 -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     autoDeploy: true
     envVars:
