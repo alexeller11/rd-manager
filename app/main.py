@@ -4,6 +4,7 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from app.utils.notifier import send_telegram_message
 
 from app.auth_core import ensure_admin_exists, get_current_user, migrate_plaintext_rd_credentials
 from app.core.settings import get_settings
@@ -174,15 +175,15 @@ app.include_router(
 )
 
 
-@app.get(\"/health\")
+@app.get("/health")
 async def health_check():
     try:
         from app.database import engine
         async with engine.connect() as conn:
-            await conn.run_sync(lambda sync_conn: sync_conn.execute(text(\"SELECT 1\")))
-        return {\"status\": \"ok\", \"db\": \"connected\"}
+            await conn.run_sync(lambda sync_conn: sync_conn.execute(text("SELECT 1")))
+        return {"status": "ok", "db": "connected"}
     except Exception as e:
-        return {\"status\": \"degraded\", \"error\": str(e)}, 503
+        return {"status": "degraded", "error": str(e)}, 503
 from sqlalchemy import text
 
 

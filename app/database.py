@@ -25,27 +25,39 @@ def using_postgres() -> bool:
 
 
 async def init_db():
-    global _pg_pool, _sqlite_conn
+    import asyncio
+    for attempt in range(3):
+        try:
+            global _pg_pool, _sqlite_conn
 
-    if using_postgres():
-        database_url = _normalize_database_url(settings.database_url)
-        if database_url.startswith("postgresql+asyncpg://"):
-            database_url = database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+            if using_postgres():
+                database_url = _normalize_database_url(settings.database_url)
+                if database_url.startswith("postgresql+asyncpg://"):
+                    database_url = database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
 
-        _pg_pool = await asyncpg.create_pool(
-            dsn=database_url,
-            min_size=1,
-            max_size=2,
-            ssl='require' if 'render.com' in database_url or settings.app_env == 'production' else None,
-            command_timeout=60
-        )
-        print("✅ PostgreSQL inicializado com sucesso.")
-    else:
-        _sqlite_conn = await aiosqlite.connect("rd_manager.db")
-        _sqlite_conn.row_factory = aiosqlite.Row
-        print("✅ SQLite inicializado com sucesso.")
+                _pg_pool = await asyncpg.create_pool(
+                    dsn=database_url,
+                    min_size=1,
+                    max_size=2,
+                    ssl='require' if 'render.com' in database_url or settings.app_env == 'production' else None,
+                    command_timeout=60
+                )
+                print("✅ PostgreSQL inicializado com sucesso.")
+            else:
+                _sqlite_conn = await aiosqlite.connect("rd_manager.db")
+                _sqlite_conn.row_factory = aiosqlite.Row
+                print("✅ SQLite inicializado com sucesso.")
 
-    await init_schema()
+            await init_schema()
+            print("Banco de dados e schema inicializados com sucesso.")
+            return  # Sai do loop se a inicialização for bem-sucedida
+        except Exception as e:
+            print(f"Erro ao inicializar o banco de dados (tentativa {attempt + 1}/3): {e}")
+            import traceback
+            traceback.print_exc()
+            await asyncio.sleep(5)  # Espera 5 segundos antes de tentar novamente
+
+    print("Falha ao inicializar o banco de dados após 3 tentativas.")
 
 
 async def close_db():
