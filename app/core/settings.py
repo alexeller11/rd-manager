@@ -53,7 +53,7 @@ class Settings(BaseSettings):
         return [item.strip() for item in raw.split(",") if item.strip()]
 
     def validate(self):
-        if self.app_env.lower() == "production":
+        if self.app_env.lower() == "production" and not self.debug_mode:
             db = (self.database_url or "").strip().lower()
 
             valid_prefixes = (
