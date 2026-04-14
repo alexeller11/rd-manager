@@ -1,4 +1,4 @@
-jose
+python-jose[cryptography]
 telegram
 fastapi
 uvicorn
