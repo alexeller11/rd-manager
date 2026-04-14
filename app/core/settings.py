@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_env: str = Field(default="production", alias="APP_ENV")
-    debug_mode: bool = Field(default=False, alias="DEBUG_MODE")
+    debug_mode: bool = Field(default=True, alias="DEBUG_MODE")
 
     database_url: str = Field(default="", alias="DATABASE_URL")
 
