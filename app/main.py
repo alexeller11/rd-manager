@@ -55,9 +55,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 @app.on_event("startup")
 async def startup() -> None:
-    print("Tentando conectar ao banco de dados...")
     await init_db()
-    print("Conexão ao banco de dados estabelecida.")
     await ensure_admin_exists()
     await migrate_plaintext_rd_credentials()
     await ensure_sync_tables()
