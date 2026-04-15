@@ -1168,7 +1168,7 @@ function ModulePage({ moduleName, title, description }) {
   const filteredLeads = leads.filter((lead) => {
     if (leadFilter === "active" && !lead.isActive) return false;
     if (leadFilter === "inactive" && lead.isActive) return false;
-    if (leadFilter === "high" and lead.score < 70) return false;
+    if (leadFilter === "high" && lead.score < 70) return false;
     if (leadSourceFilter !== "all" && lead.source !== leadSourceFilter) return false;
     if (leadSearch && !`${lead.name} ${lead.email}`.toLowerCase().includes(leadSearch.toLowerCase())) return false;
     return true;
@@ -1177,7 +1177,7 @@ function ModulePage({ moduleName, title, description }) {
     const p = it.payload || {};
     const updatedRaw = p.updated_at || p.last_updated_at || it.synced_at;
     const updatedDate = updatedRaw ? new Date(updatedRaw) : null;
-    const inactiveDays = updatedDate and !Number.isNaN(updatedDate.getTime())
+    const inactiveDays = updatedDate && !Number.isNaN(updatedDate.getTime())
       ? Math.max(0, Math.floor((Date.now() - updatedDate.getTime()) / (1000 * 60 * 60 * 24)))
       : null;
     return {
