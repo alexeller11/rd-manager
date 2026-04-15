@@ -834,104 +834,6 @@ function Dashboard({ data, reload }) {
     </div>
   );
 }
-;
-  const ranking = agency?.ranking || [];
-  const alerts = agency?.alerts || [];
-  const priorities = agency?.weekly_priorities || [];
-  const directorView = agency?.director_view || {};
-
-  return (
-    <div>
-      <div className="hero">
-        <div className="row">
-          <div>
-            <h1>Dashboard da Agência</h1>
-            <p>Visão executiva da carteira com foco em risco, expansão e potencial comercial.</p>
-          </div>
-          <div>
-            <button type="button" className="btn" onClick={reload}>Atualizar</button>
-          </div>
-        </div>
-      </div>
-
-      {agency.executive_briefing && (
-        <div className="card" style={{borderLeft: "4px solid var(--blue)"}}>
-          <h3 style={{marginTop: 0, color: "var(--blue)"}}>🧠 Briefing Estratégico da IA</h3>
-          {renderAiReport(agency.executive_briefing)}
-        </div>
-      )}
-
-      <div className="kpi-grid">
-        <div className="kpi-card">
-          <div className="kpi-label">Score da agência</div>
-          <div className="kpi-value">{agency?.score ?? 0}</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-label">Clientes em risco</div>
-          <div className="kpi-value">{directorView?.at_risk_total ?? 0}</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-label">Clientes em expansão</div>
-          <div className="kpi-value">{directorView?.expansion_total ?? 0}</div>
-        </div>
-        <div className="kpi-card">
-          <div className="kpi-label">Potencial estimado</div>
-          <div className="kpi-value">R$ {directorView?.potential_revenue ?? 0}</div>
-        </div>
-      </div>
-
-      <div className="two-col">
-        <div className="card">
-          <h3>Alertas</h3>
-          {alerts.length === 0 ? (
-            <div className="muted">Nenhum alerta no momento.</div>
-          ) : alerts.map((a, i) => (
-            <div className="list-line" key={i}>⚠ {a}</div>
-          ))}
-        </div>
-
-        <div className="card">
-          <h3>Prioridades da semana</h3>
-          {priorities.length === 0 ? (
-            <div className="muted">Nenhuma prioridade no momento.</div>
-          ) : priorities.map((p, i) => (
-            <div className="list-line" key={i}>👉 {p}</div>
-          ))}
-        </div>
-      </div>
-
-      <div className="card">
-        <h3>Ranking de clientes</h3>
-        {ranking.length === 0 ? (
-          <div className="muted">Nenhum cliente ranqueado ainda.</div>
-        ) : ranking.map((c) => (
-          <div key={c.client_id} style={{borderBottom:"1px solid #25303b", padding:"14px 0"}}>
-            <div className="row">
-              <strong>{c.client_name}</strong>
-              <div>Score: <strong>{c.score}</strong></div>
-            </div>
-
-            <div className="muted" style={{marginTop:8}}>{c.summary}</div>
-
-            <div style={{marginTop:10}}>
-              <span className={`badge ${
-                c.stage === "urgente" ? "red" : c.stage === "expansão" ? "yellow" : "green"
-              }`}>
-                {c.stage}
-              </span>
-
-              <span className={`badge ${c.rd_connected ? "green" : "red"}`}>
-                {c.rd_connected ? "RD conectada" : "RD desconectada"}
-              </span>
-
-              {c.last_sync && <span className="badge blue">Sync OK</span>}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function PortfolioPage({ data }) {
   const agency = data?.agency || {};
@@ -1266,7 +1168,7 @@ function ModulePage({ moduleName, title, description }) {
   const filteredLeads = leads.filter((lead) => {
     if (leadFilter === "active" && !lead.isActive) return false;
     if (leadFilter === "inactive" && lead.isActive) return false;
-    if (leadFilter === "high" && lead.score < 70) return false;
+    if (leadFilter === "high" and lead.score < 70) return false;
     if (leadSourceFilter !== "all" && lead.source !== leadSourceFilter) return false;
     if (leadSearch && !`${lead.name} ${lead.email}`.toLowerCase().includes(leadSearch.toLowerCase())) return false;
     return true;
@@ -1275,7 +1177,7 @@ function ModulePage({ moduleName, title, description }) {
     const p = it.payload || {};
     const updatedRaw = p.updated_at || p.last_updated_at || it.synced_at;
     const updatedDate = updatedRaw ? new Date(updatedRaw) : null;
-    const inactiveDays = updatedDate && !Number.isNaN(updatedDate.getTime())
+    const inactiveDays = updatedDate and !Number.isNaN(updatedDate.getTime())
       ? Math.max(0, Math.floor((Date.now() - updatedDate.getTime()) / (1000 * 60 * 60 * 24)))
       : null;
     return {
