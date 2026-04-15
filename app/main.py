@@ -8,7 +8,7 @@ from app.utils.notifier import send_telegram_message
 
 from app.auth_core import ensure_admin_exists, get_current_user, migrate_plaintext_rd_credentials
 from app.core.settings import get_settings
-from app.database import close_db, init_db
+from app.database import close_db, init_db, db_fetchval
 from app.routers import (
     agency_dashboard,
     agency_expert,
@@ -215,17 +215,16 @@ app.include_router(
 
 @app.get("/health")
 async def health_check():
+    """Health check simples usando a camada de acesso a dados.
+
+    Faz um SELECT 1 via db_fetchval para garantir que o pool e o banco
+    estão respondendo. Em caso de erro, retorna status "degraded".
+    """
     try:
-        from app.database import engine
-        from sqlalchemy import text
-        async with engine.connect() as conn:
-            await conn.run_sync(lambda sync_conn: sync_conn.execute(text("SELECT 1")))
+        _ = await db_fetchval("SELECT 1")
         return {"status": "ok", "db": "connected"}
     except Exception as e:
         return {"status": "degraded", "error": str(e)}, 503
-
-
-from sqlalchemy import text
 
 
 @app.get("/", response_class=HTMLResponse)
