@@ -10,3 +10,4 @@ httpx
 asyncpg
 google-generativeai
 beautifulsoup4
+passlib[bcrypt]
