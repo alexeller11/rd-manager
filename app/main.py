@@ -1,6 +1,6 @@
 import os
 
-from fastapi import Depends, FastAPI  
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -26,8 +26,10 @@ from app.routers import (
     rd_fullsync,
     rd_modules,
     seo_geo,
+    webhooks,
 )
 from app.services.rd_fullsync import ensure_sync_tables
+from app.routers.rd_station import close_http_client
 
 settings = get_settings()
 
@@ -38,14 +40,14 @@ app = FastAPI(
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# CORS logic fix for wildcard + credentials
+# CORS
 origins = settings.allowed_origins
 allow_all = "*" in origins
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins if not allow_all else ["*"],
-    allow_credentials=not allow_all, # credentials cannot be used with "*"
+    allow_credentials=not allow_all,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -53,24 +55,56 @@ app.add_middleware(
 os.makedirs("app/static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
+
 @app.on_event("startup")
 async def startup() -> None:
     print("Tentando conectar ao banco de dados...")
     import os
-    print (os.environ.get("DATABASE_URL"))
+    print(os.environ.get("DATABASE_URL"))
     await init_db()
     print("Conexão ao banco de dados estabelecida.")
     await ensure_admin_exists()
     await migrate_plaintext_rd_credentials()
     await ensure_sync_tables()
+    await _ensure_webhook_table()
 
 
 @app.on_event("shutdown")
 async def shutdown() -> None:
     await close_db()
+    await close_http_client()  # Fecha pool httpx corretamente
 
 
+async def _ensure_webhook_table() -> None:
+    """Cria a tabela de eventos de webhook se não existir."""
+    from app.database import db_execute
+    await db_execute(
+        """
+        CREATE TABLE IF NOT EXISTS rd_webhook_events (
+            id SERIAL PRIMARY KEY,
+            event_type TEXT NOT NULL,
+            contact_uuid TEXT NOT NULL DEFAULT '',
+            email TEXT NOT NULL DEFAULT '',
+            payload JSONB NOT NULL DEFAULT '{}',
+            received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """
+    )
+    # Índice para busca rápida por email e event_type
+    await db_execute(
+        "CREATE INDEX IF NOT EXISTS idx_webhook_email ON rd_webhook_events (email)"
+    )
+    await db_execute(
+        "CREATE INDEX IF NOT EXISTS idx_webhook_event_type ON rd_webhook_events (event_type)"
+    )
+
+
+# Routers públicos (sem auth)
 app.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
+
+# Webhook público — RD Station faz POST sem autenticação de usuário
+app.include_router(webhooks.router, tags=["webhooks"])
+
 
 def _build_private_dependencies():
     return [Depends(get_current_user)]
@@ -183,11 +217,14 @@ app.include_router(
 async def health_check():
     try:
         from app.database import engine
+        from sqlalchemy import text
         async with engine.connect() as conn:
             await conn.run_sync(lambda sync_conn: sync_conn.execute(text("SELECT 1")))
         return {"status": "ok", "db": "connected"}
     except Exception as e:
         return {"status": "degraded", "error": str(e)}, 503
+
+
 from sqlalchemy import text
 
 

@@ -14,6 +14,7 @@ from . import rd_diagnostics
 from . import rd_fullsync
 from . import rd_modules
 from . import seo_geo
+from . import webhooks
 
 __all__ = [
     "agency_dashboard",
@@ -32,4 +33,5 @@ __all__ = [
     "rd_fullsync",
     "rd_modules",
     "seo_geo",
+    "webhooks",
 ]
