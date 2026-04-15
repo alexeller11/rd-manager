@@ -4,6 +4,10 @@ Integração RD Station Marketing com:
 - refresh automático de token
 - lock por cliente
 - sync run auditável
+- cache TTL 10min
+- httpx connection pool compartilhado
+- paginação completa
+- scoring real via services/scoring.py
 """
 import asyncio
 import json
@@ -24,11 +28,40 @@ from app.ai_service import (
 from app.auth_core import get_valid_mkt_token, refresh_mkt_token
 from app.database import db_execute, db_fetchone, db_fetchval, parse_json_field
 from app.routers.clients import fetch_client
+from app.services.cache_rd import rd_cache
+from app.services.scoring import calculate_lead_score
 
 router = APIRouter()
 
 RD_API = "https://api.rd.services"
 SYNC_LOCKS: dict[int, asyncio.Lock] = {}
+
+# Pool global de conexões httpx — reutilizado em todas as requisições
+_RD_HTTP_CLIENT: Optional[httpx.AsyncClient] = None
+
+
+def get_http_client() -> httpx.AsyncClient:
+    global _RD_HTTP_CLIENT
+    if _RD_HTTP_CLIENT is None or _RD_HTTP_CLIENT.is_closed:
+        _RD_HTTP_CLIENT = httpx.AsyncClient(
+            base_url=RD_API,
+            limits=httpx.Limits(
+                max_keepalive_connections=30,
+                max_connections=60,
+                keepalive_expiry=30.0,
+            ),
+            timeout=httpx.Timeout(30.0, connect=5.0),
+            follow_redirects=True,
+        )
+    return _RD_HTTP_CLIENT
+
+
+async def close_http_client() -> None:
+    global _RD_HTTP_CLIENT
+    if _RD_HTTP_CLIENT and not _RD_HTTP_CLIENT.is_closed:
+        await _RD_HTTP_CLIENT.aclose()
+        _RD_HTTP_CLIENT = None
+
 
 def utcnow_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -105,7 +138,18 @@ async def rd_request(
     path: str,
     params: dict | None = None,
     retries: int = 3,
+    bypass_cache: bool = False,
 ) -> dict:
+    # Cache apenas para GET
+    if method == "GET" and not bypass_cache:
+        params_key = frozenset((params or {}).items())
+        cache_key = f"{client_id}:{path}:{hash(params_key)}"
+        cached = rd_cache.get(cache_key)
+        if cached is not None:
+            return cached
+    else:
+        cache_key = None
+
     token = await get_valid_mkt_token(client_id)
     if not token:
         raise HTTPException(status_code=400, detail="Token RD Marketing não configurado")
@@ -115,30 +159,54 @@ async def rd_request(
         "Accept": "application/json",
     }
 
-    async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
-        for attempt in range(retries):
-            response = await client.request(method, f"{RD_API}{path}", headers=headers, params=params or {})
+    client = get_http_client()
+    for attempt in range(retries):
+        response = await client.request(method, path, headers=headers, params=params or {})
 
-            if response.status_code == 200:
-                return response.json()
+        if response.status_code == 200:
+            result = response.json()
+            if cache_key:
+                rd_cache.set(cache_key, result)
+            return result
 
-            if response.status_code == 401:
-                refreshed = await refresh_mkt_token(client_id)
-                if not refreshed:
-                    raise HTTPException(status_code=401, detail="Token RD expirado e refresh falhou")
-                headers["Authorization"] = f"Bearer {refreshed}"
-                continue
+        if response.status_code == 401:
+            refreshed = await refresh_mkt_token(client_id)
+            if not refreshed:
+                raise HTTPException(status_code=401, detail="Token RD expirado e refresh falhou")
+            headers["Authorization"] = f"Bearer {refreshed}"
+            continue
 
-            if response.status_code in {429, 500, 502, 503, 504} and attempt < retries - 1:
-                await asyncio.sleep(2 ** attempt)
-                continue
+        if response.status_code in {429, 500, 502, 503, 504} and attempt < retries - 1:
+            await asyncio.sleep(2 ** attempt)
+            continue
 
-            raise HTTPException(
-                status_code=response.status_code,
-                detail=f"RD Station error em {path}: {response.text[:300]}",
-            )
+        raise HTTPException(
+            status_code=response.status_code,
+            detail=f"RD Station error em {path}: {response.text[:300]}",
+        )
 
     raise HTTPException(status_code=500, detail=f"Falha persistente ao acessar {path}")
+
+
+async def rd_request_all_pages(
+    client_id: int,
+    path: str,
+    list_keys: list[str],
+    page_size: int = 100,
+) -> list:
+    """Busca todas as páginas de um endpoint paginado do RD Station."""
+    all_items: list = []
+    page = 1
+    while True:
+        data = await rd_request(client_id, "GET", path, {"page": page, "page_size": page_size})
+        items = safe_list(data, *list_keys)
+        if not items:
+            break
+        all_items.extend(items)
+        if len(items) < page_size:
+            break
+        page += 1
+    return all_items
 
 
 async def save_rd_snapshot(client_id: int, snap: dict) -> None:
@@ -165,8 +233,9 @@ async def get_rd_snapshot(client_id: int) -> dict:
 
 
 async def _fetch_segmentations(client_id: int) -> tuple[list[dict], int]:
-    data = await rd_request(client_id, "GET", "/platform/segmentations", {"page": 1, "page_size": 100})
-    segs_raw = safe_list(data, "segmentations", "items")
+    segs_raw = await rd_request_all_pages(
+        client_id, "/platform/segmentations", ["segmentations", "items"]
+    )
     segmentations = [
         {
             "id": str(s.get("id")),
@@ -181,8 +250,9 @@ async def _fetch_segmentations(client_id: int) -> tuple[list[dict], int]:
 
 
 async def _fetch_emails(client_id: int) -> tuple[list[dict], float, float]:
-    data = await rd_request(client_id, "GET", "/platform/emails", {"page": 1, "page_size": 20})
-    emails_raw = safe_list(data, "items", "emails")
+    emails_raw = await rd_request_all_pages(
+        client_id, "/platform/emails", ["items", "emails"], page_size=50
+    )
     campaigns = []
     total_sent = 0
     total_open = 0
@@ -215,8 +285,9 @@ async def _fetch_emails(client_id: int) -> tuple[list[dict], float, float]:
 
 
 async def _fetch_workflows(client_id: int) -> list[dict]:
-    data = await rd_request(client_id, "GET", "/platform/workflows", {"page": 1, "page_size": 50})
-    workflows = safe_list(data, "workflows", "items")
+    workflows = await rd_request_all_pages(
+        client_id, "/platform/workflows", ["workflows", "items"]
+    )
     return [
         {
             "id": w.get("id"),
@@ -228,8 +299,9 @@ async def _fetch_workflows(client_id: int) -> list[dict]:
 
 
 async def _fetch_landing_pages(client_id: int) -> list[dict]:
-    data = await rd_request(client_id, "GET", "/platform/landing_pages", {"page": 1, "page_size": 30})
-    lps = safe_list(data, "landing_pages", "items")
+    lps = await rd_request_all_pages(
+        client_id, "/platform/landing_pages", ["landing_pages", "items"]
+    )
     result = []
     for lp in lps:
         visitors = safe_int(lp.get("visitors_count") or lp.get("visits"))
@@ -259,16 +331,16 @@ async def sync_client(client_id: int):
     async with SYNC_LOCKS[client_id]:
         sync_run_id = await _create_sync_run(client_id, "full_sync")
         try:
-            segmentations_task = _fetch_segmentations(client_id)
-            emails_task = _fetch_emails(client_id)
-            workflows_task = _fetch_workflows(client_id)
-            landing_pages_task = _fetch_landing_pages(client_id)
-
-            (segmentations, total_leads), (campaigns, avg_open, avg_click), automations, landing_pages = await asyncio.gather(
-                segmentations_task,
-                emails_task,
-                workflows_task,
-                landing_pages_task,
+            (
+                (segmentations, total_leads),
+                (campaigns, avg_open, avg_click),
+                automations,
+                landing_pages,
+            ) = await asyncio.gather(
+                _fetch_segmentations(client_id),
+                _fetch_emails(client_id),
+                _fetch_workflows(client_id),
+                _fetch_landing_pages(client_id),
             )
 
             snapshot = {
@@ -283,6 +355,8 @@ async def sync_client(client_id: int):
             }
 
             await save_rd_snapshot(client_id, snapshot)
+            # Invalida cache deste cliente após sync
+            rd_cache.delete_prefix(f"{client_id}:")
             await _finish_sync_run(sync_run_id, "success", {"snapshot_saved": True})
 
             return {
@@ -345,8 +419,7 @@ async def get_leads_analysis(client_id: int, page: int = 1, page_size: int = 50,
     contacts_raw = safe_list(data, "contacts", "items")
     leads = []
     for contact in contacts_raw:
-        conversions = safe_int(contact.get("conversions") or contact.get("conversion_count"))
-        score = min(conversions * 15, 100)
+        score = calculate_lead_score(contact)
         potential = "alto" if score >= 70 else "medio" if score >= 30 else "baixo"
         leads.append(
             {
@@ -355,7 +428,7 @@ async def get_leads_analysis(client_id: int, page: int = 1, page_size: int = 50,
                 "email": contact.get("email"),
                 "score": score,
                 "potential": potential,
-                "conversions": conversions,
+                "conversions": safe_int(contact.get("conversions") or contact.get("conversion_count")),
                 "last_activity": contact.get("last_conversion_date") or contact.get("updated_at"),
             }
         )
