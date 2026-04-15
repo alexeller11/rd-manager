@@ -204,3 +204,35 @@ def build_client_score(client: dict, summary: dict | None) -> dict:
         },
         "last_sync": summary.get("synced_at"),
     }
+
+
+def calculate_lead_score(contact: dict | None) -> int:
+    """Calcula um score simples de 0 a 100 para um lead individual.
+
+    A ideia aqui é ter um critério consistente para a rota /leads-analysis,
+    alinhado com a lógica de health score mas focado no lead.
+    """
+    contact = contact or {}
+
+    conversions = _safe_int(contact.get("conversions") or contact.get("conversion_count"))
+    tags = contact.get("tags") or contact.get("tag_list") or []
+
+    if isinstance(tags, str):
+        tags_list = [t.strip() for t in tags.split(",") if t.strip()]
+    elif isinstance(tags, list):
+        tags_list = tags
+    else:
+        tags_list = []
+
+    base = 30
+
+    if conversions >= 1:
+        base += 20
+    if conversions >= 3:
+        base += 20
+
+    lowered = [str(t).lower() for t in tags_list]
+    if any(word in lowered for word in ["cliente", "customer", "comprou", "pago"]):
+        base += 20
+
+    return max(0, min(100, base))
