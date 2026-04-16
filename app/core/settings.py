@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_env: str = Field(default="production", alias="APP_ENV")
-    debug_mode: bool = Field(default=True, alias="DEBUG_MODE")
+    debug_mode: bool = Field(default=False, alias="DEBUG_MODE")  # False por padrão em produção
 
     database_url: str = Field(default="", alias="DATABASE_URL")
 
@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     rd_crm_client_id: str = Field(default="", alias="RD_CRM_CLIENT_ID")
     rd_crm_client_secret: str = Field(default="", alias="RD_CRM_CLIENT_SECRET")
     rd_redirect_uri: str = Field(default="", alias="RD_REDIRECT_URI")
+
+    # Telegram
+    telegram_bot_token: str = Field(default="", alias="TELEGRAM_BOT_TOKEN")
+    telegram_chat_id: str = Field(default="", alias="TELEGRAM_CHAT_ID")
 
     model_config = SettingsConfigDict(
         env_file=".env",

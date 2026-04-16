@@ -7,9 +7,16 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
 
-from app.database import db_fetchall, db_fetchone
+from app.database import db_fetch_all, db_fetch_one, db_execute
 
-router = APIRouter(prefix="/agency", tags=["agency"])
+router = APIRouter()
+
+
+async def _ensure_active_column():
+    """Adiciona coluna active na tabela clients se não existir (retrocompat)."""
+    await db_execute(
+        "ALTER TABLE clients ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;"
+    )
 
 
 def _safe_float(val, default=0.0) -> float:
@@ -36,8 +43,8 @@ def _status_label(score: float) -> str:
     return "🔴 Crítico"
 
 
-@router.get("/dashboard")
-async def agency_dashboard():
+@router.get("/overview")
+async def agency_overview():
     """
     Retorna visão consolidada de todos os clientes da agência:
     - Totais agregados
@@ -45,15 +52,15 @@ async def agency_dashboard():
     - Clientes críticos (score < 50)
     - Delta mês atual vs mês anterior
     """
+    await _ensure_active_column()
 
-    # 1. Lista todos os clientes ativos
-    clients = await db_fetchall(
-        "SELECT id, name FROM clients WHERE active = true ORDER BY name"
+    clients = await db_fetch_all(
+        "SELECT id, name FROM clients ORDER BY name"
     )
     if not clients:
         return {
             "status": "sem_clientes",
-            "message": "Nenhum cliente ativo encontrado",
+            "message": "Nenhum cliente cadastrado ainda",
             "totals": {},
             "ranking": [],
             "alerts": [],
@@ -62,10 +69,9 @@ async def agency_dashboard():
 
     client_ids = [c["id"] for c in clients]
 
-    # 2. Busca snapshots mais recentes de cada cliente
     snapshots = []
     for cid in client_ids:
-        row = await db_fetchone(
+        row = await db_fetch_one(
             """
             SELECT client_id, data, created_at
             FROM rd_snapshots
@@ -78,10 +84,8 @@ async def agency_dashboard():
         if row:
             snapshots.append(row)
 
-    # 3. Monta mapa client_id → nome
     name_map = {c["id"]: c["name"] for c in clients}
 
-    # 4. Processa métricas por cliente
     client_metrics = []
     for snap in snapshots:
         cid = snap["client_id"]
@@ -101,7 +105,6 @@ async def agency_dashboard():
         total_conversions = sum(lp.get("conversions", 0) for lp in landing_pages)
         active_automations = sum(1 for a in automations if a.get("status") == "active")
 
-        # Health score simples baseado nas métricas disponíveis
         health = 0
         if total_leads > 0:
             health += 20
@@ -134,7 +137,24 @@ async def agency_dashboard():
             "synced_at": data.get("synced_at", ""),
         })
 
-    # 5. Totais agregados
+    # Clientes sem snapshot ainda aparecem com score 0
+    synced_ids = {m["client_id"] for m in client_metrics}
+    for c in clients:
+        if c["id"] not in synced_ids:
+            client_metrics.append({
+                "client_id": c["id"],
+                "name": c["name"],
+                "total_leads": 0,
+                "total_campaigns": 0,
+                "total_conversions": 0,
+                "avg_open_rate": 0.0,
+                "avg_click_rate": 0.0,
+                "active_automations": 0,
+                "health_score": 0,
+                "status": "🔴 Sem sync",
+                "synced_at": "",
+            })
+
     totals = {
         "total_clients": len(client_metrics),
         "total_leads": sum(m["total_leads"] for m in client_metrics),
@@ -151,13 +171,8 @@ async def agency_dashboard():
         ),
     }
 
-    # 6. Ranking por health score (top 10)
     ranking = sorted(client_metrics, key=lambda x: x["health_score"], reverse=True)[:10]
-
-    # 7. Alertas críticos (score < 50)
     alerts = [m for m in client_metrics if m["health_score"] < 50]
-
-    # 8. Delta mês atual vs anterior — compara snapshots
     delta = await _compute_monthly_delta(client_ids)
 
     return {
@@ -169,32 +184,27 @@ async def agency_dashboard():
     }
 
 
-async def _compute_monthly_delta(client_ids: list[int]) -> dict:
-    """
-    Calcula variação percentual de leads e conversões
-    entre o snapshot mais recente e o snapshot de ~30 dias atrás.
-    """
+# Mantém rota legada /dashboard apontando para /overview
+@router.get("/dashboard")
+async def agency_dashboard():
+    return await agency_overview()
+
+
+async def _compute_monthly_delta(client_ids: list) -> dict:
     total_leads_now = 0
     total_leads_prev = 0
     total_conv_now = 0
     total_conv_prev = 0
 
     for cid in client_ids:
-        # Snapshot mais recente
-        now_row = await db_fetchone(
-            """
-            SELECT data FROM rd_snapshots
-            WHERE client_id = $1
-            ORDER BY created_at DESC LIMIT 1
-            """,
+        now_row = await db_fetch_one(
+            "SELECT data FROM rd_snapshots WHERE client_id = $1 ORDER BY created_at DESC LIMIT 1",
             cid,
         )
-        # Snapshot de ~30 dias atrás
-        prev_row = await db_fetchone(
+        prev_row = await db_fetch_one(
             """
             SELECT data FROM rd_snapshots
-            WHERE client_id = $1
-              AND created_at < NOW() - INTERVAL '25 days'
+            WHERE client_id = $1 AND created_at < NOW() - INTERVAL '25 days'
             ORDER BY created_at DESC LIMIT 1
             """,
             cid,
@@ -214,10 +224,8 @@ async def _compute_monthly_delta(client_ids: list[int]) -> dict:
         total_leads_now += _safe_int(now_data.get("total_leads"))
         total_leads_prev += _safe_int(prev_data.get("total_leads"))
 
-        lps_now = now_data.get("landing_pages") or []
-        lps_prev = prev_data.get("landing_pages") or []
-        total_conv_now += sum(lp.get("conversions", 0) for lp in lps_now)
-        total_conv_prev += sum(lp.get("conversions", 0) for lp in lps_prev)
+        total_conv_now += sum(lp.get("conversions", 0) for lp in (now_data.get("landing_pages") or []))
+        total_conv_prev += sum(lp.get("conversions", 0) for lp in (prev_data.get("landing_pages") or []))
 
     def pct(now, prev):
         if prev == 0:
@@ -237,7 +245,8 @@ async def _compute_monthly_delta(client_ids: list[int]) -> dict:
 @router.get("/clients-summary")
 async def clients_summary():
     """Lista resumida de todos os clientes com status rápido."""
-    clients = await db_fetchall(
-        "SELECT id, name, created_at FROM clients WHERE active = true ORDER BY name"
+    await _ensure_active_column()
+    clients = await db_fetch_all(
+        "SELECT id, name, created_at FROM clients ORDER BY name"
     )
     return {"clients": [dict(c) for c in (clients or [])], "total": len(clients or [])}
