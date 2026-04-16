@@ -35,7 +35,7 @@ settings = get_settings()
 
 app = FastAPI(
     title="RD Manager IA",
-    version="1.0.0",
+    version="4.0.0",
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -58,11 +58,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 @app.on_event("startup")
 async def startup() -> None:
-    print("Tentando conectar ao banco de dados...")
-    import os
-    print(os.environ.get("DATABASE_URL"))
     await init_db()
-    print("Conexão ao banco de dados estabelecida.")
     await ensure_admin_exists()
     await migrate_plaintext_rd_credentials()
     await ensure_sync_tables()
@@ -72,7 +68,7 @@ async def startup() -> None:
 @app.on_event("shutdown")
 async def shutdown() -> None:
     await close_db()
-    await close_http_client()  # Fecha pool httpx corretamente
+    await close_http_client()
 
 
 async def _ensure_webhook_table() -> None:
@@ -90,7 +86,6 @@ async def _ensure_webhook_table() -> None:
         )
         """
     )
-    # Índice para busca rápida por email e event_type
     await db_execute(
         "CREATE INDEX IF NOT EXISTS idx_webhook_email ON rd_webhook_events (email)"
     )
@@ -101,8 +96,6 @@ async def _ensure_webhook_table() -> None:
 
 # Routers públicos (sem auth)
 app.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
-
-# Webhook público — RD Station faz POST sem autenticação de usuário
 app.include_router(webhooks.router, tags=["webhooks"])
 
 
@@ -215,14 +208,9 @@ app.include_router(
 
 @app.get("/health")
 async def health_check():
-    """Health check simples usando a camada de acesso a dados.
-
-    Faz um SELECT 1 via db_fetchval para garantir que o pool e o banco
-    estão respondendo. Em caso de erro, retorna status "degraded".
-    """
     try:
-        _ = await db_fetchval("SELECT 1")
-        return {"status": "ok", "db": "connected"}
+        await db_fetchval("SELECT 1")
+        return {"status": "ok", "version": "4.0.0", "db": "connected"}
     except Exception as e:
         return {"status": "degraded", "error": str(e)}, 503
 

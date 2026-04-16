@@ -1,8 +1,5 @@
+# LEGADO: router removido. Funcionalidade migrada para agency_dashboard.py (/api/agency)
+# Mantido como placeholder para não quebrar imports existentes.
 from fastapi import APIRouter
-from app.services.agency_intelligence import build_agency_overview
 
 router = APIRouter()
-
-@router.get("/overview")
-async def agency_overview():
-    return await build_agency_overview()
