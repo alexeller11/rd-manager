@@ -50,12 +50,12 @@ async def init_db():
 
             await init_schema()
             print("Banco de dados e schema inicializados com sucesso.")
-            return  # Sai do loop se a inicialização for bem-sucedida
+            return
         except Exception as e:
             print(f"Erro ao inicializar o banco de dados (tentativa {attempt + 1}/3): {e}")
             import traceback
             traceback.print_exc()
-            await asyncio.sleep(5)  # Espera 5 segundos antes de tentar novamente
+            await asyncio.sleep(5)
 
     print("Falha ao inicializar o banco de dados após 3 tentativas.")
 
@@ -144,9 +144,14 @@ async def init_schema():
                 segment TEXT,
                 description TEXT,
                 rd_token TEXT,
+                active BOOLEAN DEFAULT TRUE,
                 created_at TIMESTAMPTZ DEFAULT NOW()
             )
             """
+        )
+        # Retrocompat: adiciona coluna active se banco já existia sem ela
+        await db_execute(
+            "ALTER TABLE clients ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;"
         )
 
         await db_execute(
@@ -174,7 +179,42 @@ async def init_schema():
             """
         )
 
+        # Snapshots de dados sincronizados do RD Station por cliente
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS rd_snapshots (
+                id SERIAL PRIMARY KEY,
+                client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+                data JSONB NOT NULL DEFAULT '{}',
+                snapshot_type TEXT NOT NULL DEFAULT 'marketing',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+            """
+        )
+        await db_execute(
+            "CREATE INDEX IF NOT EXISTS idx_rd_snapshots_client_created ON rd_snapshots(client_id, created_at DESC);"
+        )
+
+        # Log de sincronizações (sucesso/erro)
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS rd_sync_logs (
+                id SERIAL PRIMARY KEY,
+                client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+                sync_type TEXT NOT NULL DEFAULT 'marketing',
+                status TEXT NOT NULL DEFAULT 'success',
+                message TEXT,
+                records_synced INTEGER DEFAULT 0,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+            """
+        )
+        await db_execute(
+            "CREATE INDEX IF NOT EXISTS idx_rd_sync_logs_client ON rd_sync_logs(client_id, created_at DESC);"
+        )
+
     else:
+        # ---- SQLite (desenvolvimento local) ----
         await db_execute(
             """
             CREATE TABLE IF NOT EXISTS clients (
@@ -184,6 +224,7 @@ async def init_schema():
                 segment TEXT,
                 description TEXT,
                 rd_token TEXT,
+                active INTEGER DEFAULT 1,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
             """
@@ -215,6 +256,34 @@ async def init_schema():
             """
         )
 
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS rd_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id INTEGER NOT NULL,
+                data TEXT NOT NULL DEFAULT '{}',
+                snapshot_type TEXT NOT NULL DEFAULT 'marketing',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+            )
+            """
+        )
+
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS rd_sync_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id INTEGER NOT NULL,
+                sync_type TEXT NOT NULL DEFAULT 'marketing',
+                status TEXT NOT NULL DEFAULT 'success',
+                message TEXT,
+                records_synced INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+            )
+            """
+        )
+
 
 def parse_json_field(value: Any, default: Any = None) -> Any:
     if value is None:
@@ -234,6 +303,7 @@ def parse_json_field(value: Any, default: Any = None) -> Any:
     return {} if default is None else default
 
 
+# Aliases retrocompat
 async def db_fetchone(query: str, *args):
     return await db_fetch_one(query, *args)
 
