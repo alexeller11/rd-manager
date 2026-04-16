@@ -2,19 +2,12 @@ import json
 import logging
 from typing import Any
 
-import google.generativeai as genai
 import httpx
 
 from app.core.settings import get_settings
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
-
-if settings.gemini_api_key:
-    try:
-        genai.configure(api_key=settings.gemini_api_key)
-    except Exception as e:
-        logger.error(f"Erro ao configurar Gemini: {e}")
 
 
 SYSTEM_EXPERT = (
@@ -108,31 +101,6 @@ async def _call_openai(
     return res.json()["choices"][0]["message"]["content"]
 
 
-async def _call_gemini(
-    prompt: str, system: str | None = None, max_tokens: int = 2000, temperature: float = 0.4
-) -> str:
-    if not settings.gemini_api_key:
-        raise RuntimeError("Gemini não configurado")
-
-    model = genai.GenerativeModel(
-        model_name=settings.gemini_model,
-        system_instruction=system or SYSTEM_DEFAULT,
-    )
-
-    response = model.generate_content(
-        prompt[:30000],
-        generation_config=genai.types.GenerationConfig(
-            max_output_tokens=max_tokens,
-            temperature=temperature,
-        ),
-    )
-
-    if not response or not response.text:
-        raise RuntimeError("Gemini sem resposta")
-
-    return response.text
-
-
 async def _call_sambanova(
     prompt: str, system: str | None = None, max_tokens: int = 2000, temperature: float = 0.4
 ) -> str:
@@ -173,21 +141,17 @@ async def call_ai(
 ) -> str:
     errors = []
 
-    # Ordem de prioridade (Cascata)
-    providers = ["gemini", "sambanova", "groq", "openai"]
+    # Ordem de prioridade: Groq primeiro (configurado), depois fallbacks
+    providers = ["groq", "sambanova", "openai"]
 
     for provider in providers:
         try:
-            if provider == "gemini" and settings.gemini_api_key:
-                return await _call_gemini(
+            if provider == "groq" and settings.groq_api_key:
+                return await _call_groq(
                     prompt, system=system, max_tokens=max_tokens, temperature=temperature
                 )
             if provider == "sambanova" and settings.sambanova_api_key:
                 return await _call_sambanova(
-                    prompt, system=system, max_tokens=max_tokens, temperature=temperature
-                )
-            if provider == "groq" and settings.groq_api_key:
-                return await _call_groq(
                     prompt, system=system, max_tokens=max_tokens, temperature=temperature
                 )
             if provider == "openai" and settings.openai_api_key:
