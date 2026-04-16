@@ -28,10 +28,11 @@ class ClientUpdate(BaseModel):
 
 
 # =============================
-# INIT TABLES
+# INIT TABLES (RETROCOMPATÍVEL)
 # =============================
 
 async def _ensure_clients_table():
+    # Cria a tabela se não existir (esquema novo)
     await db_execute(
         """
         CREATE TABLE IF NOT EXISTS clients (
@@ -51,6 +52,20 @@ async def _ensure_clients_table():
             created_at TIMESTAMPTZ DEFAULT NOW(),
             updated_at TIMESTAMPTZ DEFAULT NOW()
         )
+        """
+    )
+
+    # Garante colunas created_at/updated_at em bancos antigos
+    await db_execute(
+        """
+        ALTER TABLE clients
+        ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+        """
+    )
+    await db_execute(
+        """
+        ALTER TABLE clients
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
         """
     )
 
@@ -117,7 +132,7 @@ async def list_clients():
         c.website,
         c.description,
         c.created_at,
-        COALESCE(rc.updated_at, c.created_at) AS updated_at,
+        COALESCE(rc.updated_at, c.updated_at, c.created_at) AS updated_at,
         CASE
             WHEN rc.access_token IS NOT NULL AND TRIM(rc.access_token) <> '' THEN TRUE
             WHEN c.rd_token IS NOT NULL AND TRIM(c.rd_token) <> '' THEN TRUE
