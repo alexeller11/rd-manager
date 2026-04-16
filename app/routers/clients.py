@@ -117,7 +117,7 @@ async def list_clients():
         c.website,
         c.description,
         c.created_at,
-        c.updated_at,
+        COALESCE(rc.updated_at, c.created_at) AS updated_at,
         CASE
             WHEN rc.access_token IS NOT NULL AND TRIM(rc.access_token) <> '' THEN TRUE
             WHEN c.rd_token IS NOT NULL AND TRIM(c.rd_token) <> '' THEN TRUE
