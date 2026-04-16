@@ -1514,6 +1514,16 @@ function FlowStudio() {
   const [product, setProduct] = React.useState("");
   const [audience, setAudience] = React.useState("");
   const [awareness, setAwareness] = React.useState("Misto");
+    const [clients, setClients] = React.useState([]);
+
+    React.useEffect(() => {
+    api("/api/clients/").then(res => {
+      const list = Array.isArray(res) ? res : [];
+      setClients(list);
+      if (list.length > 0) setClientId(String(list[0].id));
+    }).catch(() => {});
+  }, []);
+  const [clientId, setClientId] = React.useState("");
   const [flowType, setFlowType] = React.useState("Nutrição");
   const [flowDays, setFlowDays] = React.useState(14);
   const [emailCount, setEmailCount] = React.useState(5);
