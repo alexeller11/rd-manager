@@ -1,6 +1,7 @@
+import asyncio
 import json
 import logging
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 
@@ -33,6 +34,34 @@ SYSTEM_COPYWRITER = (
 SYSTEM_DEFAULT = SYSTEM_STRATEGIST
 
 
+# ---------------------------------------------------------------------------
+# Pool global de conexões httpx — reutilizado entre todos os providers de IA
+# ---------------------------------------------------------------------------
+_AI_HTTP_CLIENT: Optional[httpx.AsyncClient] = None
+
+
+def get_ai_http_client() -> httpx.AsyncClient:
+    global _AI_HTTP_CLIENT
+    if _AI_HTTP_CLIENT is None or _AI_HTTP_CLIENT.is_closed:
+        _AI_HTTP_CLIENT = httpx.AsyncClient(
+            limits=httpx.Limits(
+                max_keepalive_connections=10,
+                max_connections=20,
+                keepalive_expiry=30.0,
+            ),
+            timeout=httpx.Timeout(60.0, connect=5.0),
+        )
+    return _AI_HTTP_CLIENT
+
+
+async def close_ai_client() -> None:
+    """Fecha o pool de conexões de IA. Chamar no shutdown da aplicação."""
+    global _AI_HTTP_CLIENT
+    if _AI_HTTP_CLIENT and not _AI_HTTP_CLIENT.is_closed:
+        await _AI_HTTP_CLIENT.aclose()
+        _AI_HTTP_CLIENT = None
+
+
 def _strip_markdown_json(raw: str) -> str:
     return raw.strip().replace("```json", "").replace("```", "").strip()
 
@@ -53,15 +82,15 @@ async def _call_groq(
         "max_tokens": max_tokens,
     }
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        res = await client.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {settings.groq_api_key}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
-        )
+    client = get_ai_http_client()
+    res = await client.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {settings.groq_api_key}",
+            "Content-Type": "application/json",
+        },
+        json=payload,
+    )
 
     if res.status_code != 200:
         raise RuntimeError(f"Groq falhou: {res.status_code} | {res.text[:300]}")
@@ -85,15 +114,15 @@ async def _call_openai(
         "max_tokens": max_tokens,
     }
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        res = await client.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {settings.openai_api_key}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
-        )
+    client = get_ai_http_client()
+    res = await client.post(
+        "https://api.openai.com/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {settings.openai_api_key}",
+            "Content-Type": "application/json",
+        },
+        json=payload,
+    )
 
     if res.status_code != 200:
         raise RuntimeError(f"OpenAI falhou: {res.status_code} | {res.text[:300]}")
@@ -117,15 +146,15 @@ async def _call_sambanova(
         "max_tokens": max_tokens,
     }
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        res = await client.post(
-            "https://api.sambanova.ai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {settings.sambanova_api_key}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
-        )
+    client = get_ai_http_client()
+    res = await client.post(
+        "https://api.sambanova.ai/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {settings.sambanova_api_key}",
+            "Content-Type": "application/json",
+        },
+        json=payload,
+    )
 
     if res.status_code != 200:
         raise RuntimeError(f"SambaNova falhou: {res.status_code} | {res.text[:300]}")
@@ -141,7 +170,7 @@ async def call_ai(
 ) -> str:
     errors = []
 
-    # Ordem de prioridade: Groq primeiro (configurado), depois fallbacks
+    # Ordem de prioridade: Groq primeiro (rápido e gratuito), depois fallbacks
     providers = ["groq", "sambanova", "openai"]
 
     for provider in providers:
@@ -176,7 +205,10 @@ async def call_ai_json(
     system: str | None = None,
     schema_description: str | None = None,
     max_tokens: int = 2000,
+    _retry: int = 2,
 ) -> dict[str, Any]:
+    """Chama a IA esperando JSON válido. Faz até `_retry` tentativas com
+    temperatura decrescente antes de retornar erro."""
     json_instruction = """
 Responda EXCLUSIVAMENTE em JSON válido.
 Não use markdown.
@@ -186,25 +218,34 @@ Não explique depois.
     if schema_description:
         json_instruction += f"\nEstrutura esperada:\n{schema_description}\n"
 
-    raw = await call_ai(
-        prompt=prompt,
-        system=f"{system or SYSTEM_STRATEGIST}\n\n{json_instruction}",
-        max_tokens=max_tokens,
-        temperature=0.2,
-    )
+    system_with_json = f"{system or SYSTEM_STRATEGIST}\n\n{json_instruction}"
 
-    cleaned = _strip_markdown_json(raw)
-    try:
-        parsed = json.loads(cleaned)
-        if isinstance(parsed, dict):
-            return parsed
-        return {"data": parsed}
-    except Exception as e:
-        logger.error(f"Failed to parse AI JSON response: {e}. Raw: {raw}")
-        return {
-            "error": "json_parse_failed",
-            "raw": raw,
-        }
+    for attempt in range(_retry):
+        # Temperatura reduzida a cada tentativa para forçar JSON mais determinístico
+        temperature = max(0.1, 0.2 - attempt * 0.1)
+        raw = await call_ai(
+            prompt=prompt,
+            system=system_with_json,
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+        cleaned = _strip_markdown_json(raw)
+        try:
+            parsed = json.loads(cleaned)
+            if isinstance(parsed, dict):
+                return parsed
+            return {"data": parsed}
+        except Exception as e:
+            logger.warning(
+                f"call_ai_json parse falhou (tentativa {attempt + 1}/{_retry}): {e}. Raw: {raw[:200]}"
+            )
+            if attempt == _retry - 1:
+                logger.error(f"call_ai_json esgotou tentativas. Raw: {raw[:500]}")
+                return {"error": "json_parse_failed", "raw": raw}
+            # Pequena pausa antes de tentar novamente
+            await asyncio.sleep(0.5)
+
+    return {"error": "json_parse_failed", "raw": ""}
 
 
 def build_client_context(client: dict) -> str:
