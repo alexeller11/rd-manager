@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Any, Optional
 
 import aiosqlite
@@ -6,6 +7,7 @@ import asyncpg
 
 from app.core.settings import get_settings
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
 _pg_pool: Optional[asyncpg.Pool] = None
@@ -38,26 +40,28 @@ async def init_db():
                 _pg_pool = await asyncpg.create_pool(
                     dsn=database_url,
                     min_size=1,
-                    max_size=2,
+                    # fix: aumentado de 2 para 5 para suportar requisições concorrentes em produção
+                    max_size=5,
                     ssl='require' if 'render.com' in database_url or settings.app_env == 'production' else None,
-                    command_timeout=60
+                    command_timeout=60,
                 )
-                print("✅ PostgreSQL inicializado com sucesso.")
+                logger.info("✅ PostgreSQL inicializado com sucesso.")
             else:
                 _sqlite_conn = await aiosqlite.connect("rd_manager.db")
                 _sqlite_conn.row_factory = aiosqlite.Row
-                print("✅ SQLite inicializado com sucesso.")
+                logger.info("✅ SQLite inicializado com sucesso.")
 
             await init_schema()
-            print("Banco de dados e schema inicializados com sucesso.")
+            logger.info("Banco de dados e schema inicializados com sucesso.")
             return
         except Exception as e:
-            print(f"Erro ao inicializar o banco de dados (tentativa {attempt + 1}/3): {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Erro ao inicializar o banco de dados (tentativa %d/3): %s", attempt + 1, e)
             await asyncio.sleep(5)
 
-    print("Falha ao inicializar o banco de dados após 3 tentativas.")
+    # fix: levanta RuntimeError em vez de retornar None silenciosamente
+    raise RuntimeError(
+        "Falha ao inicializar o banco de dados após 3 tentativas. Verifique DATABASE_URL e conexão com o banco."
+    )
 
 
 async def close_db():
@@ -149,7 +153,6 @@ async def init_schema():
             )
             """
         )
-        # Retrocompat: adiciona coluna active se banco já existia sem ela
         await db_execute(
             "ALTER TABLE clients ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;"
         )
@@ -179,7 +182,6 @@ async def init_schema():
             """
         )
 
-        # Snapshots de dados sincronizados do RD Station por cliente
         await db_execute(
             """
             CREATE TABLE IF NOT EXISTS rd_snapshots (
@@ -195,7 +197,6 @@ async def init_schema():
             "CREATE INDEX IF NOT EXISTS idx_rd_snapshots_client_created ON rd_snapshots(client_id, created_at DESC);"
         )
 
-        # Log de sincronizações (sucesso/erro)
         await db_execute(
             """
             CREATE TABLE IF NOT EXISTS rd_sync_logs (
