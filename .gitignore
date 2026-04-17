@@ -1,9 +1,43 @@
+# Ambiente virtual
+.venv/
+venv/
+env/
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+# Variáveis de ambiente (NUNCA versionar)
 .env
-.env.*
+.env.local
+.env.production
+
+# Banco de dados local
 *.db
 *.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Cobertura de testes
+.coverage
+htmlcov/
+.pytest_cache/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
 .DS_Store
-.venv/
+
+# Arquivos temporários
+*.tmp
+*.bak
