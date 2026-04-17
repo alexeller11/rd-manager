@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 
@@ -14,7 +15,16 @@ from app.database import (
     using_postgres,
 )
 
+logger = logging.getLogger(__name__)
+
 RD_PLATFORM_BASE = "https://api.rd.services/platform"
+
+# Timeout granular: 10s para conectar, 60s para leitura (fix #3)
+_TIMEOUT = httpx.Timeout(60.0, connect=10.0)
+
+# Retry exponencial: 3 tentativas, backoff 1s / 2s (fix #14)
+_MAX_RETRIES = 3
+_RETRY_STATUSES = {429, 500, 502, 503, 504}
 
 
 def _now():
@@ -147,20 +157,53 @@ async def ensure_sync_tables():
     )
 
 
+async def _rd_get_with_retry(
+    client: httpx.AsyncClient,
+    token: str,
+    url: str,
+    params: Optional[dict] = None,
+) -> httpx.Response:
+    """GET com retry exponencial para status 429/5xx (fix #14)."""
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    last_exc: Exception = RuntimeError("sem tentativas")
+    for attempt in range(_MAX_RETRIES):
+        try:
+            response = await client.get(url, headers=headers, params=params or {})
+            if response.status_code not in _RETRY_STATUSES:
+                return response
+            wait = 2 ** attempt
+            logger.warning("RD API %s → %s, retry em %ss", url, response.status_code, wait)
+            await asyncio.sleep(wait)
+            last_exc = httpx.HTTPStatusError(
+                f"HTTP {response.status_code}", request=response.request, response=response
+            )
+        except (httpx.TimeoutException, httpx.ConnectError) as exc:
+            wait = 2 ** attempt
+            logger.warning("RD API %s → %s, retry em %ss", url, exc, wait)
+            await asyncio.sleep(wait)
+            last_exc = exc
+    raise last_exc
+
+
 async def _rd_get_debug(
     client: httpx.AsyncClient, token: str, path: str, params: Optional[dict] = None
 ) -> dict:
-    response = await client.get(
-        f"{RD_PLATFORM_BASE}{path}",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
-        params=params or {},
-    )
+    try:
+        response = await _rd_get_with_retry(
+            client, token, f"{RD_PLATFORM_BASE}{path}", params=params
+        )
+    except Exception as exc:
+        return {
+            "ok": False,
+            "status_code": 0,
+            "payload": {},
+            "text_preview": str(exc),
+        }
 
     text_preview = response.text[:800]
-
     payload = {}
     try:
         payload = response.json()
@@ -498,7 +541,6 @@ def _extract_metrics(data: dict) -> dict:
 
 
 def _extract_lp_url(item: dict) -> str:
-    """Extrai a URL real da landing page a partir dos campos da API do RD Station."""
     return (
         item.get("url")
         or item.get("page_url")
@@ -520,8 +562,7 @@ async def run_full_sync(client_id: int):
         module_errors: Dict[str, str] = {}
         module_debug: Dict[str, dict] = {}
 
-        async with httpx.AsyncClient(timeout=45.0) as client:
-            # Parallel fetching of main modules
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
             (
                 res_lp,
                 res_seg,
@@ -537,12 +578,11 @@ async def run_full_sync(client_id: int):
                 return_exceptions=True,
             )
 
-            # Processing Landing Pages
+            # Landing Pages
             landing_pages = []
             if not isinstance(res_lp, Exception) and res_lp["ok"]:
                 landing_pages = res_lp["items"]
                 for i, item in enumerate(landing_pages):
-                    # Usa URL real da API — nunca monta URL artificial
                     item["url"] = _extract_lp_url(item)
                     item["conversion_identifier"] = (
                         item.get("conversion_identifier")
@@ -553,9 +593,7 @@ async def run_full_sync(client_id: int):
                     conv_id = item["conversion_identifier"]
                     if conv_id:
                         try:
-                            lp_analytics = await _fetch_lp_analytics(
-                                client, token, conv_id
-                            )
+                            lp_analytics = await _fetch_lp_analytics(client, token, conv_id)
                             item.update(lp_analytics)
                         except Exception:
                             pass
@@ -570,7 +608,7 @@ async def run_full_sync(client_id: int):
             else:
                 module_errors["landing_pages"] = str(res_lp)
 
-            # Processing Segmentations and Leads
+            # Segmentations + Leads
             segmentations = []
             unique_leads: List[dict] = []
             seen_leads: Set[str] = set()
@@ -586,7 +624,6 @@ async def run_full_sync(client_id: int):
                         item,
                     )
 
-                # Fetch contacts for each segmentation
                 for segmentation in segmentations[:15]:
                     seg_id = (
                         segmentation.get("id")
@@ -643,7 +680,7 @@ async def run_full_sync(client_id: int):
             else:
                 module_errors["segmentations"] = str(res_seg)
 
-            # Processing Workflows
+            # Workflows
             workflows = []
             if not isinstance(res_wf, Exception) and res_wf["ok"]:
                 workflows = res_wf["items"]
@@ -655,7 +692,7 @@ async def run_full_sync(client_id: int):
             else:
                 module_errors["workflows"] = str(res_wf)
 
-            # Processing Campaigns
+            # Campaigns
             campaigns = []
             if not isinstance(res_cp, Exception) and res_cp["ok"]:
                 campaigns = res_cp["items"]
@@ -667,13 +704,11 @@ async def run_full_sync(client_id: int):
             else:
                 module_errors["campaigns"] = str(res_cp)
 
-            # Processing Metrics
+            # Metrics
             metrics_raw = {}
             if not isinstance(res_metrics, Exception) and res_metrics["ok"]:
                 metrics_raw = res_metrics["metrics"]
-                await _upsert_snapshot(
-                    client_id, "metrics", "email_metrics", metrics_raw
-                )
+                await _upsert_snapshot(client_id, "metrics", "email_metrics", metrics_raw)
                 module_debug["metrics"] = res_metrics
             else:
                 module_errors["metrics"] = str(res_metrics)
@@ -698,11 +733,7 @@ async def run_full_sync(client_id: int):
         await _save_summary(client_id, summary)
         await _finish_run(run_id, "success", summary=summary)
 
-        return {
-            "ok": True,
-            "run_id": run_id,
-            "summary": summary,
-        }
+        return {"ok": True, "run_id": run_id, "summary": summary}
 
     except Exception as e:
         summary = {
@@ -715,13 +746,8 @@ async def run_full_sync(client_id: int):
                 "workflows": 0,
                 "campaigns": 0,
             },
-            "metrics": {
-                "open_rate": 0.0,
-                "click_rate": 0.0,
-            },
-            "module_errors": {
-                "sync": str(e),
-            },
+            "metrics": {"open_rate": 0.0, "click_rate": 0.0},
+            "module_errors": {"sync": str(e)},
             "module_debug": {},
         }
 
@@ -735,12 +761,11 @@ async def run_full_sync(client_id: int):
         except Exception:
             pass
 
-        return {
-            "ok": False,
-            "run_id": run_id,
-            "error": str(e),
-            "summary": summary,
-        }
+        return {"ok": False, "run_id": run_id, "error": str(e), "summary": summary}
+
+
+# Alias para compatibilidade com o router (fix alias sync_client_full)
+sync_client_full = run_full_sync
 
 
 async def get_last_summary(client_id: int):
@@ -804,7 +829,6 @@ async def list_snapshots(client_id: int, object_type: str | None = None):
             client_id,
         )
 
-    # SQLite
     if object_type:
         return await db_fetch_all(
             "SELECT id, client_id, object_type, object_key, payload, synced_at FROM rd_sync_snapshots WHERE client_id = ? AND object_type = ? ORDER BY synced_at DESC",
