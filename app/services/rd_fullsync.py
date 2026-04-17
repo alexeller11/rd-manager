@@ -497,6 +497,17 @@ def _extract_metrics(data: dict) -> dict:
     }
 
 
+def _extract_lp_url(item: dict) -> str:
+    """Extrai a URL real da landing page a partir dos campos da API do RD Station."""
+    return (
+        item.get("url")
+        or item.get("page_url")
+        or item.get("public_url")
+        or item.get("permalink")
+        or ""
+    )
+
+
 async def run_full_sync(client_id: int):
     await ensure_sync_tables()
     run_id = await _create_run(client_id)
@@ -530,14 +541,17 @@ async def run_full_sync(client_id: int):
             landing_pages = []
             if not isinstance(res_lp, Exception) and res_lp["ok"]:
                 landing_pages = res_lp["items"]
-                # LP Analytics can also be done in parallel if needed, but let's do it sequentially for now
-                # to avoid hitting rate limits too fast, or use a limited gather.
                 for i, item in enumerate(landing_pages):
-                    conv_id = (
-                        item.get("conversion_identifier") or item.get("identifier") or ""
+                    # Usa URL real da API — nunca monta URL artificial
+                    item["url"] = _extract_lp_url(item)
+                    item["conversion_identifier"] = (
+                        item.get("conversion_identifier")
+                        or item.get("identifier")
+                        or ""
                     )
+
+                    conv_id = item["conversion_identifier"]
                     if conv_id:
-                        item["public_url"] = f"https://conteudo.rdstation.com/{conv_id}"
                         try:
                             lp_analytics = await _fetch_lp_analytics(
                                 client, token, conv_id
@@ -545,8 +559,6 @@ async def run_full_sync(client_id: int):
                             item.update(lp_analytics)
                         except Exception:
                             pass
-                    else:
-                        item["public_url"] = ""
 
                     await _upsert_snapshot(
                         client_id,
@@ -575,7 +587,6 @@ async def run_full_sync(client_id: int):
                     )
 
                 # Fetch contacts for each segmentation
-                # We limit this to avoid excessive calls
                 for segmentation in segmentations[:15]:
                     seg_id = (
                         segmentation.get("id")
@@ -734,26 +745,36 @@ async def run_full_sync(client_id: int):
 
 async def get_last_summary(client_id: int):
     await ensure_sync_tables()
+    if using_postgres():
+        return await db_fetch_one(
+            """
+            SELECT client_id, summary, updated_at
+            FROM rd_sync_summaries
+            WHERE client_id = $1
+            """,
+            client_id,
+        )
     return await db_fetch_one(
-        """
-        SELECT client_id, summary, updated_at
-        FROM rd_sync_summaries
-        WHERE client_id = $1
-        """,
+        "SELECT client_id, summary, updated_at FROM rd_sync_summaries WHERE client_id = ?",
         client_id,
     )
 
 
 async def get_last_run(client_id: int):
     await ensure_sync_tables()
+    if using_postgres():
+        return await db_fetch_one(
+            """
+            SELECT *
+            FROM rd_sync_runs
+            WHERE client_id = $1
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            client_id,
+        )
     return await db_fetch_one(
-        """
-        SELECT *
-        FROM rd_sync_runs
-        WHERE client_id = $1
-        ORDER BY id DESC
-        LIMIT 1
-        """,
+        "SELECT * FROM rd_sync_runs WHERE client_id = ? ORDER BY id DESC LIMIT 1",
         client_id,
     )
 
@@ -761,24 +782,36 @@ async def get_last_run(client_id: int):
 async def list_snapshots(client_id: int, object_type: str | None = None):
     await ensure_sync_tables()
 
-    if object_type:
+    if using_postgres():
+        if object_type:
+            return await db_fetch_all(
+                """
+                SELECT id, client_id, object_type, object_key, payload, synced_at
+                FROM rd_sync_snapshots
+                WHERE client_id = $1 AND object_type = $2
+                ORDER BY synced_at DESC
+                """,
+                client_id,
+                object_type,
+            )
         return await db_fetch_all(
             """
             SELECT id, client_id, object_type, object_key, payload, synced_at
             FROM rd_sync_snapshots
-            WHERE client_id = $1 AND object_type = $2
+            WHERE client_id = $1
             ORDER BY synced_at DESC
             """,
             client_id,
-            object_type,
         )
 
+    # SQLite
+    if object_type:
+        return await db_fetch_all(
+            "SELECT id, client_id, object_type, object_key, payload, synced_at FROM rd_sync_snapshots WHERE client_id = ? AND object_type = ? ORDER BY synced_at DESC",
+            client_id,
+            object_type,
+        )
     return await db_fetch_all(
-        """
-        SELECT id, client_id, object_type, object_key, payload, synced_at
-        FROM rd_sync_snapshots
-        WHERE client_id = $1
-        ORDER BY synced_at DESC
-        """,
+        "SELECT id, client_id, object_type, object_key, payload, synced_at FROM rd_sync_snapshots WHERE client_id = ? ORDER BY synced_at DESC",
         client_id,
     )
