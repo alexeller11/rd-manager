@@ -13,18 +13,25 @@ from app.routers import (
     agency_dashboard,
     agency_expert,
     alerts,
+    analysis,
     auth,
+    campaign,
     clients,
+    crm,
+    emails,
     executive_report,
     flows_advanced,
     health_audit,
+    intelligence,
     landing_pages,
     leads,
     oauth,
     prospect,
+    rd_aggregator,
     rd_diagnostics,
     rd_fullsync,
     rd_modules,
+    reports,
     seo_geo,
     webhooks,
 )
@@ -35,12 +42,11 @@ settings = get_settings()
 
 app = FastAPI(
     title="RD Manager IA",
-    version="4.0.0",
+    version="4.1.0",
 )
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# CORS
 origins = settings.allowed_origins
 allow_all = "*" in origins
 
@@ -72,7 +78,6 @@ async def shutdown() -> None:
 
 
 async def _ensure_webhook_table() -> None:
-    """Cria a tabela de eventos de webhook se não existir."""
     from app.database import db_execute
     await db_execute(
         """
@@ -94,7 +99,7 @@ async def _ensure_webhook_table() -> None:
     )
 
 
-# Routers públicos (sem auth)
+# ── Routers públicos (sem auth) ───────────────────────────────────────────────
 app.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
 app.include_router(webhooks.router, tags=["webhooks"])
 
@@ -105,103 +110,108 @@ def _build_private_dependencies():
 
 private_dependencies = _build_private_dependencies()
 
+# ── Auth ──────────────────────────────────────────────────────────────────────
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
+# ── Clientes ──────────────────────────────────────────────────────────────────
 app.include_router(
-    clients.router,
-    prefix="/api/clients",
-    tags=["clients"],
+    clients.router, prefix="/api/clients", tags=["clients"],
     dependencies=private_dependencies,
 )
 
+# ── Sync RD Station ───────────────────────────────────────────────────────────
 app.include_router(
-    rd_fullsync.router,
-    prefix="/api/rdsync",
-    tags=["rd_fullsync"],
+    rd_fullsync.router, prefix="/api/rdsync", tags=["rd_fullsync"],
+    dependencies=private_dependencies,
+)
+app.include_router(
+    rd_diagnostics.router, prefix="/api/rd-diagnostics", tags=["rd_diagnostics"],
+    dependencies=private_dependencies,
+)
+app.include_router(
+    rd_modules.router, prefix="/api/rd-modules", tags=["rd_modules"],
+    dependencies=private_dependencies,
+)
+app.include_router(
+    rd_aggregator.router, prefix="/api/rd-aggregator", tags=["rd_aggregator"],
     dependencies=private_dependencies,
 )
 
+# ── Dashboard & Agência ───────────────────────────────────────────────────────
 app.include_router(
-    rd_diagnostics.router,
-    prefix="/api/rd-diagnostics",
-    tags=["rd_diagnostics"],
+    agency_dashboard.router, prefix="/api/agency", tags=["agency_dashboard"],
+    dependencies=private_dependencies,
+)
+app.include_router(
+    agency_expert.router, prefix="/api/agency-expert", tags=["agency_expert"],
     dependencies=private_dependencies,
 )
 
+# ── Análise & Inteligência ────────────────────────────────────────────────────
 app.include_router(
-    rd_modules.router,
-    prefix="/api/rd-modules",
-    tags=["rd_modules"],
+    analysis.router, prefix="/api/analysis", tags=["analysis"],
+    dependencies=private_dependencies,
+)
+app.include_router(
+    intelligence.router, prefix="/api/intelligence", tags=["intelligence"],
+    dependencies=private_dependencies,
+)
+app.include_router(
+    reports.router, prefix="/api/reports", tags=["reports"],
+    dependencies=private_dependencies,
+)
+app.include_router(
+    executive_report.router, prefix="/api/executive-report", tags=["executive_report"],
     dependencies=private_dependencies,
 )
 
+# ── Leads & CRM ───────────────────────────────────────────────────────────────
 app.include_router(
-    agency_dashboard.router,
-    prefix="/api/agency",
-    tags=["agency_dashboard"],
+    leads.router, prefix="/api/leads", tags=["leads"],
+    dependencies=private_dependencies,
+)
+app.include_router(
+    crm.router, prefix="/api/crm", tags=["crm"],
     dependencies=private_dependencies,
 )
 
+# ── Campanhas & Emails ────────────────────────────────────────────────────────
 app.include_router(
-    agency_expert.router,
-    prefix="/api/agency-expert",
-    tags=["agency_expert"],
+    campaign.router, prefix="/api/campaigns", tags=["campaigns"],
+    dependencies=private_dependencies,
+)
+app.include_router(
+    emails.router, prefix="/api/emails", tags=["emails"],
     dependencies=private_dependencies,
 )
 
+# ── Landing Pages & Flows ─────────────────────────────────────────────────────
 app.include_router(
-    seo_geo.router,
-    prefix="/api/seo-geo",
-    tags=["seo_geo"],
+    landing_pages.router, prefix="/api/landing-pages", tags=["landing_pages"],
+    dependencies=private_dependencies,
+)
+app.include_router(
+    flows_advanced.router, prefix="/api/flows-advanced", tags=["flows_advanced"],
     dependencies=private_dependencies,
 )
 
+# ── Auditoria & Saúde ─────────────────────────────────────────────────────────
 app.include_router(
-    prospect.router,
-    prefix="/api/prospect",
-    tags=["prospect"],
+    alerts.router, prefix="/api/alerts", tags=["alerts"],
+    dependencies=private_dependencies,
+)
+app.include_router(
+    health_audit.router, prefix="/api/health-audit", tags=["health_audit"],
     dependencies=private_dependencies,
 )
 
+# ── Outros ────────────────────────────────────────────────────────────────────
 app.include_router(
-    executive_report.router,
-    prefix="/api/executive-report",
-    tags=["executive_report"],
+    seo_geo.router, prefix="/api/seo-geo", tags=["seo_geo"],
     dependencies=private_dependencies,
 )
-
 app.include_router(
-    leads.router,
-    prefix="/api/leads",
-    tags=["leads"],
-    dependencies=private_dependencies,
-)
-
-app.include_router(
-    landing_pages.router,
-    prefix="/api/landing-pages",
-    tags=["landing_pages"],
-    dependencies=private_dependencies,
-)
-
-app.include_router(
-    flows_advanced.router,
-    prefix="/api/flows-advanced",
-    tags=["flows_advanced"],
-    dependencies=private_dependencies,
-)
-
-app.include_router(
-    alerts.router,
-    prefix="/api/alerts",
-    tags=["alerts"],
-    dependencies=private_dependencies,
-)
-
-app.include_router(
-    health_audit.router,
-    prefix="/api/health-audit",
-    tags=["health_audit"],
+    prospect.router, prefix="/api/prospect", tags=["prospect"],
     dependencies=private_dependencies,
 )
 
@@ -210,7 +220,7 @@ app.include_router(
 async def health_check():
     try:
         await db_fetchval("SELECT 1")
-        return {"status": "ok", "version": "4.0.0", "db": "connected"}
+        return {"status": "ok", "version": "4.1.0", "db": "connected"}
     except Exception as e:
         return {"status": "degraded", "error": str(e)}, 503
 
@@ -218,9 +228,7 @@ async def health_check():
 @app.get("/", response_class=HTMLResponse)
 async def root():
     path = os.path.join(BASE_DIR, "app", "templates", "index.html")
-
     if not os.path.exists(path):
         return HTMLResponse("<h1>index.html não encontrado</h1>", status_code=500)
-
     with open(path, "r", encoding="utf-8") as f:
         return HTMLResponse(f.read())

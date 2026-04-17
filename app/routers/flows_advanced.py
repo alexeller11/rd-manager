@@ -1,7 +1,21 @@
-from fastapi import APIRouter
+"""
+Flows Advanced — geração de fluxos e emails via IA com resposta JSON estruturada.
+"""
+import json
+from fastapi import APIRouter, HTTPException
 from app.ai_service import generate_text
 
 router = APIRouter()
+
+
+def _extract_json(raw: str) -> dict:
+    """Tenta extrair JSON de uma string; fallback para dict com raw text."""
+    try:
+        start = raw.index("{")
+        end = raw.rindex("}") + 1
+        return json.loads(raw[start:end])
+    except Exception:
+        return {"raw": raw}
 
 
 @router.post("/generate-flow")
@@ -10,37 +24,47 @@ async def generate_flow(data: dict):
     email_count = int(data.get("email_count") or 4)
     flow_type = data.get("flow_type") or "nutrição"
     goal = data.get("goal") or "conversão"
+    product = data.get("product") or "não informado"
+    audience = data.get("audience") or "não informado"
+    awareness = data.get("awareness") or "não informado"
 
-    prompt = f"""
-Você é um Arquiteto de Automação de Marketing sênior especializado em RD Station.
-O usuário quer um fluxo de automação estratégico de alto desempenho.
+    prompt = f"""Você é um Arquiteto de Automação de Marketing sênior especializado em RD Station.
+Gere um fluxo de automação estratégico com base nos dados abaixo.
 
-OBJETIVO PRINCIPAL: {goal}
-TIPO DE FLUXO: {flow_type}
-PRODUTO/SERVIÇO: {data.get("product")}
-PÚBLICO-ALVO: {data.get("audience")}
-NÍVEL DE CONSCIÊNCIA: {data.get("awareness")}
-TEMPO TOTAL: {flow_days} dias
+OBJETIVO: {goal}
+TIPO: {flow_type}
+PRODUTO/SERVIÇO: {product}
+PÚBLICO-ALVO: {audience}
+NÍVEL DE CONSCIÊNCIA: {awareness}
+DUR�AÇÃO: {flow_days} dias
 TOTAL DE EMAILS: {email_count}
 
-REGRAS DE ESTRUTURA (PADRÃO RD STATION):
-1. Defina um GATILHO (ex: Conversão em LP, Mudança de Estágio, Entrada em Segmentação).
-2. Use blocos de ESPERA (ex: "Esperar 1 dia", "Esperar 4 horas").
-3. Cada EMAIL deve ter: Dia, Assunto Sugerido, Objetivo Específico e CTA.
-4. Adicione pelo menos uma CONDIÇÃO (ex: "Se abriu o email 2", "Se clicou no link Y").
-5. Defina a AÇÃO FINAL (ex: "Marcar como Oportunidade", "Enviar para o CRM", "Mudar de Segmentação").
+Retorne APENAS um JSON válido, sem markdown, sem texto antes ou depois, seguindo exatamente este schema:
+{{
+  "flow_name": "string",
+  "strategy_summary": "string (2-3 linhas)",
+  "trigger": "string",
+  "steps": [
+    {{
+      "day": 0,
+      "type": "email | condition | wait | action",
+      "title": "string",
+      "description": "string",
+      "subject": "string ou null",
+      "cta": "string ou null"
+    }}
+  ],
+  "final_action": "string",
+  "success_metrics": {{
+    "expected_open_rate": "string",
+    "expected_conversion_rate": "string",
+    "estimated_roi": "string"
+  }}
+}}"""
 
-FORMATO DE RESPOSTA:
-Retorne o plano no formato:
-1. NOME E ESTRATÉGIA DO FLUXO (Breve resumo)
-2. MAPA DO FLUXO (Linha do tempo passo a passo)
-3. DETALHAMENTO DOS EMAILS (Assunto, Contexto e CTA)
-4. MÉTRICAS DE SUCESSO ESPERADAS
-
-Trabalhe com um tom consultivo e focado em ROI para a agência.
-"""
-    result = await generate_text(prompt)
-    return {"flow": result}
+    raw = await generate_text(prompt)
+    result = _extract_json(raw)
+    return {"ok": True, "flow": result}
 
 
 @router.post("/generate-email")
@@ -50,24 +74,38 @@ async def generate_email(data: dict):
     theme = data.get("theme") or "nutrição"
     cta = data.get("cta") or "responder o email"
     target = data.get("target") or "lead da base"
-    prompt = f"""
-Crie um email completo de marketing.
+    context = data.get("context") or "não informado"
 
-Contexto:
-{data.get("context")}
+    prompt = f"""Você é um especialista em copywriting para email marketing B2B.
+Crie um email completo com variação A/B.
 
+Contexto: {context}
 Tema: {theme}
 Objetivo: {objective}
 Tom de voz: {tone}
 Público-alvo: {target}
 CTA principal: {cta}
 
-Entregue:
-- assunto
-- preheader
-- corpo do email
-- CTA
-- versão A/B
-"""
-    result = await generate_text(prompt)
-    return {"email": result}
+Retorne APENAS um JSON válido, sem markdown, sem texto antes ou depois, seguindo exatamente este schema:
+{{
+  "version_a": {{
+    "subject": "string",
+    "preheader": "string",
+    "body": "string (HTML simples permitido)",
+    "cta_text": "string",
+    "cta_url_placeholder": "string"
+  }},
+  "version_b": {{
+    "subject": "string",
+    "preheader": "string",
+    "body": "string",
+    "cta_text": "string",
+    "cta_url_placeholder": "string"
+  }},
+  "recommended_version": "A ou B",
+  "reasoning": "string (por que essa versão tende a performar melhor)"
+}}"""
+
+    raw = await generate_text(prompt)
+    result = _extract_json(raw)
+    return {"ok": True, "email": result}

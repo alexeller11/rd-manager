@@ -1,9 +1,10 @@
 """
-Serviço de Auditoria de Saúde de Conta RD Station
-Analisa dados sincronizados e gera diagnóstico de saúde por cliente.
+Serviço de Auditoria de Saúde de Conta RD Station.
+Analisa dados sincronizados e gera diagnóstico por cliente.
+A IA retorna JSON estruturado com summary, priorities, actions, risks e next_steps.
 """
 import json
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Any
 
 from app.database import db_fetch_all, db_fetch_one
@@ -31,6 +32,22 @@ def _days_since(date_str: str | None) -> int | None:
         return None
 
 
+def _extract_json(raw: str) -> dict:
+    """Extrai JSON de resposta da IA; fallback gracioso se falhar."""
+    try:
+        start = raw.index("{")
+        end = raw.rindex("}") + 1
+        return json.loads(raw[start:end])
+    except Exception:
+        return {
+            "summary": raw[:500] if raw else "Diagnóstico indisponível.",
+            "priorities": [],
+            "actions": [],
+            "risks": [],
+            "next_steps": [],
+        }
+
+
 async def _get_snapshots(client_id: int, object_type: str) -> list[dict]:
     rows = await db_fetch_all(
         """
@@ -54,13 +71,10 @@ async def _get_snapshots(client_id: int, object_type: str) -> list[dict]:
 
 
 async def audit_workflows(client_id: int) -> dict:
-    """Audita workflows: detecta inativos, sem triggers, mal configurados."""
+    """Audita workflows: detecta inativos, sem triggers, desatualizados."""
     workflows = await _get_snapshots(client_id, "workflow")
 
-    active = []
-    paused = []
-    stale = []    # ativos mas sem interação recente
-    no_trigger = []
+    active, paused, stale, no_trigger = [], [], [], []
 
     for wf in workflows:
         p = wf["payload"]
@@ -91,14 +105,13 @@ async def audit_workflows(client_id: int) -> dict:
 
     score = 100
     issues = []
-
-    if len(paused) > 0:
+    if paused:
         score -= min(30, len(paused) * 10)
         issues.append(f"{len(paused)} workflow(s) pausado(s)")
-    if len(no_trigger) > 0:
+    if no_trigger:
         score -= min(20, len(no_trigger) * 7)
         issues.append(f"{len(no_trigger)} workflow(s) sem trigger definido")
-    if len(stale) > 0:
+    if stale:
         score -= min(20, len(stale) * 5)
         issues.append(f"{len(stale)} workflow(s) ativo(s) sem atualização há +30 dias")
 
@@ -110,12 +123,7 @@ async def audit_workflows(client_id: int) -> dict:
         "no_trigger": len(no_trigger),
         "score": max(0, score),
         "issues": issues,
-        "details": {
-            "active": active,
-            "paused": paused,
-            "stale": stale,
-            "no_trigger": no_trigger,
-        },
+        "details": {"active": active, "paused": paused, "stale": stale, "no_trigger": no_trigger},
     }
 
 
@@ -123,10 +131,7 @@ async def audit_leads(client_id: int) -> dict:
     """Classifica leads por engajamento: quente, morno, frio, morto."""
     leads = await _get_snapshots(client_id, "lead")
 
-    hot = []      # conversões recentes < 7 dias
-    warm = []     # interação entre 7-30 dias
-    cold = []     # interação entre 30-90 dias
-    dead = []     # sem interação > 90 dias ou sem dados
+    hot, warm, cold, dead = [], [], [], []
     no_email = 0
 
     for lead in leads:
@@ -163,8 +168,8 @@ async def audit_leads(client_id: int) -> dict:
 
     total = len(leads)
     engagement_rate = round(((len(hot) + len(warm)) / total * 100), 1) if total > 0 else 0
-
     score = min(100, int(engagement_rate + (len(hot) / max(total, 1) * 50)))
+
     issues = []
     if len(dead) > total * 0.5:
         issues.append(f"{len(dead)} leads mortos — base precisa de reaquecimento urgente")
@@ -192,9 +197,7 @@ async def audit_landing_pages(client_id: int) -> dict:
     """Classifica LPs por performance: top, médias, críticas."""
     lps = await _get_snapshots(client_id, "landing_page")
 
-    top = []         # conversão > 10%
-    average = []     # conversão entre 3-10%
-    critical = []    # conversão < 3% ou sem dados
+    top, average, critical = [], [], []
     unpublished = 0
 
     for lp in lps:
@@ -231,13 +234,13 @@ async def audit_landing_pages(client_id: int) -> dict:
             critical.append(entry)
 
     issues = []
-    if len(critical) > 0:
-        issues.append(f"{len(critical)} LP(s) com conversão abaixo de 3% — revisão de CTA e copy urgente")
-    if unpublished > 0:
+    if critical:
+        issues.append(f"{len(critical)} LP(s) com conversão abaixo de 3% — revisão de CTA urgente")
+    if unpublished:
         issues.append(f"{unpublished} LP(s) não publicada(s) — verificar se é intencional")
 
-    score = 100
     total_published = len(top) + len(average) + len(critical)
+    score = 100
     if total_published > 0:
         score = int((len(top) * 100 + len(average) * 60 + len(critical) * 10) / total_published)
 
@@ -261,7 +264,6 @@ async def generate_health_report(client_id: int) -> dict:
     lead_audit = await audit_leads(client_id)
     lp_audit = await audit_landing_pages(client_id)
 
-    # Score geral ponderado
     overall_score = int(
         wf_audit["score"] * 0.30 +
         lead_audit["score"] * 0.40 +
@@ -270,7 +272,6 @@ async def generate_health_report(client_id: int) -> dict:
 
     all_issues = wf_audit["issues"] + lead_audit["issues"] + lp_audit["issues"]
 
-    # Semáforo de saúde
     if overall_score >= 75:
         health_status = "healthy"
         health_label = "Saudável ✅"
@@ -293,35 +294,39 @@ async def generate_health_report(client_id: int) -> dict:
     }
 
 
-async def generate_ai_health_commentary(audit: dict) -> str:
-    """Usa a IA para gerar um diagnóstico consultivo baseado na auditoria."""
-    prompt = f"""
-Você é um consultor sênior de marketing digital especializado em RD Station.
-Analise esta auditoria de conta e gere um diagnóstico executivo conciso.
+async def generate_ai_health_commentary(audit: dict) -> dict:
+    """
+    Usa IA para gerar diagnóstico consultivo em JSON estruturado.
+    Retorna: summary, priorities, actions, risks, next_steps.
+    """
+    issues_text = ", ".join(audit["issues"]) if audit["issues"] else "Nenhum problema crítico identificado"
 
-DADOS DA AUDITORIA:
+    prompt = f"""Você é um consultor sênior de marketing digital especializado em RD Station.
+Analise esta auditoria e gere um diagnóstico executivo.
+
+DADOS:
 - Score Geral: {audit["overall_score"]}/100 ({audit["health_label"]})
-- Problemas identificados: {", ".join(audit["issues"]) if audit["issues"] else "Nenhum"}
+- Problemas: {issues_text}
+- Workflows: {audit["workflows"]["total"]} total | {audit["workflows"]["active"]} ativos | {audit["workflows"]["paused"]} pausados | {audit["workflows"]["stale"]} desatualizados
+- Leads: {audit["leads"]["total"]} total | {audit["leads"]["hot"]} quentes | {audit["leads"]["warm"]} mornos | {audit["leads"]["cold"]} frios | {audit["leads"]["dead"]} mortos | engajamento: {audit["leads"]["engagement_rate"]}%
+- Landing Pages: {audit["landing_pages"]["total"]} total | {audit["landing_pages"]["top"]} top | {audit["landing_pages"]["average"]} médias | {audit["landing_pages"]["critical"]} críticas
 
-WORKFLOWS: {audit["workflows"]["total"]} total | {audit["workflows"]["active"]} ativos | {audit["workflows"]["paused"]} pausados | {audit["workflows"]["stale"]} desatualizados
+Retorne APENAS um JSON válido, sem markdown, sem texto antes ou depois:
+{{
+  "summary": "string — situação geral em 2-3 linhas diretas",
+  "priorities": [
+    {{"rank": 1, "area": "string", "problem": "string", "impact": "alto|médio|baixo"}}
+  ],
+  "actions": [
+    {{"action": "string", "area": "workflows|leads|landing_pages", "effort": "baixo|médio|alto", "expected_gain": "string"}}
+  ],
+  "risks": [
+    {{"risk": "string", "probability": "alta|média|baixa", "consequence": "string"}}
+  ],
+  "next_steps": [
+    {{"step": 1, "what": "string", "when": "string", "owner": "agência|cliente"}}
+  ]
+}}"""
 
-LEADS: {audit["leads"]["total"]} total
-  - Quentes (últimos 7 dias): {audit["leads"]["hot"]}
-  - Mornos (7-30 dias): {audit["leads"]["warm"]}
-  - Frios (30-90 dias): {audit["leads"]["cold"]}
-  - Mortos (+90 dias): {audit["leads"]["dead"]}
-  - Taxa de engajamento: {audit["leads"]["engagement_rate"]}%
-
-LANDING PAGES: {audit["landing_pages"]["total"]} total
-  - Top performers (>10% conversão): {audit["landing_pages"]["top"]}
-  - Médias (3-10%): {audit["landing_pages"]["average"]}
-  - Críticas (<3%): {audit["landing_pages"]["critical"]}
-
-Gere um diagnóstico em 3 blocos:
-1. SITUAÇÃO ATUAL (2-3 linhas)
-2. PRIORIDADES IMEDIATAS (lista de 3 ações com impacto estimado)
-3. OPORTUNIDADES DE CRESCIMENTO (1-2 insights estratégicos)
-
-Seja direto, consultivo e focado em ROI para a agência. Português apenas.
-"""
-    return await generate_text(prompt)
+    raw = await generate_text(prompt)
+    return _extract_json(raw)
