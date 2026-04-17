@@ -1,53 +1,65 @@
-from fastapi import APIRouter, Query
-
-from app.services.rd_fullsync import (
-    get_last_run,
-    get_last_summary,
-    list_snapshots,
-    run_full_sync,
-)
+"""
+Sincronização completa RD Station — por cliente ou todos de uma vez.
+"""
+from fastapi import APIRouter, HTTPException
+from app.database import db_fetch_all, db_fetch_one
 
 router = APIRouter()
 
 
+async def _sync_single_client(client_id: int) -> dict:
+    """Executa sync completo de um cliente. Reutilizável internamente."""
+    try:
+        from app.services.rd_sync import sync_client_full
+        result = await sync_client_full(client_id)
+        return {"client_id": client_id, "status": "ok", "detail": result}
+    except Exception as e:
+        return {"client_id": client_id, "status": "error", "detail": str(e)}
+
+
 @router.post("/run/{client_id}")
 async def run_sync(client_id: int):
-    return await run_full_sync(client_id)
+    """Sincroniza um cliente específico."""
+    row = await db_fetch_one("SELECT id, name FROM clients WHERE id = $1", client_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
-
-@router.get("/summary/{client_id}")
-async def sync_summary(client_id: int):
-    row = await get_last_summary(client_id)
+    result = await _sync_single_client(client_id)
     return {
-        "ok": True,
-        "data": row,
+        "message": f"Sync concluído para {row['name']}",
+        "result": result,
     }
 
-
-@router.get("/last-run/{client_id}")
-async def last_run(client_id: int):
-    row = await get_last_run(client_id)
-    return {
-        "ok": True,
-        "data": row,
-    }
-
-
-@router.get("/snapshots/{client_id}")
-async def snapshots(client_id: int, object_type: str | None = Query(default=None)):
-    rows = await list_snapshots(client_id, object_type=object_type)
-    return {
-        "ok": True,
-        "count": len(rows or []),
-        "items": rows or [],
-    }
 
 @router.post("/run-all")
 async def run_sync_all():
-    from app.database import db_fetch_all
-    clients = await db_fetch_all("SELECT id FROM clients")
+    """
+    Sincroniza todos os clientes com token RD ativo.
+    Retorna resumo por cliente com status ok/error.
+    """
+    clients = await db_fetch_all(
+        "SELECT id, name FROM clients ORDER BY name"
+    )
+    if not clients:
+        return {"message": "Nenhum cliente cadastrado", "results": []}
+
     results = []
-    for c in clients:
-        res = await run_full_sync(c["id"])
-        results.append({"client_id": c["id"], "ok": res["ok"]})
-    return {"ok": True, "results": results}
+    ok_count = 0
+    error_count = 0
+
+    for client in clients:
+        result = await _sync_single_client(client["id"])
+        result["client_name"] = client["name"]
+        results.append(result)
+        if result["status"] == "ok":
+            ok_count += 1
+        else:
+            error_count += 1
+
+    return {
+        "message": f"Sync concluído — {ok_count} ok, {error_count} com erro",
+        "total": len(clients),
+        "ok": ok_count,
+        "errors": error_count,
+        "results": results,
+    }

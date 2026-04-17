@@ -1,6 +1,7 @@
 """
 Dashboard consolidado da agência — visão única de todos os clientes.
-Agrega métricas, ranking de performance, alertas críticos e delta mensal.
+Agrega métricas, ranking de performance, alertas críticos, delta mensal
+e portfolio classificado (at_risk / expansion / maintenance).
 """
 import json
 from datetime import datetime, timezone
@@ -13,7 +14,6 @@ router = APIRouter()
 
 
 async def _ensure_active_column():
-    """Adiciona coluna active na tabela clients se não existir (retrocompat)."""
     await db_execute(
         "ALTER TABLE clients ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;"
     )
@@ -43,14 +43,60 @@ def _status_label(score: float) -> str:
     return "🔴 Crítico"
 
 
+def _build_portfolio(client_metrics: list) -> dict:
+    """
+    Classifica clientes em at_risk, expansion e maintenance
+    com base no health_score e métricas de leads/conversões.
+    """
+    at_risk = []
+    expansion = []
+    maintenance = []
+
+    for m in client_metrics:
+        score = m["health_score"]
+        upsell = []
+
+        if m["total_leads"] > 100:
+            upsell.append("Base grande — potencial para segmentação avançada")
+        if m["avg_open_rate"] > 25:
+            upsell.append("Taxa de abertura acima da média — ideal para campanhas premium")
+        if m["active_automations"] >= 3:
+            upsell.append("Automações ativas — candidato a workflows mais complexos")
+        if m["total_conversions"] > 50:
+            upsell.append("Alto volume de conversões — oportunidade de upsell em CRM")
+
+        entry = {
+            "client_id": m["client_id"],
+            "client_name": m["name"],
+            "score": score,
+            "status": m["status"],
+            "summary": f"Score {score} — {m['status']}",
+            "total_leads": m["total_leads"],
+            "avg_open_rate": m["avg_open_rate"],
+            "active_automations": m["active_automations"],
+            "upsell_opportunities": upsell,
+        }
+
+        if score < 50:
+            at_risk.append(entry)
+        elif score >= 75 and upsell:
+            expansion.append(entry)
+        else:
+            maintenance.append(entry)
+
+    return {
+        "at_risk": sorted(at_risk, key=lambda x: x["score"]),
+        "expansion": sorted(expansion, key=lambda x: x["score"], reverse=True),
+        "maintenance": sorted(maintenance, key=lambda x: x["score"], reverse=True),
+    }
+
+
 @router.get("/overview")
 async def agency_overview():
     """
-    Retorna visão consolidada de todos os clientes da agência:
-    - Totais agregados
-    - Ranking top 10 por health score
-    - Clientes críticos (score < 50)
-    - Delta mês atual vs mês anterior
+    Retorna visão consolidada de todos os clientes:
+    - totals, ranking, alerts, delta
+    - portfolio: at_risk / expansion / maintenance  ← corrigido
     """
     await _ensure_active_column()
 
@@ -65,6 +111,7 @@ async def agency_overview():
             "ranking": [],
             "alerts": [],
             "delta": {},
+            "portfolio": {"at_risk": [], "expansion": [], "maintenance": []},
         }
 
     client_ids = [c["id"] for c in clients]
@@ -137,7 +184,7 @@ async def agency_overview():
             "synced_at": data.get("synced_at", ""),
         })
 
-    # Clientes sem snapshot ainda aparecem com score 0
+    # Clientes sem snapshot aparecem com score 0
     synced_ids = {m["client_id"] for m in client_metrics}
     for c in clients:
         if c["id"] not in synced_ids:
@@ -174,6 +221,7 @@ async def agency_overview():
     ranking = sorted(client_metrics, key=lambda x: x["health_score"], reverse=True)[:10]
     alerts = [m for m in client_metrics if m["health_score"] < 50]
     delta = await _compute_monthly_delta(client_ids)
+    portfolio = _build_portfolio(client_metrics)
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -181,10 +229,10 @@ async def agency_overview():
         "ranking": ranking,
         "alerts": alerts,
         "delta": delta,
+        "portfolio": portfolio,
     }
 
 
-# Mantém rota legada /dashboard apontando para /overview
 @router.get("/dashboard")
 async def agency_dashboard():
     return await agency_overview()
@@ -223,7 +271,6 @@ async def _compute_monthly_delta(client_ids: list) -> dict:
 
         total_leads_now += _safe_int(now_data.get("total_leads"))
         total_leads_prev += _safe_int(prev_data.get("total_leads"))
-
         total_conv_now += sum(lp.get("conversions", 0) for lp in (now_data.get("landing_pages") or []))
         total_conv_prev += sum(lp.get("conversions", 0) for lp in (prev_data.get("landing_pages") or []))
 
@@ -244,7 +291,6 @@ async def _compute_monthly_delta(client_ids: list) -> dict:
 
 @router.get("/clients-summary")
 async def clients_summary():
-    """Lista resumida de todos os clientes com status rápido."""
     await _ensure_active_column()
     clients = await db_fetch_all(
         "SELECT id, name, created_at FROM clients ORDER BY name"
