@@ -1,14 +1,16 @@
+import logging
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from app.utils.notifier import send_telegram_message
 
 from app.auth_core import ensure_admin_exists, get_current_user, migrate_plaintext_rd_credentials
 from app.core.settings import get_settings
-from app.database import close_db, init_db, db_fetchval
+from app.database import close_db, init_db, db_fetchval, db_execute
 from app.routers import (
     agency_dashboard,
     agency_expert,
@@ -38,47 +40,13 @@ from app.routers import (
 from app.services.rd_fullsync import ensure_sync_tables
 from app.routers.rd_station import close_http_client
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
-
-app = FastAPI(
-    title="RD Manager IA",
-    version="4.1.0",
-)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-origins = settings.allowed_origins
-allow_all = "*" in origins
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins if not allow_all else ["*"],
-    allow_credentials=not allow_all,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-os.makedirs("app/static", exist_ok=True)
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-
-
-@app.on_event("startup")
-async def startup() -> None:
-    await init_db()
-    await ensure_admin_exists()
-    await migrate_plaintext_rd_credentials()
-    await ensure_sync_tables()
-    await _ensure_webhook_table()
-
-
-@app.on_event("shutdown")
-async def shutdown() -> None:
-    await close_db()
-    await close_http_client()
-
 
 async def _ensure_webhook_table() -> None:
-    from app.database import db_execute
     await db_execute(
         """
         CREATE TABLE IF NOT EXISTS rd_webhook_events (
@@ -99,7 +67,63 @@ async def _ensure_webhook_table() -> None:
     )
 
 
-# ── Routers públicos (sem auth) ───────────────────────────────────────────────
+async def _ensure_weekly_analyses_table() -> None:
+    """Cria tabela weekly_analyses usada por intelligence.py."""
+    await db_execute(
+        """
+        CREATE TABLE IF NOT EXISTS weekly_analyses (
+            id SERIAL PRIMARY KEY,
+            client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+            result TEXT NOT NULL DEFAULT '',
+            week_ref TEXT NOT NULL DEFAULT '',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        """
+    )
+    await db_execute(
+        "CREATE INDEX IF NOT EXISTS idx_weekly_analyses_client ON weekly_analyses(client_id, created_at DESC);"
+    )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ── Startup ───────────────────────────────────────────────────────────────────
+    await init_db()
+    await ensure_admin_exists()
+    await migrate_plaintext_rd_credentials()
+    await ensure_sync_tables()
+    await _ensure_webhook_table()
+    await _ensure_weekly_analyses_table()
+    logger.info("RD Manager iniciado com sucesso.")
+    yield
+    # ── Shutdown ───────────────────────────────────────────────────────────────
+    await close_db()
+    await close_http_client()
+    logger.info("RD Manager encerrado.")
+
+
+app = FastAPI(
+    title="RD Manager IA",
+    version="4.1.0",
+    lifespan=lifespan,
+)
+
+origins = settings.allowed_origins
+allow_all = "*" in origins
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins if not allow_all else ["*"],
+    allow_credentials=not allow_all,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+os.makedirs("app/static", exist_ok=True)
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+
+# ── Routers públicos (sem auth) ─────────────────────────────────────────────────────────────────
 app.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
 app.include_router(webhooks.router, tags=["webhooks"])
 
@@ -110,16 +134,16 @@ def _build_private_dependencies():
 
 private_dependencies = _build_private_dependencies()
 
-# ── Auth ──────────────────────────────────────────────────────────────────────
+# ── Auth ────────────────────────────────────────────────────────────────────────────────────
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
-# ── Clientes ──────────────────────────────────────────────────────────────────
+# ── Clientes ─────────────────────────────────────────────────────────────────────────────
 app.include_router(
     clients.router, prefix="/api/clients", tags=["clients"],
     dependencies=private_dependencies,
 )
 
-# ── Sync RD Station ───────────────────────────────────────────────────────────
+# ── Sync RD Station ─────────────────────────────────────────────────────────────────────
 app.include_router(
     rd_fullsync.router, prefix="/api/rdsync", tags=["rd_fullsync"],
     dependencies=private_dependencies,
@@ -137,7 +161,7 @@ app.include_router(
     dependencies=private_dependencies,
 )
 
-# ── Dashboard & Agência ───────────────────────────────────────────────────────
+# ── Dashboard & Agência ───────────────────────────────────────────────────────────────────
 app.include_router(
     agency_dashboard.router, prefix="/api/agency", tags=["agency_dashboard"],
     dependencies=private_dependencies,
@@ -147,7 +171,7 @@ app.include_router(
     dependencies=private_dependencies,
 )
 
-# ── Análise & Inteligência ────────────────────────────────────────────────────
+# ── Análise & Inteligência ───────────────────────────────────────────────────────────────────
 app.include_router(
     analysis.router, prefix="/api/analysis", tags=["analysis"],
     dependencies=private_dependencies,
@@ -165,7 +189,7 @@ app.include_router(
     dependencies=private_dependencies,
 )
 
-# ── Leads & CRM ───────────────────────────────────────────────────────────────
+# ── Leads & CRM ─────────────────────────────────────────────────────────────────────────────
 app.include_router(
     leads.router, prefix="/api/leads", tags=["leads"],
     dependencies=private_dependencies,
@@ -175,7 +199,8 @@ app.include_router(
     dependencies=private_dependencies,
 )
 
-# ── Campanhas & Emails ────────────────────────────────────────────────────────
+# ── Campanhas & Emails ─────────────────────────────────────────────────────────────────────────
+
 app.include_router(
     campaign.router, prefix="/api/campaigns", tags=["campaigns"],
     dependencies=private_dependencies,
@@ -185,7 +210,7 @@ app.include_router(
     dependencies=private_dependencies,
 )
 
-# ── Landing Pages & Flows ─────────────────────────────────────────────────────
+# ── Landing Pages & Flows ─────────────────────────────────────────────────────────────────────
 app.include_router(
     landing_pages.router, prefix="/api/landing-pages", tags=["landing_pages"],
     dependencies=private_dependencies,
@@ -195,7 +220,7 @@ app.include_router(
     dependencies=private_dependencies,
 )
 
-# ── Auditoria & Saúde ─────────────────────────────────────────────────────────
+# ── Auditoria & Saúde ───────────────────────────────────────────────────────────────────────
 app.include_router(
     alerts.router, prefix="/api/alerts", tags=["alerts"],
     dependencies=private_dependencies,
@@ -205,7 +230,7 @@ app.include_router(
     dependencies=private_dependencies,
 )
 
-# ── Outros ────────────────────────────────────────────────────────────────────
+# ── Outros ───────────────────────────────────────────────────────────────────────────────────
 app.include_router(
     seo_geo.router, prefix="/api/seo-geo", tags=["seo_geo"],
     dependencies=private_dependencies,
@@ -222,7 +247,11 @@ async def health_check():
         await db_fetchval("SELECT 1")
         return {"status": "ok", "version": "4.1.0", "db": "connected"}
     except Exception as e:
-        return {"status": "degraded", "error": str(e)}, 503
+        # fix: retorna JSONResponse com status 503 em vez de tupla (FastAPI não suporta tupla)
+        return JSONResponse(
+            content={"status": "degraded", "error": str(e)},
+            status_code=503,
+        )
 
 
 @app.get("/", response_class=HTMLResponse)
