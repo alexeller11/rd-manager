@@ -307,13 +307,35 @@ async def _fetch_landing_pages(client_id: int) -> list[dict]:
         visitors = safe_int(lp.get("visitors_count") or lp.get("visits"))
         conversions = safe_int(lp.get("conversions_count") or lp.get("leads"))
         rate = round(conversions / max(visitors, 1) * 100, 1)
+
+        # URL real da landing page — prioriza campos diretos da API
+        url = (
+            lp.get("url")
+            or lp.get("page_url")
+            or lp.get("public_url")
+            or lp.get("permalink")
+            or ""
+        )
+
+        # conversion_identifier para uso em analytics
+        conversion_identifier = (
+            lp.get("conversion_identifier")
+            or lp.get("identifier")
+            or ""
+        )
+
         result.append(
             {
                 "id": lp.get("id"),
                 "name": lp.get("name") or lp.get("title"),
+                "url": url,
+                "conversion_identifier": conversion_identifier,
                 "visitors": visitors,
                 "conversions": conversions,
                 "conversion_rate": rate,
+                "status": lp.get("status") or lp.get("published"),
+                "created_at": lp.get("created_at"),
+                "updated_at": lp.get("updated_at"),
             }
         )
     return result
