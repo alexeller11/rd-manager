@@ -21,10 +21,41 @@ pwd_context = CryptContext(
 
 ALGORITHM = "HS256"
 
-
 MKT_CLIENT_ID = (settings.rd_client_id or "").strip()
 MKT_CLIENT_SECRET = (settings.rd_client_secret or "").strip()
 RD_TOKEN_URL = "https://api.rd.services/auth/token"
+
+# ── fix #6: cache in-memory de tokens RD ─────────────────────────────────────
+# Evita uma query ao banco a cada chamada de endpoint que precise do token.
+# Estrutura: { client_id: {"token": str, "expires_at": datetime} }
+# TTL conservador: expira 60s antes do token real para garantir margem.
+_token_cache: dict[int, dict] = {}
+_CACHE_MARGIN = timedelta(seconds=60)
+
+
+def _cache_put(client_id: int, token: str, expires_at: datetime | None) -> None:
+    if not token:
+        return
+    if expires_at is None:
+        expires_at = datetime.now(timezone.utc) + timedelta(seconds=3600)
+    _token_cache[client_id] = {"token": token, "expires_at": expires_at - _CACHE_MARGIN}
+
+
+def _cache_get(client_id: int) -> str | None:
+    entry = _token_cache.get(client_id)
+    if not entry:
+        return None
+    if entry["expires_at"] <= datetime.now(timezone.utc):
+        _token_cache.pop(client_id, None)
+        return None
+    return entry["token"]
+
+
+def _cache_invalidate(client_id: int) -> None:
+    _token_cache.pop(client_id, None)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 
 async def save_mkt_token(
@@ -93,6 +124,9 @@ async def save_mkt_token(
         client_id,
         (access_token or "").strip(),
     )
+
+    # atualiza cache após salvar no banco
+    _cache_put(client_id, (access_token or "").strip(), expires_at)
 
     return {
         "client_id": client_id,
@@ -242,6 +276,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 
 async def get_valid_mkt_token(client_id: int) -> str:
+    # fix #6: tenta cache antes de ir ao banco
+    cached = _cache_get(client_id)
+    if cached:
+        return cached
+
     row = await db_fetch_one(
         """
         SELECT access_token, refresh_token, expires_at
@@ -260,25 +299,31 @@ async def get_valid_mkt_token(client_id: int) -> str:
         if expires_soon and row.get("refresh_token"):
             refreshed = await refresh_mkt_token(client_id)
             if refreshed:
-                return refreshed
-        return row["access_token"]
+                return refreshed  # refresh_mkt_token já atualiza o cache via save_mkt_token
 
-    if not row or not row.get("access_token"):
-        client = await db_fetch_one(
-            """
-            SELECT rd_token
-            FROM clients
-            WHERE id = $1
-            """,
-            client_id,
-        )
-        if client and client.get("rd_token"):
-            return client["rd_token"]
+        token = row["access_token"]
+        _cache_put(client_id, token, expires_at)
+        return token
 
-        raise RuntimeError("Cliente sem token RD conectado.")
+    # fallback: coluna legada clients.rd_token
+    client = await db_fetch_one(
+        """
+        SELECT rd_token
+        FROM clients
+        WHERE id = $1
+        """,
+        client_id,
+    )
+    if client and client.get("rd_token"):
+        _cache_put(client_id, client["rd_token"], None)
+        return client["rd_token"]
+
+    raise RuntimeError("Cliente sem token RD conectado.")
 
 
 async def refresh_mkt_token(client_id: int) -> str | None:
+    _cache_invalidate(client_id)  # invalida cache antes de refrescar
+
     row = await db_fetch_one(
         """
         SELECT refresh_token
