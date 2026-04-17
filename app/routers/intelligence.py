@@ -1,6 +1,8 @@
+import asyncio
 import json
-from datetime import datetime
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+import logging
+from datetime import datetime, timezone
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Header
 from pydantic import BaseModel
 from typing import Optional
 from app.database import db_fetchone, db_fetchall, db_fetchval, db_execute, parse_json_field
@@ -9,6 +11,10 @@ from app.routers.clients import fetch_client
 from app.routers.health import calc_health_score
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+# Semáforo: máximo 5 análises simultâneas no run-all
+_weekly_semaphore = asyncio.Semaphore(5)
 
 
 async def _get_snap(client_id: int) -> dict:
@@ -21,15 +27,17 @@ async def _get_snap(client_id: int) -> dict:
 # ─── Análise semanal ─────────────────────────────────────────────────────────
 
 async def run_weekly_analysis_job(client_id: int):
-    try:
-        client = await fetch_client(client_id)
-        if not client:
-            return
-        snap = await _get_snap(client_id)
-        client["rd_data"] = snap
-        context = build_client_context(client)
+    async with _weekly_semaphore:
+        try:
+            client = await fetch_client(client_id)
+            if not client:
+                logger.warning("run_weekly_analysis_job: cliente %s não encontrado", client_id)
+                return
+            snap = await _get_snap(client_id)
+            client["rd_data"] = snap
+            context = build_client_context(client)
 
-        prompt = f"""Realize uma ANÁLISE SEMANAL EXECUTIVA de marketing digital. Seja direto e focado em dados.
+            prompt = f"""Realize uma ANÁLISE SEMANAL EXECUTIVA de marketing digital. Seja direto e focado em dados.
 
 DADOS DO CLIENTE:
 {context}
@@ -53,14 +61,15 @@ Estruture exatamente assim:
 ## Projeção para próxima semana
 [O que esperar se a ação for implementada]"""
 
-        result = await call_ai(prompt, system=SYSTEM_EXPERT, max_tokens=1000)
-        week_ref = datetime.now().strftime("%Y-W%W")
-        await db_fetchval(
-            "INSERT INTO weekly_analyses (client_id, result, week_ref) VALUES ($1,$2,$3) RETURNING id",
-            client_id, result, week_ref
-        )
-    except Exception as e:
-        print(f"Erro análise semanal cliente {client_id}: {e}")
+            result = await call_ai(prompt, system=SYSTEM_EXPERT, max_tokens=1000)
+            week_ref = datetime.now(timezone.utc).strftime("%Y-W%W")
+            await db_fetchval(
+                "INSERT INTO weekly_analyses (client_id, result, week_ref) VALUES ($1,$2,$3) RETURNING id",
+                client_id, result, week_ref
+            )
+            logger.info("Análise semanal concluída para cliente %s (%s)", client_id, week_ref)
+        except Exception:
+            logger.exception("Erro na análise semanal do cliente %s", client_id)
 
 
 class WeeklyRequest(BaseModel):
@@ -81,7 +90,7 @@ async def run_all_weekly(background_tasks: BackgroundTasks):
     clients = await db_fetchall("SELECT id FROM clients")
     for c in clients:
         background_tasks.add_task(run_weekly_analysis_job, c["id"])
-    return {"message": f"Análise iniciada para {len(clients)} clientes."}
+    return {"message": f"Análise iniciada para {len(clients)} clientes (máx. 5 simultâneas)."}
 
 
 @router.get("/weekly/latest/{client_id}")
@@ -174,7 +183,7 @@ async def generate_calendar(req: CalendarRequest):
     if not client:
         raise HTTPException(404, "Cliente não encontrado")
     context = build_client_context(client)
-    month = req.month or datetime.now().strftime("%B %Y")
+    month = req.month or datetime.now(timezone.utc).strftime("%B %Y")
 
     prompt = f"""Crie um CALENDÁRIO EDITORIAL COMPLETO de email marketing para {month}.
 
@@ -246,13 +255,27 @@ DADOS DO CLIENTE:
     return {"result": result}
 
 
-# ─── Dashboard público ───────────────────────────────────────────────────────
+# ─── Dashboard do cliente (AUTENTICADO) ──────────────────────────────────────
+# ATENÇÃO: este endpoint exige o header X-Client-Token igual ao rd_token do cliente.
+# Nunca expor dados de marketing sem autenticação.
 
 @router.get("/public/{client_id}")
-async def get_public_dashboard(client_id: int):
-    client = await db_fetchone("SELECT name, segment, website FROM clients WHERE id=$1", client_id)
-    if not client:
+async def get_public_dashboard(
+    client_id: int,
+    x_client_token: Optional[str] = Header(default=None),
+):
+    client_row = await db_fetchone(
+        "SELECT name, segment, website, rd_token FROM clients WHERE id=$1", client_id
+    )
+    if not client_row:
         raise HTTPException(404, "Cliente não encontrado")
+
+    # Validação de token — rejeita se token ausente ou não confere
+    stored_token = (client_row.get("rd_token") or "").strip()
+    provided = (x_client_token or "").strip()
+    if not stored_token or not provided or provided != stored_token:
+        raise HTTPException(403, "Acesso negado: token inválido ou ausente")
+
     snap_row = await db_fetchone(
         "SELECT data FROM rd_snapshots WHERE client_id=$1 ORDER BY created_at DESC LIMIT 1", client_id
     )
@@ -262,14 +285,15 @@ async def get_public_dashboard(client_id: int):
     )
     health = calc_health_score(snap)
     return {
-        "client": {"name": client["name"], "segment": client["segment"]},
+        "client": {"name": client_row["name"], "segment": client_row["segment"]},
         "health": health,
         "metrics": {
             "total_leads":    snap.get("total_leads"),
             "avg_open_rate":  snap.get("avg_open_rate"),
             "avg_click_rate": snap.get("avg_click_rate"),
-            "funnels_count": len(snap.get("segmentations", [])),        },
+            "funnels_count":  len(snap.get("segmentations", [])),
+        },
         "weekly_insight": weekly["result"] if weekly else "",
         "week_ref": weekly["week_ref"] if weekly else "",
-        "generated_at": datetime.now().isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
     }
