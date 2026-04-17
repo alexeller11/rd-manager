@@ -8,6 +8,9 @@ from app.database import db_execute, db_fetch_all, db_fetch_one, db_fetchval
 
 router = APIRouter()
 
+# Flag de memoize — garante que os ALTER TABLE rodam apenas uma vez por processo
+_clients_table_initialized = False
+
 
 # =============================
 # SCHEMAS
@@ -32,7 +35,10 @@ class ClientUpdate(BaseModel):
 # =============================
 
 async def _ensure_clients_table():
-    # Cria a tabela se não existir (esquema novo)
+    global _clients_table_initialized
+    if _clients_table_initialized:
+        return
+
     await db_execute(
         """
         CREATE TABLE IF NOT EXISTS clients (
@@ -80,6 +86,8 @@ async def _ensure_clients_table():
         )
         """
     )
+
+    _clients_table_initialized = True
 
 
 # =============================
