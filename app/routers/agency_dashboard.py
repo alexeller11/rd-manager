@@ -12,11 +12,18 @@ from app.database import db_fetch_all, db_fetch_one, db_execute
 
 router = APIRouter()
 
+# Flag de memoize — garante que o ALTER TABLE roda apenas uma vez por processo
+_active_column_ensured = False
+
 
 async def _ensure_active_column():
+    global _active_column_ensured
+    if _active_column_ensured:
+        return
     await db_execute(
         "ALTER TABLE clients ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;"
     )
+    _active_column_ensured = True
 
 
 def _safe_float(val, default=0.0) -> float:
@@ -96,7 +103,7 @@ async def agency_overview():
     """
     Retorna visão consolidada de todos os clientes:
     - totals, ranking, alerts, delta
-    - portfolio: at_risk / expansion / maintenance  ← corrigido
+    - portfolio: at_risk / expansion / maintenance
     """
     await _ensure_active_column()
 
@@ -148,7 +155,6 @@ async def agency_overview():
         automations = data.get("automations") or []
         landing_pages = data.get("landing_pages") or []
 
-        total_sent = sum(c.get("sent", 0) for c in campaigns)
         total_conversions = sum(lp.get("conversions", 0) for lp in landing_pages)
         active_automations = sum(1 for a in automations if a.get("status") == "active")
 
@@ -202,19 +208,23 @@ async def agency_overview():
                 "synced_at": "",
             })
 
+    # Médias excluem clientes sem snapshot para não distorcer os números
+    synced_metrics = [m for m in client_metrics if m["synced_at"]]
+    divisor_avg = max(len(synced_metrics), 1)
+
     totals = {
         "total_clients": len(client_metrics),
         "total_leads": sum(m["total_leads"] for m in client_metrics),
         "total_campaigns": sum(m["total_campaigns"] for m in client_metrics),
         "total_conversions": sum(m["total_conversions"] for m in client_metrics),
         "avg_open_rate": round(
-            sum(m["avg_open_rate"] for m in client_metrics) / max(len(client_metrics), 1), 1
+            sum(m["avg_open_rate"] for m in synced_metrics) / divisor_avg, 1
         ),
         "avg_click_rate": round(
-            sum(m["avg_click_rate"] for m in client_metrics) / max(len(client_metrics), 1), 1
+            sum(m["avg_click_rate"] for m in synced_metrics) / divisor_avg, 1
         ),
         "avg_health_score": round(
-            sum(m["health_score"] for m in client_metrics) / max(len(client_metrics), 1), 1
+            sum(m["health_score"] for m in synced_metrics) / divisor_avg, 1
         ),
     }
 
