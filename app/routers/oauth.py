@@ -1,16 +1,23 @@
+import logging
 import os
+import secrets
 
 import httpx
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from app.auth_core import MKT_CLIENT_ID, MKT_CLIENT_SECRET, RD_TOKEN_URL, save_mkt_token
 from app.core.settings import get_settings
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 settings = get_settings()
 
 RD_AUTH_URL = "https://api.rd.services/auth/dialog"
+
+# Armazena estados CSRF em memória (TTL simples por lookup).
+# Em multi-instância usar Redis; aqui é suficiente para single-instance.
+_pending_states: dict[str, int] = {}
 
 
 def get_redirect_uri() -> str:
@@ -18,14 +25,12 @@ def get_redirect_uri() -> str:
     if explicit:
         return explicit
 
-    # Try Render's external URL
     render_url = os.getenv("RENDER_EXTERNAL_URL")
     if render_url:
         return f"{render_url.rstrip('/')}/oauth/callback"
 
     origins = getattr(settings, "allowed_origins", None) or []
     if origins:
-        # Avoid using "*" for redirect URI construction
         base = origins[0] if origins[0] != "*" else "http://localhost:8000"
         return f"{base.rstrip('/')}/oauth/callback"
 
@@ -63,31 +68,52 @@ async def start_oauth(client_id: int):
     if not MKT_CLIENT_ID:
         return HTMLResponse(_html("Erro", "RD_CLIENT_ID não configurado.", ok=False), status_code=500)
 
+    # Gera token CSRF e associa ao client_id
+    csrf_token = secrets.token_urlsafe(24)
+    _pending_states[csrf_token] = client_id
+
     redirect_uri = get_redirect_uri()
+    state = f"{client_id}:{csrf_token}"
 
     url = (
         f"{RD_AUTH_URL}"
         f"?response_type=code"
         f"&client_id={MKT_CLIENT_ID}"
         f"&redirect_uri={redirect_uri}"
-        f"&state={client_id}"
+        f"&state={state}"
     )
 
+    logger.info("OAuth iniciado para cliente %s", client_id)
     return RedirectResponse(url)
 
 
 @router.get("/callback")
-async def oauth_callback(code: str | None = None, state: str | None = None, error: str | None = None):
+async def oauth_callback(
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
+):
     if error:
+        logger.warning("OAuth erro retornado pela RD: %s", error)
         return HTMLResponse(_html("Erro na conexão RD", f"Erro retornado pela RD: {error}", ok=False), status_code=400)
 
     if not code:
         return HTMLResponse(_html("Erro na conexão RD", "Code não recebido.", ok=False), status_code=400)
 
+    # Valida state com CSRF
     try:
-        client_id = int(state)
+        parts = (state or "").split(":", 1)
+        if len(parts) != 2:
+            raise ValueError("state malformado")
+        client_id = int(parts[0])
+        csrf_token = parts[1]
     except Exception:
         return HTMLResponse(_html("Erro na conexão RD", "State inválido.", ok=False), status_code=400)
+
+    expected_client_id = _pending_states.pop(csrf_token, None)
+    if expected_client_id is None or expected_client_id != client_id:
+        logger.warning("OAuth CSRF falhou: client_id=%s csrf=%s", client_id, csrf_token[:8])
+        return HTMLResponse(_html("Erro na conexão RD", "Token CSRF inválido ou expirado.", ok=False), status_code=400)
 
     payload = {
         "client_id": MKT_CLIENT_ID,
@@ -101,6 +127,7 @@ async def oauth_callback(code: str | None = None, state: str | None = None, erro
         response = await client.post(RD_TOKEN_URL, data=payload)
 
     if response.status_code >= 400:
+        logger.error("OAuth falha ao trocar token: %s", response.text[:200])
         return HTMLResponse(
             _html("Erro na conexão RD", f"Falha ao trocar token: {response.text[:500]}", ok=False),
             status_code=500,
@@ -122,4 +149,5 @@ async def oauth_callback(code: str | None = None, state: str | None = None, erro
         account_data=data,
     )
 
+    logger.info("OAuth concluído com sucesso para cliente %s", client_id)
     return HTMLResponse(_html("RD conectada com sucesso", f"Cliente #{client_id} autenticado."))
