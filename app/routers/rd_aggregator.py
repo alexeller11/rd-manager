@@ -1,6 +1,8 @@
 import asyncio
+import logging
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query
@@ -8,8 +10,11 @@ from fastapi import APIRouter, HTTPException, Query
 from app.auth_core import get_valid_mkt_token
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 RD_PLATFORM_BASE = "https://api.rd.services/platform"
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
 
 def _safe_list(payload: Any) -> List[dict]:
     if payload is None:
@@ -34,104 +39,129 @@ def _to_iso_date(days_back: int = 30) -> str:
     return dt.strftime("%Y-%m-%d")
 
 
+# ── fix #12: client compartilhado por request (connection pool) ────────────────
+# Em vez de criar/destruir um AsyncClient em cada _rd_get,
+# criamos UM client por bloco de chamadas e repassamos via argumento.
+# Isso reutiliza conexões TCP para o mesmo host.
+
+@asynccontextmanager
+async def _rd_client(token: str):
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient(
+        base_url=RD_PLATFORM_BASE,
+        headers=headers,
+        timeout=30.0,
+    ) as client:
+        yield client
+
+
 async def _rd_get(
-    token: str,
+    client: httpx.AsyncClient,
     path: str,
     params: Optional[dict] = None,
 ) -> dict:
-    url = f"{RD_PLATFORM_BASE}{path}"
-
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(
-            url,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-            },
-            params=params or {},
-        )
+    try:
+        response = await client.get(path, params=params or {})
+    except httpx.RequestError as exc:
+        logger.error("RD API request error em %s: %s", path, exc)
+        raise HTTPException(status_code=502, detail=f"Erro de conexão com RD API em {path}")
 
     if response.status_code >= 400:
-        print(f"DEBUG: RD API Error {response.status_code} em {path}: {response.text[:500]}")
+        logger.warning("RD API %s em %s: %s", response.status_code, path, response.text[:300])
         raise HTTPException(
             status_code=response.status_code,
-            detail=f"RD API error em {path}: {response.text[:500]}",
+            detail=f"RD API error em {path}: {response.text[:300]}",
         )
 
     try:
         return response.json()
     except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Resposta inválida da RD API em {path}",
-        )
+        logger.error("Resposta inválida (não-JSON) da RD API em %s", path)
+        raise HTTPException(status_code=500, detail=f"Resposta inválida da RD API em {path}")
 
 
-async def _get_landing_pages(token: str, limit: int = 50, page: int = 1) -> dict:
-    return await _rd_get(
-        token,
-        "/landing_pages",
-        params={"page": page, "limit": limit},
-    )
+# ── Wrappers de endpoint RD ────────────────────────────────────────────────────
+
+async def _get_landing_pages(client, limit=50, page=1):
+    return await _rd_get(client, "/landing_pages", {"page": page, "limit": limit})
+
+async def _get_segmentations(client, limit=50, page=1):
+    return await _rd_get(client, "/segmentations", {"page": page, "limit": limit})
+
+async def _get_segment_contacts(client, segment_id: str, limit=100, page=1):
+    return await _rd_get(client, f"/segmentations/{segment_id}/contacts", {"page": page, "limit": limit})
+
+async def _get_workflows(client, limit=50, page=1):
+    return await _rd_get(client, "/workflows", {"page": page, "limit": limit})
+
+async def _get_workflow_detail(client, workflow_id: str):
+    return await _rd_get(client, f"/workflows/{workflow_id}")
+
+async def _get_campaigns(client, limit=50, page=1):
+    return await _rd_get(client, "/campaigns", {"page": page, "limit": limit})
+
+async def _get_campaign_items(client, campaign_id: str, limit=100, page=1):
+    return await _rd_get(client, f"/campaigns/{campaign_id}/items", {"page": page, "limit": limit})
+
+async def _get_email_metrics(client, start_date: str, end_date: str):
+    return await _rd_get(client, "/analytics/emails", {"start_date": start_date, "end_date": end_date})
 
 
-async def _get_segmentations(token: str, limit: int = 50, page: int = 1) -> dict:
-    return await _rd_get(
-        token,
-        "/segmentations",
-        params={"page": page, "limit": limit},
-    )
+# ── fix #7: score qualitativo (não apenas quantidade) ─────────────────────────
+
+def _compute_score(landing: dict, workflows: dict, segmentations: dict, campaigns: dict, metrics: dict) -> int:
+    score = 0
+
+    # Landing pages: até 20pts — premia pelo menos 1 ativa
+    lp_count = landing.get("count", 0)
+    if lp_count >= 3:
+        score += 20
+    elif lp_count >= 1:
+        score += 10
+
+    # Workflows: até 20pts — premia workflows ativos
+    wf_items = workflows.get("items", [])
+    wf_active = sum(1 for w in wf_items if str(w.get("status", "")).lower() in ("active", "enabled", "ativo"))
+    if wf_active >= 3:
+        score += 20
+    elif wf_active >= 1:
+        score += 12
+    elif workflows.get("count", 0) >= 1:
+        score += 5  # têm workflows mas nenhum ativo
+
+    # Segmentações: até 20pts
+    seg_count = segmentations.get("count", 0)
+    if seg_count >= 5:
+        score += 20
+    elif seg_count >= 2:
+        score += 12
+    elif seg_count >= 1:
+        score += 6
+
+    # Campanhas: até 20pts — premia open_rate
+    camp_count = campaigns.get("count", 0)
+    if camp_count >= 1:
+        score += 10
+    raw_metrics = metrics.get("raw", {})
+    open_rate = 0.0
+    if isinstance(raw_metrics, dict):
+        open_rate = float(raw_metrics.get("open_rate") or raw_metrics.get("avg_open_rate") or 0)
+    if open_rate >= 25:
+        score += 10
+    elif open_rate >= 15:
+        score += 5
+
+    # Métricas disponíveis: até 20pts — penaliza erros de API
+    if "error" not in landing and "error" not in campaigns:
+        score += 20
+
+    return min(score, 100)
 
 
-async def _get_segment_contacts(token: str, segment_id: str, limit: int = 100, page: int = 1) -> dict:
-    return await _rd_get(
-        token,
-        f"/segmentations/{segment_id}/contacts",
-        params={"page": page, "limit": limit},
-    )
-
-
-async def _get_workflows(token: str, limit: int = 50, page: int = 1) -> dict:
-    return await _rd_get(
-        token,
-        "/workflows",
-        params={"page": page, "limit": limit},
-    )
-
-
-async def _get_workflow_detail(token: str, workflow_id: str) -> dict:
-    return await _rd_get(
-        token,
-        f"/workflows/{workflow_id}",
-    )
-
-
-async def _get_campaigns(token: str, limit: int = 50, page: int = 1) -> dict:
-    return await _rd_get(
-        token,
-        "/campaigns",
-        params={"page": page, "limit": limit},
-    )
-
-
-async def _get_campaign_items(token: str, campaign_id: str, limit: int = 100, page: int = 1) -> dict:
-    return await _rd_get(
-        token,
-        f"/campaigns/{campaign_id}/items",
-        params={"page": page, "limit": limit},
-    )
-
-
-async def _get_email_metrics(token: str, start_date: str, end_date: str) -> dict:
-    return await _rd_get(
-        token,
-        "/analytics/emails",
-        params={
-            "start_date": start_date,
-            "end_date": end_date,
-        },
-    )
-
+# ── Endpoints ──────────────────────────────────────────────────────────────────
 
 @router.get("/overview/{client_id}")
 async def rd_overview(
@@ -142,45 +172,37 @@ async def rd_overview(
     start_date = _to_iso_date(days_back)
     end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    results = await asyncio.gather(
-        _get_landing_pages(token),
-        _get_segmentations(token),
-        _get_workflows(token),
-        _get_campaigns(token),
-        _get_email_metrics(token, start_date=start_date, end_date=end_date),
-        return_exceptions=True,
-    )
+    async with _rd_client(token) as client:
+        results = await asyncio.gather(
+            _get_landing_pages(client),
+            _get_segmentations(client),
+            _get_workflows(client),
+            _get_campaigns(client),
+            _get_email_metrics(client, start_date=start_date, end_date=end_date),
+            return_exceptions=True,
+        )
 
     landing_raw, segment_raw, workflow_raw, campaign_raw, metrics_raw = results
 
-    def normalize_result(result: Any, context: str) -> dict:
+    def normalize(result: Any, ctx: str) -> dict:
         if isinstance(result, Exception):
-            print(f"DEBUG: Exception in {context}: {str(result)}")
+            logger.warning("rd_overview: falha em %s para cliente %s: %s", ctx, client_id, result)
             return {"error": str(result), "items": [], "count": 0}
         items = _safe_list(result)
-        return {
-            "raw": result,
-            "items": items,
-            "count": len(items),
-            "preview": _safe_preview(items),
-        }
+        return {"raw": result, "items": items, "count": len(items), "preview": _safe_preview(items)}
 
-    landing = normalize_result(landing_raw, "landing_pages")
-    segmentations = normalize_result(segment_raw, "segmentations")
-    workflows = normalize_result(workflow_raw, "workflows")
-    campaigns = normalize_result(campaign_raw, "campaigns")
+    landing      = normalize(landing_raw, "landing_pages")
+    segmentations = normalize(segment_raw, "segmentations")
+    workflows    = normalize(workflow_raw, "workflows")
+    campaigns    = normalize(campaign_raw, "campaigns")
 
     if isinstance(metrics_raw, Exception):
-        print(f"DEBUG: Exception in metrics: {str(metrics_raw)}")
+        logger.warning("rd_overview: falha em metrics para cliente %s: %s", client_id, metrics_raw)
         metrics = {"error": str(metrics_raw)}
     else:
         metrics = {"raw": metrics_raw}
 
-    score = 50
-    score += min(10, landing["count"])
-    score += min(10, workflows["count"])
-    score += min(10, segmentations["count"])
-    score += min(10, campaigns["count"])
+    score = _compute_score(landing, workflows, segmentations, campaigns, metrics)
 
     alerts = []
     if landing["count"] == 0:
@@ -194,17 +216,14 @@ async def rd_overview(
 
     return {
         "client_id": client_id,
-        "score": min(score, 100),
+        "score": score,
         "alerts": alerts,
         "landing_pages": landing,
         "segmentations": segmentations,
         "workflows": workflows,
         "campaigns": campaigns,
         "metrics": metrics,
-        "period": {
-            "start_date": start_date,
-            "end_date": end_date,
-        },
+        "period": {"start_date": start_date, "end_date": end_date},
     }
 
 
@@ -215,15 +234,10 @@ async def rd_landing_pages(
     limit: int = Query(50, ge=1, le=200),
 ):
     token = await get_valid_mkt_token(client_id)
-    data = await _get_landing_pages(token, page=page, limit=limit)
+    async with _rd_client(token) as client:
+        data = await _get_landing_pages(client, page=page, limit=limit)
     items = _safe_list(data)
-
-    return {
-        "client_id": client_id,
-        "count": len(items),
-        "items": items,
-        "raw": data,
-    }
+    return {"client_id": client_id, "count": len(items), "items": items, "raw": data}
 
 
 @router.get("/segmentations/{client_id}")
@@ -233,15 +247,10 @@ async def rd_segmentations(
     limit: int = Query(50, ge=1, le=200),
 ):
     token = await get_valid_mkt_token(client_id)
-    data = await _get_segmentations(token, page=page, limit=limit)
+    async with _rd_client(token) as client:
+        data = await _get_segmentations(client, page=page, limit=limit)
     items = _safe_list(data)
-
-    return {
-        "client_id": client_id,
-        "count": len(items),
-        "items": items,
-        "raw": data,
-    }
+    return {"client_id": client_id, "count": len(items), "items": items, "raw": data}
 
 
 @router.get("/segmentations/{client_id}/{segment_id}/contacts")
@@ -252,16 +261,10 @@ async def rd_segment_contacts(
     limit: int = Query(100, ge=1, le=200),
 ):
     token = await get_valid_mkt_token(client_id)
-    data = await _get_segment_contacts(token, segment_id=segment_id, page=page, limit=limit)
+    async with _rd_client(token) as client:
+        data = await _get_segment_contacts(client, segment_id=segment_id, page=page, limit=limit)
     items = _safe_list(data)
-
-    return {
-        "client_id": client_id,
-        "segment_id": segment_id,
-        "count": len(items),
-        "items": items,
-        "raw": data,
-    }
+    return {"client_id": client_id, "segment_id": segment_id, "count": len(items), "items": items, "raw": data}
 
 
 @router.get("/leads-base/{client_id}")
@@ -271,38 +274,41 @@ async def rd_leads_base(
     leads_per_segment: int = Query(50, ge=1, le=200),
 ):
     token = await get_valid_mkt_token(client_id)
-    seg_data = await _get_segmentations(token, page=1, limit=segment_limit)
-    segments = _safe_list(seg_data)
 
-    collected_segments = []
-    total_contacts = 0
+    async with _rd_client(token) as client:
+        seg_data = await _get_segmentations(client, page=1, limit=segment_limit)
+        segments = _safe_list(seg_data)
 
-    for seg in segments:
-        segment_id = str(seg.get("id") or seg.get("uuid") or "")
-        if not segment_id:
-            continue
+        valid_segments = [
+            seg for seg in segments
+            if str(seg.get("id") or seg.get("uuid") or "")
+        ]
 
-        contacts_data = await _get_segment_contacts(
-            token,
-            segment_id=segment_id,
-            page=1,
-            limit=leads_per_segment,
+        # fix #4: gather paralelo em vez de loop sequencial
+        async def _fetch_segment(seg):
+            segment_id = str(seg.get("id") or seg.get("uuid") or "")
+            contacts_data = await _get_segment_contacts(client, segment_id=segment_id, page=1, limit=leads_per_segment)
+            contacts = _safe_list(contacts_data)
+            return {
+                "segment": seg,
+                "contacts_count": len(contacts),
+                "contacts_preview": contacts[:10],
+            }
+
+        collected_segments = await asyncio.gather(
+            *[_fetch_segment(seg) for seg in valid_segments],
+            return_exceptions=True,
         )
-        contacts = _safe_list(contacts_data)
-        total_contacts += len(contacts)
 
-        collected_segments.append({
-            "segment": seg,
-            "contacts_count": len(contacts),
-            "contacts_preview": contacts[:10],
-        })
+    results = [r for r in collected_segments if not isinstance(r, Exception)]
+    total_contacts = sum(r["contacts_count"] for r in results)
 
     return {
         "client_id": client_id,
-        "segments_used": len(collected_segments),
+        "segments_used": len(results),
         "estimated_contacts_loaded": total_contacts,
-        "segments": collected_segments,
-        "note": "A base foi agregada a partir das segmentações e dos contatos por segmentação.",
+        "segments": results,
+        "note": "Base agregada via segmentações em paralelo.",
     }
 
 
@@ -313,30 +319,18 @@ async def rd_workflows(
     limit: int = Query(50, ge=1, le=200),
 ):
     token = await get_valid_mkt_token(client_id)
-    data = await _get_workflows(token, page=page, limit=limit)
+    async with _rd_client(token) as client:
+        data = await _get_workflows(client, page=page, limit=limit)
     items = _safe_list(data)
-
-    return {
-        "client_id": client_id,
-        "count": len(items),
-        "items": items,
-        "raw": data,
-    }
+    return {"client_id": client_id, "count": len(items), "items": items, "raw": data}
 
 
 @router.get("/workflows/{client_id}/{workflow_id}")
-async def rd_workflow_detail(
-    client_id: int,
-    workflow_id: str,
-):
+async def rd_workflow_detail(client_id: int, workflow_id: str):
     token = await get_valid_mkt_token(client_id)
-    data = await _get_workflow_detail(token, workflow_id=workflow_id)
-
-    return {
-        "client_id": client_id,
-        "workflow_id": workflow_id,
-        "data": data,
-    }
+    async with _rd_client(token) as client:
+        data = await _get_workflow_detail(client, workflow_id=workflow_id)
+    return {"client_id": client_id, "workflow_id": workflow_id, "data": data}
 
 
 @router.get("/automations/{client_id}")
@@ -355,15 +349,10 @@ async def rd_campaigns(
     limit: int = Query(50, ge=1, le=200),
 ):
     token = await get_valid_mkt_token(client_id)
-    data = await _get_campaigns(token, page=page, limit=limit)
+    async with _rd_client(token) as client:
+        data = await _get_campaigns(client, page=page, limit=limit)
     items = _safe_list(data)
-
-    return {
-        "client_id": client_id,
-        "count": len(items),
-        "items": items,
-        "raw": data,
-    }
+    return {"client_id": client_id, "count": len(items), "items": items, "raw": data}
 
 
 @router.get("/campaigns/{client_id}/{campaign_id}/items")
@@ -374,16 +363,10 @@ async def rd_campaign_items(
     limit: int = Query(100, ge=1, le=200),
 ):
     token = await get_valid_mkt_token(client_id)
-    data = await _get_campaign_items(token, campaign_id=campaign_id, page=page, limit=limit)
+    async with _rd_client(token) as client:
+        data = await _get_campaign_items(client, campaign_id=campaign_id, page=page, limit=limit)
     items = _safe_list(data)
-
-    return {
-        "client_id": client_id,
-        "campaign_id": campaign_id,
-        "count": len(items),
-        "items": items,
-        "raw": data,
-    }
+    return {"client_id": client_id, "campaign_id": campaign_id, "count": len(items), "items": items, "raw": data}
 
 
 @router.get("/metrics/{client_id}")
@@ -394,18 +377,10 @@ async def rd_metrics(
     token = await get_valid_mkt_token(client_id)
     start_date = _to_iso_date(days_back)
     end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
-    email_metrics = await _get_email_metrics(
-        token,
-        start_date=start_date,
-        end_date=end_date,
-    )
-
+    async with _rd_client(token) as client:
+        email_metrics = await _get_email_metrics(client, start_date=start_date, end_date=end_date)
     return {
         "client_id": client_id,
-        "period": {
-            "start_date": start_date,
-            "end_date": end_date,
-        },
+        "period": {"start_date": start_date, "end_date": end_date},
         "email_metrics": email_metrics,
     }
