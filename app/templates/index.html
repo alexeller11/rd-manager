@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>RD Manager IA</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
 
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -17,732 +16,2111 @@
 
   <style>
     :root {
-      --bg: #0f172a;
-      --panel: #1e293b;
-      --panel-2: #12181f;
-      --line: #1e2933;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --green: #10b981;
-      --green-soft: rgba(16, 185, 129, 0.1);
-      --yellow: #f59e0b;
-      --yellow-soft: rgba(245, 158, 11, 0.1);
-      --red: #ef4444;
-      --red-soft: rgba(239, 68, 68, 0.1);
-      --blue: #3b82f6;
-      --blue-soft: rgba(59, 130, 246, 0.1);
-      --accent: #6366f1;
-      --shadow: 0 10px 40px -10px rgba(0,0,0,0.5);
-      --radius: 12px;
-      --sidebar-width: 280px;
+      --ink: #0c0f14;
+      --ink-2: #141920;
+      --ink-3: #1a2230;
+      --surface: #1e2840;
+      --surface-2: #243050;
+      --line: rgba(255,255,255,0.07);
+      --line-2: rgba(255,255,255,0.12);
+      --text: #f0f4ff;
+      --text-2: #8fa3c8;
+      --text-3: #5a6e90;
+      --lime: #b8f54a;
+      --lime-dim: rgba(184,245,74,0.12);
+      --lime-dim2: rgba(184,245,74,0.06);
+      --cyan: #4af5d4;
+      --cyan-dim: rgba(74,245,212,0.1);
+      --amber: #f5c84a;
+      --amber-dim: rgba(245,200,74,0.1);
+      --rose: #f54a7a;
+      --rose-dim: rgba(245,74,122,0.1);
+      --blue: #4a8ff5;
+      --blue-dim: rgba(74,143,245,0.1);
+      --r: 10px;
+      --r-lg: 16px;
+      --r-xl: 20px;
+      --sidebar: 260px;
+      --shadow: 0 24px 64px rgba(0,0,0,0.5);
     }
 
-    * {
-      box-sizing: border-box;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      margin: 0;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      background-color: var(--bg);
-      background-image:
-        radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.05) 0, transparent 50%),
-        radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.05) 0, transparent 50%);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--ink);
       color: var(--text);
-      overflow-x: hidden;
-    }
-
-    .app {
-      display: flex;
       min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
     }
 
+    /* Subtle grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+    /* ── SIDEBAR ── */
     .sidebar {
-      width: var(--sidebar-width);
-      background: rgba(11, 15, 19, 0.8);
+      width: var(--sidebar);
+      background: var(--ink-2);
       border-right: 1px solid var(--line);
-      padding: 32px 20px;
-      backdrop-filter: blur(12px);
-      position: sticky;
-      top: 0;
-      height: 100vh;
       display: flex;
       flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 100;
+      overflow-y: auto;
     }
+
+    .sidebar-inner { padding: 28px 16px 24px; flex: 1; display: flex; flex-direction: column; }
 
     .brand {
-      margin-bottom: 40px;
+      padding: 0 8px;
+      margin-bottom: 32px;
     }
 
-    .brand h2 {
-      margin: 0 0 8px;
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      background: linear-gradient(to right, #fff, #94a3b8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .brand p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    .nav-title {
-      color: var(--muted);
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin: 24px 0 12px 12px;
-      opacity: 0.6;
-    }
-
-    .sidebar button {
-      width: 100%;
-      margin-bottom: 4px;
-      padding: 10px 14px;
-      background: transparent;
-      border: 1px solid transparent;
-      color: var(--muted);
-      text-align: left;
-      cursor: pointer;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 500;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    .brand-logo {
       display: flex;
       align-items: center;
       gap: 10px;
+      margin-bottom: 8px;
     }
 
-    .sidebar button:hover {
-      background: rgba(255, 255, 255, 0.05);
+    .brand-icon {
+      width: 36px; height: 36px;
+      background: var(--lime);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--ink);
+      letter-spacing: -0.03em;
+      flex-shrink: 0;
+    }
+
+    .brand-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
       color: var(--text);
+      letter-spacing: -0.02em;
     }
 
-    .sidebar button.active {
-      background: var(--green-soft);
-      color: var(--accent);
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-3);
+      padding-left: 46px;
+      letter-spacing: 0.02em;
+    }
+
+    .nav-section {
+      margin-bottom: 4px;
+    }
+
+    .nav-label {
+      font-size: 10px;
       font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-3);
+      padding: 16px 12px 6px;
     }
 
-    .main {
-      flex: 1;
-      padding: 40px;
-      max-width: 1200px;
-      margin: 0 auto;
+    .nav-btn {
       width: 100%;
-    }
-
-    .hero {
-      background: linear-gradient(135deg, var(--panel) 0%, #080b0f 100%);
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      padding: 40px;
-      margin-bottom: 32px;
+      background: transparent;
+      border: none;
+      color: var(--text-2);
+      padding: 8px 12px;
+      border-radius: var(--r);
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13.5px;
+      font-weight: 400;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      transition: background 0.15s, color 0.15s;
       position: relative;
-      overflow: hidden;
     }
 
-    .hero::after {
+    .nav-btn:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+    .nav-btn.active {
+      background: var(--lime-dim);
+      color: var(--lime);
+      font-weight: 500;
+    }
+
+    .nav-btn.active::before {
       content: '';
       position: absolute;
-      top: -50%;
-      right: -10%;
-      width: 300px;
-      height: 300px;
-      background: var(--accent);
-      filter: blur(120px);
-      opacity: 0.1;
-      pointer-events: none;
+      left: 0; top: 20%; bottom: 20%;
+      width: 3px;
+      background: var(--lime);
+      border-radius: 0 3px 3px 0;
     }
 
-    .hero h1 {
-      margin: 0 0 12px;
-      font-size: 38px;
-      font-weight: 800;
-      letter-spacing: -0.05em;
+    .nav-icon {
+      width: 16px; height: 16px;
+      opacity: 0.7;
+      flex-shrink: 0;
     }
 
-    .hero p {
-      margin: 0;
-      color: var(--muted);
-      max-width: 700px;
-      line-height: 1.6;
-      font-size: 16px;
+    .nav-btn.active .nav-icon { opacity: 1; }
+
+    .sidebar-footer {
+      padding: 16px;
+      border-top: 1px solid var(--line);
+      margin-top: auto;
     }
 
-    .card {
-      background: var(--panel);
-      padding: 24px;
-      border-radius: var(--radius);
-      margin-bottom: 24px;
-      border: 1px solid var(--line);
-      transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-
-    .card:hover {
-      border-color: rgba(255,255,255,0.1);
-    }
-
-    .btn {
-      background: var(--accent);
-      border: none;
-      padding: 10px 18px;
-      border-radius: 8px;
-      color: #000;
-      font-weight: 600;
+    .logout-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--line-2);
+      color: var(--text-3);
+      padding: 8px 12px;
+      border-radius: var(--r);
       cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s;
+    }
+
+    .logout-btn:hover { border-color: var(--rose); color: var(--rose); background: var(--rose-dim); }
+
+    /* ── MAIN ── */
+    .main {
+      margin-left: var(--sidebar);
+      flex: 1;
+      padding: 40px 48px;
+      min-height: 100vh;
+    }
+
+    /* ── PAGE HEADER ── */
+    .page-header {
+      margin-bottom: 32px;
+    }
+
+    .page-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--lime);
+      margin-bottom: 8px;
+    }
+
+    .page-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      line-height: 1.1;
+      margin-bottom: 10px;
+    }
+
+    .page-sub {
       font-size: 14px;
-      transition: all 0.2s ease;
+      color: var(--text-2);
+      line-height: 1.5;
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--ink-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      padding: 24px;
+      margin-bottom: 20px;
+      transition: border-color 0.2s;
+    }
+
+    .card:hover { border-color: var(--line-2); }
+
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 16px;
+      letter-spacing: -0.01em;
+    }
+
+    /* ── KPI GRID ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .kpi-card {
+      background: var(--ink-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      padding: 22px 24px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .kpi-card:hover { border-color: var(--line-2); transform: translateY(-1px); }
+
+    .kpi-card::after {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      filter: blur(30px);
+      opacity: 0.15;
+    }
+
+    .kpi-card.lime::after { background: var(--lime); }
+    .kpi-card.cyan::after { background: var(--cyan); }
+    .kpi-card.amber::after { background: var(--amber); }
+    .kpi-card.rose::after { background: var(--rose); }
+
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-3);
+      margin-bottom: 10px;
+    }
+
+    .kpi-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .kpi-change {
+      font-size: 12px;
+      margin-top: 6px;
+      font-weight: 500;
+    }
+
+    .kpi-change.up { color: var(--lime); }
+    .kpi-change.down { color: var(--rose); }
+    .kpi-change.neutral { color: var(--text-3); }
+
+    /* ── BADGES ── */
+    .badge {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
     }
 
-    .btn:hover:not(:disabled) {
-      transform: translateY(-1px);
-      filter: brightness(1.1);
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-    }
+    .badge.lime { background: var(--lime-dim); color: var(--lime); border: 1px solid rgba(184,245,74,0.2); }
+    .badge.cyan { background: var(--cyan-dim); color: var(--cyan); border: 1px solid rgba(74,245,212,0.2); }
+    .badge.amber { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(245,200,74,0.2); }
+    .badge.rose { background: var(--rose-dim); color: var(--rose); border: 1px solid rgba(245,74,122,0.2); }
+    .badge.blue { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(74,143,245,0.2); }
+    .badge.gray { background: rgba(255,255,255,0.06); color: var(--text-2); border: 1px solid var(--line); }
 
-    .btn.secondary {
-      background: var(--panel-2);
-      color: var(--text);
-      border: 1px solid var(--line);
-    }
-
-    .btn.blue {
-      background: var(--blue);
-      color: #fff;
-    }
-
-    .btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .error-box {
-      background: var(--red-soft);
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      padding: 16px;
-      border-radius: 10px;
-      margin-bottom: 24px;
-      color: #fca5a5;
-      font-size: 14px;
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 18px;
+      border-radius: var(--r);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13.5px;
       font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      text-decoration: none;
+      white-space: nowrap;
     }
 
-    .success-box {
-      background: var(--green-soft);
-      border: 1px solid rgba(16, 185, 129, 0.2);
-      padding: 16px;
-      border-radius: 10px;
-      margin-bottom: 24px;
-      color: #6ee7b7;
-      font-size: 14px;
+    .btn-primary { background: var(--lime); color: var(--ink); }
+    .btn-primary:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+
+    .btn-secondary { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--line-2); }
+    .btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.18); }
+
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1px solid var(--line); }
+    .btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.04); color: var(--text); }
+
+    .btn-danger { background: var(--rose-dim); color: var(--rose); border: 1px solid rgba(245,74,122,0.2); }
+    .btn-danger:hover:not(:disabled) { background: rgba(245,74,122,0.2); }
+
+    .btn-blue { background: var(--blue); color: #fff; }
+    .btn-blue:hover:not(:disabled) { filter: brightness(1.1); }
+
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    /* ── FORMS ── */
+    .field { margin-bottom: 16px; }
+
+    .field label {
+      display: block;
+      font-size: 12px;
       font-weight: 500;
+      color: var(--text-2);
+      margin-bottom: 6px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
     }
 
     input, textarea, select {
-      display: block;
-      margin-bottom: 16px;
-      padding: 12px 16px;
       width: 100%;
-      max-width: 400px;
-      border-radius: 8px;
-      border: 1px solid var(--line);
-      background: #080b0f;
-      color: white;
-      font-family: inherit;
+      max-width: 480px;
+      padding: 10px 14px;
+      background: var(--ink);
+      border: 1px solid var(--line-2);
+      border-radius: var(--r);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
       font-size: 14px;
-      transition: border-color 0.2s ease;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      -webkit-appearance: none;
     }
 
     input:focus, textarea:focus, select:focus {
       outline: none;
-      border-color: var(--accent);
+      border-color: var(--lime);
+      box-shadow: 0 0 0 3px var(--lime-dim2);
     }
 
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 20px;
-      margin-bottom: 32px;
+    textarea { resize: vertical; min-height: 80px; }
+
+    select option { background: var(--ink-2); }
+
+    /* ── ALERTS ── */
+    .alert {
+      padding: 14px 18px;
+      border-radius: var(--r);
+      font-size: 13.5px;
+      font-weight: 500;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
     }
 
-    .kpi-card {
-      background: var(--panel);
-      padding: 24px;
-      border-radius: var(--radius);
+    .alert-error { background: var(--rose-dim); border: 1px solid rgba(245,74,122,0.25); color: #ffb3c8; }
+    .alert-success { background: var(--lime-dim); border: 1px solid rgba(184,245,74,0.25); color: var(--lime); }
+    .alert-info { background: var(--blue-dim); border: 1px solid rgba(74,143,245,0.25); color: #9dc8ff; }
+
+    /* ── CLIENT CARD ── */
+    .client-item {
+      background: var(--ink);
       border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      padding: 20px 24px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .client-item:hover { border-color: var(--line-2); background: var(--ink-2); }
+
+    .client-avatar {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: var(--lime-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--lime);
+      flex-shrink: 0;
+    }
+
+    .client-info { flex: 1; min-width: 0; }
+
+    .client-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .client-meta {
+      font-size: 12px;
+      color: var(--text-3);
+    }
+
+    .client-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+    /* ── AI RESULT ── */
+    .ai-result {
+      background: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: var(--r-lg);
+      padding: 28px;
+      font-size: 14px;
+      line-height: 1.75;
+      color: var(--text-2);
+    }
+
+    .ai-result h1, .ai-result h2, .ai-result h3 {
+      font-family: 'Syne', sans-serif;
+      color: var(--text);
+      margin: 24px 0 10px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .ai-result h1 { font-size: 22px; margin-top: 0; }
+    .ai-result h2 { font-size: 17px; color: var(--lime); }
+    .ai-result h3 { font-size: 15px; }
+
+    .ai-result p { margin-bottom: 12px; }
+
+    .ai-result ul, .ai-result ol {
+      padding-left: 20px;
+      margin-bottom: 12px;
+    }
+
+    .ai-result li { margin-bottom: 6px; }
+
+    .ai-result strong { color: var(--text); font-weight: 600; }
+
+    .ai-result code {
+      background: rgba(184,245,74,0.1);
+      color: var(--lime);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .ai-result hr {
+      border: none;
+      border-top: 1px solid var(--line);
+      margin: 20px 0;
+    }
+
+    /* ── MODULE ITEMS ── */
+    .module-item {
+      background: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 14px 18px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13.5px;
+      transition: border-color 0.15s;
+    }
+
+    .module-item:hover { border-color: var(--line-2); }
+
+    .module-item-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .module-item-info { flex: 1; min-width: 0; }
+
+    .module-item-name {
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .module-item-meta { font-size: 12px; color: var(--text-3); }
+
+    /* ── DATA TABLE ── */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+
+    .data-table th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-3);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .data-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--line);
+      color: var(--text-2);
+    }
+
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: rgba(255,255,255,0.02); color: var(--text); }
+
+    /* ── SCORE BAR ── */
+    .score-bar {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .score-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    /* ── HEALTH RING ── */
+    .health-ring {
       display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
 
-    .kpi-label {
-      color: var(--muted);
-      font-size: 13px;
+    .health-score-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 52px;
+      font-weight: 800;
+      letter-spacing: -0.05em;
+      line-height: 1;
+    }
+
+    /* ── SPINNER ── */
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.15);
+      border-top-color: var(--lime);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── EMPTY STATE ── */
+    .empty {
+      text-align: center;
+      padding: 60px 40px;
+      color: var(--text-3);
+    }
+
+    .empty-icon {
+      font-size: 40px;
+      margin-bottom: 16px;
+      opacity: 0.4;
+    }
+
+    .empty-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
       font-weight: 600;
-      margin-bottom: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      color: var(--text-2);
+      margin-bottom: 8px;
     }
 
-    .kpi-value {
-      font-size: 32px;
+    .empty p { font-size: 13.5px; max-width: 320px; margin: 0 auto; }
+
+    /* ── GRID LAYOUTS ── */
+    .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
+    .three-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+    /* ── LOGIN ── */
+    .login-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .login-card {
+      background: var(--ink-2);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 48px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: var(--shadow);
+    }
+
+    .login-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+
+    .login-logo-icon {
+      width: 48px; height: 48px;
+      background: var(--lime);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--ink);
+    }
+
+    .login-logo-text {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
       font-weight: 700;
       letter-spacing: -0.03em;
     }
 
-    .badge {
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 11px;
+    .login-card h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 24px;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-    }
-
-    .badge.green { background: var(--green-soft); color: #34d399; }
-    .badge.yellow { background: var(--yellow-soft); color: #fbbf24; }
-    .badge.red { background: var(--red-soft); color: #f87171; }
-    .badge.blue { background: var(--blue-soft); color: #60a5fa; }
-
-    .ai-report {
-      background: #080b0f;
-      border-radius: 8px;
-      padding: 20px;
-      line-height: 1.6;
-      font-size: 15px;
-    }
-
-    .ai-report h4 {
-      color: var(--accent);
-      margin: 0 0 12px;
-      font-size: 16px;
-      font-weight: 700;
-    }
-
-    .row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .status-box, .table-row, .mini-metric {
-      background: #080b0f;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 16px;
-      margin-top: 12px;
-    }
-
-    .two-col {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 20px;
-    }
-
-    .metric-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-      margin-top: 12px;
-    }
-
-    .mini-metric-label, .muted, .list-line {
-      color: var(--muted);
-    }
-
-    .mini-metric-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: -0.03em;
       margin-bottom: 6px;
     }
 
-    pre {
+    .login-card p {
+      font-size: 14px;
+      color: var(--text-2);
+      margin-bottom: 28px;
+    }
+
+    .login-card input { max-width: 100%; margin-bottom: 12px; }
+
+    /* ── STATS WIDGET ── */
+    .stat-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .stat-row:last-child { border-bottom: none; }
+
+    .stat-label { flex: 1; font-size: 13.5px; color: var(--text-2); }
+
+    .stat-value { font-weight: 600; font-size: 14px; color: var(--text); }
+
+    .stat-bar { width: 80px; }
+
+    /* ── PILL TABS ── */
+    .pill-tabs {
+      display: flex;
+      gap: 6px;
+      background: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      padding: 4px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .pill-tab {
+      background: transparent;
+      border: none;
+      padding: 7px 16px;
+      border-radius: 99px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-3);
+      transition: all 0.15s;
+    }
+
+    .pill-tab.active { background: var(--lime); color: var(--ink); font-weight: 600; }
+    .pill-tab:not(.active):hover { color: var(--text); background: rgba(255,255,255,0.05); }
+
+    /* ── SCROLLABLE LIST ── */
+    .scroll-list { max-height: 400px; overflow-y: auto; }
+
+    .scroll-list::-webkit-scrollbar { width: 4px; }
+    .scroll-list::-webkit-scrollbar-track { background: transparent; }
+    .scroll-list::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
+
+    /* ── COLLAPSIBLE JSON ── */
+    .json-block {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 16px;
+      font-size: 12px;
+      color: var(--text-3);
+      overflow-x: auto;
+      font-family: 'DM Mono', 'Courier New', monospace;
+      max-height: 320px;
+      overflow-y: auto;
       white-space: pre-wrap;
       word-break: break-word;
     }
 
-    @media (max-width: 768px) {
-      .app { flex-direction: column; }
-      .sidebar { width: 100%; height: auto; position: relative; padding: 20px; }
-      .main { padding: 20px; }
-      .hero { padding: 24px; }
-      .hero h1 { font-size: 28px; }
+    /* ── MARKDOWN RENDERER (minimal) ── */
+    .md { font-size: 14px; line-height: 1.75; color: var(--text-2); }
+    .md h2 { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--lime); margin: 20px 0 8px; }
+    .md h3 { font-size: 14px; font-weight: 600; color: var(--text); margin: 16px 0 6px; }
+    .md p { margin-bottom: 10px; }
+    .md strong { color: var(--text); }
+    .md ul { padding-left: 18px; margin-bottom: 10px; }
+    .md li { margin-bottom: 4px; }
+    .md hr { border: none; border-top: 1px solid var(--line); margin: 16px 0; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+      .sidebar.open { transform: translateX(0); }
+      .main { margin-left: 0; padding: 24px 20px; }
     }
   </style>
 </head>
-
 <body>
 <div id="root"></div>
 
 <script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
 const API = "";
-const BUILD_TAG = "2026-04-18-v1.4-full-restored";
-console.log("RD Manager IA build:", BUILD_TAG);
+const BUILD = "2026-04-18-v2.0-redesign";
 
-function getToken() {
-  try { return localStorage.getItem("rd_manager_token"); } catch (_err) { return null; }
-}
-function saveSession(data) {
-  try {
-    if (data?.access_token) localStorage.setItem("rd_manager_token", data.access_token);
-    if (data?.username) localStorage.setItem("rd_manager_username", data.username);
-  } catch (_err) {}
-}
-function clearSession() {
-  try {
-    localStorage.removeItem("rd_manager_token");
-    localStorage.removeItem("rd_manager_username");
-  } catch (_err) {}
-}
-function normalizeAiReport(payload) {
-  if (payload == null) return "";
-  if (typeof payload === "string") return payload;
-  try { return JSON.stringify(payload, null, 2); } catch (_err) { return String(payload); }
-}
-async function api(url, options = {}) {
+/* ── AUTH ── */
+const getToken = () => { try { return localStorage.getItem("rdm_token"); } catch { return null; } };
+const setToken = (t) => { try { localStorage.setItem("rdm_token", t); } catch {} };
+const clearToken = () => { try { localStorage.removeItem("rdm_token"); } catch {} };
+
+async function api(url, opts = {}) {
   const token = getToken();
   const headers = {
-    ...(options.body ? { "Content-Type": "application/json" } : {}),
+    ...(opts.body ? { "Content-Type": "application/json" } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(options.headers || {})
+    ...(opts.headers || {}),
   };
-  const res = await fetch(API + url, { ...options, headers });
+  const res = await fetch(API + url, { ...opts, headers });
   const text = await res.text();
-  let data = null;
-  try { data = text ? JSON.parse(text) : null; } catch (e) {
-    if (!res.ok) throw new Error(text || "Erro do servidor");
-    return text;
-  }
+  let data;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
   if (!res.ok) {
-    const detail = data?.detail || text || "Erro do servidor";
-    if (res.status === 401) clearSession();
-    throw new Error(detail);
+    if (res.status === 401) clearToken();
+    throw new Error((data?.detail) || String(data) || "Erro do servidor");
   }
   return data;
 }
 
-function Sidebar({ section, setSection, logout }) {
+/* ── SIMPLE MARKDOWN ── */
+function renderMd(text) {
+  if (!text) return "";
+  return text
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^#### (.+)$/gm, '<strong>$1</strong>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/^---$/gm, '<hr/>')
+    .replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+    .replace(/\n\n/g, '</p><p>')
+    .replace(/^(?!<[hup]|<li|<hr)(.+)$/gm, '<p>$1</p>');
+}
+
+/* ── ICONS (inline SVG) ── */
+const icons = {
+  dashboard: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>,
+  clients: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>,
+  portfolio: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="4" width="14" height="10" rx="1.5"/><path d="M5 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M1 8h14"/></svg>,
+  lp: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="2" width="14" height="12" rx="1.5"/><path d="M1 6h14M5 10h6M5 13h4"/></svg>,
+  leads: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 1a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm-4 9a4 4 0 0 1 8 0"/><circle cx="13" cy="13" r="2"/><path d="M13 11v-1M13 15v-1"/></svg>,
+  seg: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="5" cy="8" r="4"/><circle cx="11" cy="8" r="4"/></svg>,
+  flows: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="4" height="4" rx="1"/><rect x="11" y="6" width="4" height="4" rx="1"/><rect x="1" y="11" width="4" height="4" rx="1"/><path d="M5 3h4a2 2 0 0 1 2 2v4M5 13h4a2 2 0 0 0 2-2v-2"/></svg>,
+  studio: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 14 8 2l6 12"/><path d="M4.5 10h7"/></svg>,
+  health: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 14s-6-4-6-8a4 4 0 0 1 6-3.4A4 4 0 0 1 14 6c0 4-6 8-6 8z"/></svg>,
+  prospect: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>,
+  report: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5L9 1z"/><path d="M9 1v4h4M5 9h6M5 12h4"/></svg>,
+  alerts: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 2a6 6 0 0 1 6 6v3H2V8a6 6 0 0 1 6-6z"/><path d="M6 11v1a2 2 0 0 0 4 0v-1"/></svg>,
+  logout: <svg style={{width:14,height:14}} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3M10 11l4-4-4-4M14 8H6"/></svg>,
+  sync: <svg style={{width:14,height:14}} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M14 8A6 6 0 0 1 3.5 12.5M2 8a6 6 0 0 1 10.5-3.5"/><path d="M13 5l1.5-1.5L13 2M3 11l-1.5 1.5L3 14"/></svg>,
+  connect: <svg style={{width:14,height:14}} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M6 10l1.5 1.5L10 9"/><rect x="1" y="1" width="14" height="14" rx="3"/></svg>,
+  add: <svg style={{width:14,height:14}} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 3v10M3 8h10"/></svg>,
+  refresh: <svg style={{width:14,height:14}} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M13 8A5 5 0 1 1 8 3M13 3v5H8"/></svg>,
+  ai: <svg style={{width:14,height:14}} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13M13 3l-1.4 1.4M4.4 11.6 3 13"/></svg>,
+  copy: <svg style={{width:14,height:14}} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="4" y="4" width="9" height="11" rx="1.5"/><path d="M4 4V3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h1"/></svg>,
+};
+
+/* ── COMPONENTS ── */
+
+function Spinner({ size = 16 }) {
+  return <div className="spinner" style={{width:size,height:size}} />;
+}
+
+function Alert({ type="error", children }) {
+  return <div className={`alert alert-${type}`}>{children}</div>;
+}
+
+function CopyBtn({ text }) {
+  const [copied, setCopied] = useState(false);
+  function copy() {
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
   return (
-    <div className="sidebar">
-      <div className="brand">
-        <h2>RD Manager IA</h2>
-        <p>Ferramenta de agência para score, risco, expansão, relatórios e módulos reais da RD.</p>
-        <div style={{fontSize:"11px", color:"var(--blue)", marginTop:"10px", fontWeight:"bold"}}>
-          BUILD {BUILD_TAG}
-        </div>
+    <button className="btn btn-ghost btn-sm" onClick={copy}>
+      {icons.copy} {copied ? "Copiado!" : "Copiar"}
+    </button>
+  );
+}
+
+function AiResultBlock({ result }) {
+  if (!result) return null;
+  return (
+    <div>
+      <div className="row-between" style={{marginBottom:12}}>
+        <span style={{fontSize:12,color:"var(--text-3)"}}>Resultado da IA</span>
+        <CopyBtn text={result} />
       </div>
-
-      <div className="nav-title">Operação</div>
-      <button type="button" className={section==="dashboard"?"active":""} onClick={()=>setSection("dashboard")}>Dashboard</button>
-      <button type="button" className={section==="clients"?"active":""} onClick={()=>setSection("clients")}>Clientes</button>
-      <button type="button" className={section==="portfolio"?"active":""} onClick={()=>setSection("portfolio")}>Carteira Inteligente</button>
-
-      <div className="nav-title">Módulos RD</div>
-      <button type="button" className={section==="landing_pages"?"active":""} onClick={()=>setSection("landing_pages")}>Landing Pages</button>
-      <button type="button" className={section==="leads"?"active":""} onClick={()=>setSection("leads")}>Leads</button>
-      <button type="button" className={section==="segmentations"?"active":""} onClick={()=>setSection("segmentations")}>Segmentações</button>
-      <button type="button" className={section==="workflows"?"active":""} onClick={()=>setSection("workflows")}>Workflows</button>
-      <button type="button" className={section==="campaigns"?"active":""} onClick={()=>setSection("campaigns")}>Campanhas</button>
-      <button type="button" className={section==="flow_studio"?"active":""} onClick={()=>setSection("flow_studio")}>Flow Studio IA</button>
-
-      <div className="nav-title">Crescimento</div>
-      <button type="button" className={section==="health_audit"?"active":""} onClick={()=>setSection("health_audit")}>Auditoria de Saúde</button>
-      <button type="button" className={section==="prospect"?"active":""} onClick={()=>setSection("prospect")}>Prospecção</button>
-      <button type="button" className={section==="report"?"active":""} onClick={()=>setSection("report")}>Relatório Executivo</button>
-      <button type="button" className={section==="alerts"?"active":""} onClick={()=>setSection("alerts")}>Alertas</button>
-
-      <div className="nav-title">Sessão</div>
-      <button type="button" onClick={logout}>Sair</button>
+      <div className="ai-result md" dangerouslySetInnerHTML={{__html: renderMd(result)}} />
     </div>
   );
 }
 
+function ScoreDisplay({ score, label, size = "md" }) {
+  const color = score >= 75 ? "var(--lime)" : score >= 50 ? "var(--amber)" : "var(--rose)";
+  const fs = size === "lg" ? 52 : 32;
+  return (
+    <div style={{display:"flex",alignItems:"baseline",gap:8}}>
+      <span style={{fontFamily:"Syne,sans-serif",fontSize:fs,fontWeight:800,color,letterSpacing:"-0.04em",lineHeight:1}}>{score}</span>
+      {label && <span style={{fontSize:13,color:"var(--text-3)"}}>{label}</span>}
+    </div>
+  );
+}
+
+function BarMetric({ label, value, max=100, color="var(--lime)" }) {
+  const pct = Math.min(100, Math.round((value/max)*100));
+  return (
+    <div style={{marginBottom:10}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+        <span style={{fontSize:12,color:"var(--text-3)"}}>{label}</span>
+        <span style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{value}</span>
+      </div>
+      <div className="score-bar">
+        <div className="score-bar-fill" style={{width:`${pct}%`,background:color}} />
+      </div>
+    </div>
+  );
+}
+
+function ClientSelect({ value, onChange, clients }) {
+  return (
+    <select value={value} onChange={e => onChange(e.target.value)} style={{maxWidth:300}}>
+      <option value="">Selecione um cliente</option>
+      {(clients||[]).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+    </select>
+  );
+}
+
+/* ── SIDEBAR ── */
+function Sidebar({ section, setSection, onLogout }) {
+  const nav = (id, icon, label) => (
+    <button className={`nav-btn ${section===id?"active":""}`} onClick={()=>setSection(id)}>
+      {icon} {label}
+    </button>
+  );
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-inner">
+        <div className="brand">
+          <div className="brand-logo">
+            <div className="brand-icon">RD</div>
+            <span className="brand-name">RD Manager IA</span>
+          </div>
+          <div className="brand-sub">Plataforma para agências</div>
+        </div>
+
+        <div className="nav-section">
+          <div className="nav-label">Visão geral</div>
+          {nav("dashboard", icons.dashboard, "Dashboard")}
+          {nav("clients", icons.clients, "Clientes")}
+          {nav("portfolio", icons.portfolio, "Carteira")}
+        </div>
+
+        <div className="nav-section">
+          <div className="nav-label">Módulos RD</div>
+          {nav("landing_pages", icons.lp, "Landing Pages")}
+          {nav("leads", icons.leads, "Leads")}
+          {nav("segmentations", icons.seg, "Segmentações")}
+          {nav("workflows", icons.flows, "Workflows")}
+          {nav("campaigns", icons.clients, "Campanhas")}
+          {nav("flow_studio", icons.studio, "Flow Studio IA")}
+        </div>
+
+        <div className="nav-section">
+          <div className="nav-label">Crescimento</div>
+          {nav("health_audit", icons.health, "Auditoria de Saúde")}
+          {nav("prospect", icons.prospect, "Prospecção")}
+          {nav("report", icons.report, "Relatório Executivo")}
+          {nav("alerts", icons.alerts, "Alertas")}
+        </div>
+      </div>
+      <div className="sidebar-footer">
+        <button className="logout-btn" onClick={onLogout}>{icons.logout} Sair da conta</button>
+      </div>
+    </aside>
+  );
+}
+
+/* ── LOGIN ── */
 function LoginPage({ onLogin }) {
-  const [username, setUsername] = React.useState("admin");
-  const [password, setPassword] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState("");
+  const [user, setUser] = useState("admin");
+  const [pass, setPass] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
 
   async function submit(e) {
     e.preventDefault();
+    setLoading(true); setErr("");
     try {
-      setLoading(true);
-      setError("");
-      const body = new URLSearchParams();
-      body.set("username", username);
-      body.set("password", password);
-      const loginRes = await fetch(API + "/api/auth/login", {
+      const body = new URLSearchParams({ username: user, password: pass });
+      const res = await fetch(API + "/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: body.toString(),
       });
-      const text = await loginRes.text();
-      let data = {};
-      try { data = text ? JSON.parse(text) : {}; } catch (_parseErr) { data = { detail: text || "Falha no login" }; }
-      if (!loginRes.ok) throw new Error(data?.detail || "Falha no login");
-      saveSession(data);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || "Falha no login");
+      setToken(data.access_token);
       onLogin();
-    } catch (err) {
-      setError(err.message || "Erro ao autenticar");
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { setErr(e.message); }
+    finally { setLoading(false); }
   }
 
   return (
-    <div className="main" style={{maxWidth: 460, margin: "40px auto"}}>
-      <div className="hero">
-        <h1>RD Manager IA</h1>
-        <p>Entre com usuário e senha para acessar o painel.</p>
-      </div>
-      <form className="card" onSubmit={submit}>
-        {error && <div className="error-box">{error}</div>}
-        <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Usuário" />
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Senha" />
-        <button className="btn" type="submit" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</button>
-      </form>
-    </div>
-  );
-}
-
-function ClientsPanel() {
-  const [clients, setClients] = React.useState([]);
-  const [loading, setLoading] = React.useState(false);
-  const [saving, setSaving] = React.useState(false);
-  const [syncingId, setSyncingId] = React.useState(null);
-  const [error, setError] = React.useState("");
-  const [success, setSuccess] = React.useState("");
-  const [form, setForm] = React.useState({ name: "", segment: "", website: "", description: "" });
-
-  async function loadClients() {
-    try {
-      setLoading(true);
-      setError("");
-      const res = await api("/api/clients/");
-      setClients(Array.isArray(res) ? res : []);
-    } catch (e) {
-      setError(e.message || "Erro ao carregar clientes");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  React.useEffect(() => { loadClients(); }, []);
-
-  async function createClient() {
-    if (!form.name.trim()) {
-      setError("Informe o nome do cliente.");
-      return;
-    }
-    try {
-      setSaving(true);
-      setError("");
-      setSuccess("");
-      await api("/api/clients/", { method: "POST", body: JSON.stringify(form) });
-      setForm({ name: "", segment: "", website: "", description: "" });
-      setSuccess("Cliente adicionado com sucesso.");
-      await loadClients();
-    } catch (e) {
-      setError(e.message || "Erro ao criar cliente");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function syncClient(clientId) {
-    try {
-      setSyncingId(clientId);
-      setError("");
-      setSuccess("");
-      await api(`/api/rdsync/run/${clientId}`, { method: "POST" });
-      setSuccess("Sincronização executada com sucesso.");
-      await loadClients();
-    } catch (e) {
-      setError(e.message || "Erro ao sincronizar cliente");
-    } finally {
-      setSyncingId(null);
-    }
-  }
-
-  return (
-    <div>
-      <div className="hero">
-        <h1>Clientes</h1>
-        <p>Cadastre clientes, conecte RD e execute sincronização completa.</p>
-      </div>
-
-      {error && <div className="error-box">{error}</div>}
-      {success && <div className="success-box">{success}</div>}
-
-      <div className="card">
-        <h3>Novo cliente</h3>
-        <input placeholder="Nome" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-        <input placeholder="Segmento" value={form.segment} onChange={e => setForm({ ...form, segment: e.target.value })} />
-        <input placeholder="Website" value={form.website} onChange={e => setForm({ ...form, website: e.target.value })} />
-        <textarea placeholder="Descrição" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
-        <button type="button" className="btn" onClick={createClient} disabled={saving}>{saving ? "Salvando..." : "Adicionar cliente"}</button>
-      </div>
-
-      <div className="card">
-        <div className="row">
-          <h3 style={{ margin: 0 }}>Carteira</h3>
-          <button type="button" className="btn secondary" onClick={loadClients} disabled={loading}>{loading ? "Atualizando..." : "Atualizar"}</button>
+    <div className="login-wrap">
+      <div className="login-card">
+        <div className="login-logo">
+          <div className="login-logo-icon">RD</div>
+          <span className="login-logo-text">RD Manager IA</span>
         </div>
-
-        {clients.length === 0 ? (
-          <div className="muted" style={{ marginTop: 12 }}>Nenhum cliente cadastrado.</div>
-        ) : clients.map((c) => (
-          <div key={c.id} className="status-box" style={{ marginTop: 12 }}>
-            <div className="row">
-              <strong>{c.name}</strong>
-              <span className={`badge ${c.rd_connected ? "green" : "red"}`}>{c.rd_connected ? "RD conectada" : "RD não conectada"}</span>
-            </div>
-
-            <div className="muted" style={{ marginTop: 8 }}>{c.segment || "Sem segmento"}{c.website ? ` • ${c.website}` : ""}</div>
-
-            <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <a className="btn blue" href={`/oauth/authorize/${c.id}`}>Conectar RD</a>
-              <button type="button" className="btn" onClick={() => syncClient(c.id)} disabled={syncingId === c.id || !c.rd_connected}>
-                {syncingId === c.id ? "Sincronizando..." : "Sincronizar"}
-              </button>
-            </div>
+        <h2>Bem-vindo de volta</h2>
+        <p>Acesse sua conta para gerenciar sua agência.</p>
+        {err && <Alert type="error">{err}</Alert>}
+        <form onSubmit={submit}>
+          <div className="field">
+            <label>Usuário</label>
+            <input value={user} onChange={e=>setUser(e.target.value)} placeholder="admin" autoFocus />
           </div>
-        ))}
+          <div className="field">
+            <label>Senha</label>
+            <input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" />
+          </div>
+          <button type="submit" className="btn btn-primary" style={{width:"100%",justifyContent:"center",marginTop:8}} disabled={loading}>
+            {loading ? <><Spinner/> Entrando...</> : "Entrar"}
+          </button>
+        </form>
       </div>
     </div>
   );
 }
 
+/* ── DASHBOARD ── */
 function Dashboard() {
-  return (
-    <div>
-      <div className="hero">
-        <h1>Dashboard</h1>
-        <p>Painel principal restaurado com os módulos navegáveis.</p>
-      </div>
-      <div className="kpi-grid">
-        <div className="kpi-card"><div className="kpi-label">Frontend</div><div className="kpi-value">OK</div></div>
-        <div className="kpi-card"><div className="kpi-label">Build</div><div className="kpi-value" style={{fontSize:18}}>v1.4</div></div>
-      </div>
-    </div>
-  );
-}
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+  const [overview, setOverview] = useState(null);
 
-function ModulePage({ title, description, endpoint }) {
-  const [clients, setClients] = React.useState([]);
-  const [clientId, setClientId] = React.useState("");
-  const [data, setData] = React.useState(null);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState("");
-
-  React.useEffect(() => {
-    api("/api/clients/").then(res => {
-      const list = Array.isArray(res) ? res : [];
-      setClients(list);
-      if (list.length > 0) setClientId(String(list[0].id));
-    }).catch(e => setError(e.message || "Erro ao carregar clientes"));
+  useEffect(() => {
+    Promise.all([
+      api("/api/agency/stats").catch(e => null),
+      api("/api/agency/overview").catch(e => null),
+    ]).then(([s, o]) => { setStats(s); setOverview(o); setLoading(false); })
+      .catch(e => { setErr(e.message); setLoading(false); });
   }, []);
 
-  async function loadModule() {
-    if (!clientId) return;
-    try {
-      setLoading(true);
-      setError("");
-      const res = await api(endpoint.replace("{clientId}", clientId));
-      setData(res);
-    } catch (e) {
-      setError(e.message || "Erro ao carregar módulo");
-    } finally {
-      setLoading(false);
-    }
-  }
+  if (loading) return <div style={{padding:80,textAlign:"center"}}><Spinner size={32}/></div>;
+
+  const s = stats || {};
+  const o = overview || {};
+  const totals = o.totals || {};
+  const ranking = o.ranking || [];
+  const alerts = o.alerts || [];
 
   return (
     <div>
-      <div className="hero">
-        <h1>{title}</h1>
-        <p>{description}</p>
+      <div className="page-header">
+        <div className="page-eyebrow">Visão Geral</div>
+        <h1 className="page-title">Dashboard da Agência</h1>
+        <p className="page-sub">Métricas consolidadas de todos os clientes gerenciados.</p>
       </div>
 
-      {error && <div className="error-box">{error}</div>}
+      {err && <Alert type="error">{err}</Alert>}
 
-      <div className="card">
-        <div className="row">
-          <select value={clientId} onChange={(e) => setClientId(e.target.value)}>
-            <option value="">Selecione um cliente</option>
-            {clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}
-          </select>
-          <button type="button" className="btn" onClick={loadModule} disabled={!clientId || loading}>{loading ? "Carregando..." : "Carregar módulo"}</button>
+      <div className="kpi-grid">
+        <div className="kpi-card lime">
+          <div className="kpi-label">Clientes ativos</div>
+          <div className="kpi-value">{s.total_clients ?? totals.total_clients ?? "—"}</div>
+          <div className="kpi-change neutral">{s.synced_clients ?? 0} com sync</div>
+        </div>
+        <div className="kpi-card cyan">
+          <div className="kpi-label">Total de leads</div>
+          <div className="kpi-value">{(s.total_leads ?? totals.total_leads ?? 0).toLocaleString("pt-BR")}</div>
+          <div className="kpi-change neutral">Monitorados ativos</div>
+        </div>
+        <div className="kpi-card amber">
+          <div className="kpi-label">Score médio</div>
+          <div className="kpi-value">{Math.round(s.avg_health_score ?? totals.avg_health_score ?? 0)}<span style={{fontSize:18,opacity:0.5}}>/100</span></div>
+          <div className="kpi-change neutral">Saúde da carteira</div>
+        </div>
+        <div className="kpi-card rose">
+          <div className="kpi-label">Clientes críticos</div>
+          <div className="kpi-value" style={{color:"var(--rose)"}}>{s.critical_clients ?? alerts.length ?? 0}</div>
+          <div className="kpi-change down">Precisam de atenção</div>
         </div>
       </div>
 
-      {data && (
+      <div className="two-col">
         <div className="card">
-          <h3>Resposta do módulo</h3>
-          <pre>{JSON.stringify(data, null, 2)}</pre>
+          <div className="card-title">Ranking de Clientes</div>
+          {ranking.length === 0 ? (
+            <div className="empty"><div className="empty-icon">📊</div><div className="empty-title">Sem dados</div><p>Sincronize clientes para ver o ranking.</p></div>
+          ) : ranking.slice(0,8).map((c,i) => {
+            const color = c.health_score >= 75 ? "var(--lime)" : c.health_score >= 50 ? "var(--amber)" : "var(--rose)";
+            return (
+              <div key={c.client_id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:"1px solid var(--line)"}}>
+                <span style={{fontSize:11,color:"var(--text-3)",width:20,textAlign:"right"}}>{i+1}</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13.5,fontWeight:600,color:"var(--text)",marginBottom:4}}>{c.name}</div>
+                  <BarMetric label="" value={c.health_score} color={color} />
+                </div>
+                <span style={{fontSize:13,fontWeight:700,color,width:40,textAlign:"right"}}>{c.health_score}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="card">
+          <div className="card-title">Métricas da Carteira</div>
+          <div>
+            {[
+              ["Taxa de abertura média", `${totals.avg_open_rate ?? 0}%`],
+              ["Taxa de clique média", `${totals.avg_click_rate ?? 0}%`],
+              ["Total de campanhas", totals.total_campaigns ?? 0],
+              ["Total de conversões", totals.total_conversions ?? 0],
+            ].map(([l,v]) => (
+              <div key={l} className="stat-row">
+                <span className="stat-label">{l}</span>
+                <span className="stat-value">{v}</span>
+              </div>
+            ))}
+          </div>
+
+          {alerts.length > 0 && (
+            <div style={{marginTop:20}}>
+              <div style={{fontSize:12,fontWeight:600,color:"var(--rose)",marginBottom:10,textTransform:"uppercase",letterSpacing:"0.08em"}}>⚠ Clientes em alerta</div>
+              {alerts.slice(0,4).map(a => (
+                <div key={a.client_id} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",background:"var(--rose-dim)",borderRadius:8,marginBottom:6,border:"1px solid rgba(245,74,122,0.15)"}}>
+                  <span style={{fontSize:13.5,color:"var(--rose)",fontWeight:600}}>{a.name}</span>
+                  <span className="badge rose" style={{marginLeft:"auto"}}>score {a.health_score}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── CLIENTS ── */
+function ClientsPanel() {
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [syncingId, setSyncingId] = useState(null);
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState("");
+  const [form, setForm] = useState({ name:"", segment:"", website:"", description:"" });
+  const [showForm, setShowForm] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true); setErr("");
+    try { setClients(await api("/api/clients/") || []); }
+    catch(e) { setErr(e.message); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function create(e) {
+    e.preventDefault();
+    if (!form.name.trim()) { setErr("Informe o nome."); return; }
+    setSaving(true); setErr(""); setOk("");
+    try {
+      await api("/api/clients/", { method:"POST", body: JSON.stringify(form) });
+      setForm({ name:"", segment:"", website:"", description:"" });
+      setOk("Cliente adicionado!"); setShowForm(false);
+      await load();
+    } catch(e) { setErr(e.message); }
+    finally { setSaving(false); }
+  }
+
+  async function sync(id) {
+    setSyncingId(id); setErr(""); setOk("");
+    try { await api(`/api/rdsync/run/${id}`, { method:"POST" }); setOk("Sync executado!"); await load(); }
+    catch(e) { setErr(e.message); }
+    finally { setSyncingId(null); }
+  }
+
+  const initials = (name) => name?.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase() || "??";
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-eyebrow">Gestão</div>
+        <h1 className="page-title">Clientes</h1>
+        <p className="page-sub">Cadastre, conecte ao RD Station e sincronize dados da sua carteira.</p>
+      </div>
+
+      {err && <Alert type="error">{err}</Alert>}
+      {ok && <Alert type="success">{ok}</Alert>}
+
+      <div className="row-between" style={{marginBottom:20}}>
+        <div className="row">
+          <button className="btn btn-primary" onClick={()=>setShowForm(!showForm)}>
+            {icons.add} Novo cliente
+          </button>
+          <button className="btn btn-secondary" onClick={load} disabled={loading}>
+            {loading ? <Spinner/> : icons.refresh} Atualizar
+          </button>
+        </div>
+        <span style={{fontSize:13,color:"var(--text-3)"}}>{clients.length} cliente{clients.length!==1?"s":""}</span>
+      </div>
+
+      {showForm && (
+        <div className="card" style={{marginBottom:24,borderColor:"rgba(184,245,74,0.2)"}}>
+          <div className="card-title">{icons.add} Adicionar novo cliente</div>
+          <form onSubmit={create}>
+            <div className="two-col">
+              <div>
+                <div className="field"><label>Nome *</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Ex: Empresa XYZ" autoFocus /></div>
+                <div className="field"><label>Segmento</label><select value={form.segment} onChange={e=>setForm({...form,segment:e.target.value})}>
+                  <option value="">Selecione...</option>
+                  {["E-commerce","SaaS","Serviços","Educação","Saúde","Varejo","Indústria","Outro"].map(s=><option key={s}>{s}</option>)}
+                </select></div>
+              </div>
+              <div>
+                <div className="field"><label>Website</label><input value={form.website} onChange={e=>setForm({...form,website:e.target.value})} placeholder="https://..." /></div>
+                <div className="field"><label>Descrição</label><textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Breve descrição do cliente..." rows={3} /></div>
+              </div>
+            </div>
+            <div className="row">
+              <button type="submit" className="btn btn-primary" disabled={saving}>{saving?<><Spinner/>Salvando...</>:"Criar cliente"}</button>
+              <button type="button" className="btn btn-ghost" onClick={()=>setShowForm(false)}>Cancelar</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {clients.length === 0 && !loading ? (
+        <div className="card"><div className="empty"><div className="empty-icon">👥</div><div className="empty-title">Nenhum cliente ainda</div><p>Adicione o primeiro cliente para começar a gerenciar sua carteira.</p></div></div>
+      ) : (
+        <div className="card">
+          <div className="card-title">Carteira ({clients.length})</div>
+          {clients.map(c => (
+            <div key={c.id} className="client-item">
+              <div className="client-avatar">{initials(c.name)}</div>
+              <div className="client-info">
+                <div className="client-name">{c.name}</div>
+                <div className="client-meta">
+                  {c.segment && <span>{c.segment}</span>}
+                  {c.website && <span> · {c.website}</span>}
+                </div>
+              </div>
+              <div className="client-actions">
+                <span className={`badge ${c.rd_connected?"lime":"gray"}`}>
+                  {c.rd_connected ? "RD conectada" : "Sem RD"}
+                </span>
+                <a href={`/oauth/authorize/${c.id}`} className="btn btn-blue btn-sm">
+                  {icons.connect} Conectar RD
+                </a>
+                <button className="btn btn-secondary btn-sm" onClick={()=>sync(c.id)} disabled={syncingId===c.id || !c.rd_connected}>
+                  {syncingId===c.id ? <Spinner/> : icons.sync} Sync
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-function SimplePage({ title, description }) {
+/* ── PORTFOLIO ── */
+function Portfolio() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+  const [tab, setTab] = useState("all");
+
+  useEffect(() => {
+    api("/api/agency/overview")
+      .then(d => { setData(d); setLoading(false); })
+      .catch(e => { setErr(e.message); setLoading(false); });
+  }, []);
+
+  if (loading) return <div style={{padding:80,textAlign:"center"}}><Spinner size={32}/></div>;
+  const portfolio = data?.portfolio || {};
+  const sections = { at_risk: { label:"Em risco", color:"rose", items: portfolio.at_risk||[] }, expansion: { label:"Expansão", color:"lime", items: portfolio.expansion||[] }, maintenance: { label:"Manutenção", color:"amber", items: portfolio.maintenance||[] }};
+  const allClients = [...(portfolio.at_risk||[]), ...(portfolio.expansion||[]), ...(portfolio.maintenance||[])];
+  const current = tab === "all" ? allClients : (sections[tab]?.items || []);
+
   return (
     <div>
-      <div className="hero">
-        <h1>{title}</h1>
-        <p>{description}</p>
+      <div className="page-header">
+        <div className="page-eyebrow">Carteira</div>
+        <h1 className="page-title">Carteira Inteligente</h1>
+        <p className="page-sub">Classificação automática por risco, expansão e manutenção.</p>
       </div>
+      {err && <Alert>{err}</Alert>}
+
+      <div className="kpi-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))"}}>
+        {[["Em risco","at_risk","rose"],["Expansão","expansion","lime"],["Manutenção","maintenance","amber"],["Total","all","gray"]].map(([l,k,c]) => {
+          const count = k==="all" ? allClients.length : (sections[k]?.items.length||0);
+          return (
+            <div key={k} className="kpi-card" style={{cursor:"pointer",borderColor:tab===k?`var(--${c})`:"var(--line)"}} onClick={()=>setTab(k)}>
+              <div className="kpi-label">{l}</div>
+              <div className="kpi-value" style={{color:`var(--${c})`}}>{count}</div>
+            </div>
+          );
+        })}
+      </div>
+
       <div className="card">
-        <p>Módulo visual restaurado.</p>
+        {current.length === 0 ? (
+          <div className="empty"><div className="empty-title">Sem clientes nesta categoria</div></div>
+        ) : current.map(c => {
+          const color = c.score >= 75 ? "var(--lime)" : c.score >= 50 ? "var(--amber)" : "var(--rose)";
+          const badgeColor = c.score >= 75 ? "lime" : c.score >= 50 ? "amber" : "rose";
+          return (
+            <div key={c.client_id} className="client-item">
+              <div className="client-avatar" style={{background:`rgba(${badgeColor==="lime"?"184,245,74":badgeColor==="amber"?"245,200,74":"245,74,122"},0.12)`, color:`var(--${badgeColor})`}}>{(c.client_name||"?")[0].toUpperCase()}</div>
+              <div className="client-info">
+                <div className="client-name">{c.client_name}</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:4}}>
+                  {(c.upsell_opportunities||[]).slice(0,2).map((u,i) => (
+                    <span key={i} style={{fontSize:11,color:"var(--text-3)",background:"rgba(255,255,255,0.04)",padding:"2px 8px",borderRadius:4}}>{u}</span>
+                  ))}
+                </div>
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{fontFamily:"Syne",fontSize:22,fontWeight:800,color,letterSpacing:"-0.04em"}}>{c.score}</div>
+                <span className={`badge ${badgeColor}`}>{c.status?.replace(/[🟢🟡🟠🔴]/g,"").trim()}</span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function App() {
-  const [section, setSection] = React.useState("dashboard");
-  const [authenticated, setAuthenticated] = React.useState(!!getToken());
+/* ── MODULE PAGE (generic) ── */
+function ModulePage({ title, eyebrow, description, endpoint, renderItem }) {
+  const [clients, setClients] = useState([]);
+  const [clientId, setClientId] = useState("");
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
 
-  function logout() {
-    clearSession();
-    setAuthenticated(false);
+  useEffect(() => {
+    api("/api/clients/").then(res => {
+      const list = Array.isArray(res) ? res : [];
+      setClients(list);
+      if (list.length > 0) setClientId(String(list[0].id));
+    }).catch(e => setErr(e.message));
+  }, []);
+
+  async function load() {
+    if (!clientId) return;
+    setLoading(true); setErr(""); setData(null);
+    try { setData(await api(endpoint.replace("{id}", clientId))); }
+    catch(e) { setErr(e.message); }
+    finally { setLoading(false); }
   }
 
-  if (!authenticated) return <LoginPage onLogin={() => setAuthenticated(true)} />;
+  const items = data?.data?.items || data?.items || [];
 
-  let content = <Dashboard />;
-  if (section === "clients") content = <ClientsPanel />;
-  if (section === "portfolio") content = <SimplePage title="Carteira Inteligente" description="Painel visual restaurado." />;
-  if (section === "landing_pages") content = <ModulePage title="Landing Pages" description="Carregue os dados sincronizados de landing pages." endpoint="/api/rd-modules/client/{clientId}/landing_pages?limit=100" />;
-  if (section === "leads") content = <ModulePage title="Leads" description="Carregue os leads sincronizados da RD." endpoint="/api/rd-modules/client/{clientId}/leads?limit=100" />;
-  if (section === "segmentations") content = <ModulePage title="Segmentações" description="Carregue as segmentações sincronizadas." endpoint="/api/rd-modules/client/{clientId}/segmentations?limit=100" />;
-  if (section === "workflows") content = <ModulePage title="Workflows" description="Carregue os workflows sincronizados." endpoint="/api/rd-modules/client/{clientId}/workflows?limit=100" />;
-  if (section === "campaigns") content = <ModulePage title="Campanhas" description="Carregue as campanhas sincronizadas." endpoint="/api/rd-modules/client/{clientId}/campaigns?limit=100" />;
-  if (section === "flow_studio") content = <SimplePage title="Flow Studio IA" description="Tela visual restaurada." />;
-  if (section === "health_audit") content = <SimplePage title="Auditoria de Saúde" description="Tela visual restaurada." />;
-  if (section === "prospect") content = <SimplePage title="Prospecção" description="Tela visual restaurada." />;
-  if (section === "report") content = <SimplePage title="Relatório Executivo" description="Tela visual restaurada." />;
-  if (section === "alerts") content = <SimplePage title="Alertas" description="Tela visual restaurada." />;
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-eyebrow">{eyebrow}</div>
+        <h1 className="page-title">{title}</h1>
+        <p className="page-sub">{description}</p>
+      </div>
+      {err && <Alert>{err}</Alert>}
 
-  return <div className="app"><Sidebar section={section} setSection={setSection} logout={logout} /><main className="main">{content}</main></div>;
+      <div className="card">
+        <div className="row">
+          <ClientSelect value={clientId} onChange={setClientId} clients={clients} />
+          <button className="btn btn-primary" onClick={load} disabled={!clientId||loading}>
+            {loading ? <><Spinner/>Carregando...</> : "Carregar dados"}
+          </button>
+        </div>
+      </div>
+
+      {data && (
+        <div className="card">
+          <div className="row-between" style={{marginBottom:16}}>
+            <div className="card-title" style={{margin:0}}>
+              {items.length} {title.toLowerCase()} encontrado{items.length!==1?"s":""}
+            </div>
+            <span className="badge lime">sincronizado</span>
+          </div>
+
+          {items.length === 0 ? (
+            <div className="empty"><div className="empty-title">Nenhum dado disponível</div><p>Sincronize o cliente primeiro para carregar os dados.</p></div>
+          ) : (
+            <div className="scroll-list">
+              {items.map((item, i) => renderItem ? renderItem(item, i) : (
+                <div key={i} className="module-item">
+                  <div className="module-item-info">
+                    <div className="module-item-name">{item?.payload?.name || item?.payload?.title || item?.payload?.email || item?.object_key || `Item ${i+1}`}</div>
+                    <div className="module-item-meta">{item?.synced_at ? `Sincronizado: ${new Date(item.synced_at).toLocaleDateString("pt-BR")}` : ""}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+/* ── LANDING PAGES ── */
+function LandingPages() {
+  return (
+    <ModulePage
+      title="Landing Pages"
+      eyebrow="Módulos RD"
+      description="Landing pages sincronizadas do RD Station. Analise performance e identifique oportunidades de melhoria."
+      endpoint="/api/rd-modules/client/{id}/landing_pages?limit=100"
+      renderItem={(item, i) => {
+        const p = item?.payload || {};
+        const rate = p.conversion_rate ? (p.conversion_rate > 1 ? p.conversion_rate : p.conversion_rate*100) : 0;
+        const rateColor = rate >= 10 ? "var(--lime)" : rate >= 3 ? "var(--amber)" : "var(--rose)";
+        return (
+          <div key={i} className="module-item">
+            <div className="module-item-icon" style={{background:"var(--blue-dim)"}}>🔗</div>
+            <div className="module-item-info">
+              <div className="module-item-name">{p.name || p.title || `LP ${i+1}`}</div>
+              <div className="module-item-meta">
+                {p.visits_count ? `${p.visits_count} visitas · ` : ""}
+                {p.conversions_count ? `${p.conversions_count} conversões` : ""}
+                {p.status ? ` · ${p.status}` : ""}
+              </div>
+            </div>
+            {rate > 0 && <span style={{color:rateColor,fontWeight:700,fontFamily:"Syne",fontSize:16}}>{rate.toFixed(1)}%</span>}
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+/* ── LEADS ── */
+function Leads() {
+  return (
+    <ModulePage
+      title="Leads"
+      eyebrow="Módulos RD"
+      description="Base de leads sincronizados. Visualize o funil, origem e estágio de cada contato."
+      endpoint="/api/rd-modules/client/{id}/leads?limit=100"
+      renderItem={(item, i) => {
+        const p = item?.payload || {};
+        const email = p.email || p.personal_email || "—";
+        const name = p.name || email.split("@")[0];
+        const stage = p.lifecycle_stage || p.stage || "";
+        const source = p.traffic_source || p.utm_source || "";
+        return (
+          <div key={i} className="module-item">
+            <div className="module-item-icon" style={{background:"var(--cyan-dim)",color:"var(--cyan)",fontFamily:"Syne",fontWeight:700,fontSize:11}}>
+              {(name[0]||"?").toUpperCase()}
+            </div>
+            <div className="module-item-info">
+              <div className="module-item-name">{name}</div>
+              <div className="module-item-meta">{email}{stage ? ` · ${stage}` : ""}{source ? ` · ${source}` : ""}</div>
+            </div>
+            {p.score && <span className="badge amber">{p.score}</span>}
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+/* ── SEGMENTATIONS ── */
+function Segmentations() {
+  return (
+    <ModulePage
+      title="Segmentações"
+      eyebrow="Módulos RD"
+      description="Segmentações da conta RD. Use para campanhas direcionadas e automações inteligentes."
+      endpoint="/api/rd-modules/client/{id}/segmentations?limit=100"
+      renderItem={(item, i) => {
+        const p = item?.payload || {};
+        const count = p.contacts_count || p.contacts || 0;
+        return (
+          <div key={i} className="module-item">
+            <div className="module-item-icon" style={{background:"var(--lime-dim)"}}>⚡</div>
+            <div className="module-item-info">
+              <div className="module-item-name">{p.name || `Segmentação ${i+1}`}</div>
+              <div className="module-item-meta">{count ? `${count.toLocaleString("pt-BR")} contatos` : "Contatos não carregados"}</div>
+            </div>
+            {count > 0 && <span className="badge lime">{count.toLocaleString("pt-BR")}</span>}
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+/* ── WORKFLOWS ── */
+function Workflows() {
+  return (
+    <ModulePage
+      title="Workflows"
+      eyebrow="Módulos RD"
+      description="Automações configuradas no RD Station. Monitore status e desempenho dos fluxos."
+      endpoint="/api/rd-modules/client/{id}/workflows?limit=100"
+      renderItem={(item, i) => {
+        const p = item?.payload || {};
+        const status = (p.status || p.state || "").toLowerCase();
+        const isActive = ["active","enabled","ativo"].includes(status);
+        return (
+          <div key={i} className="module-item">
+            <div className="module-item-icon" style={{background:isActive?"var(--lime-dim)":"var(--rose-dim)"}}>⚙️</div>
+            <div className="module-item-info">
+              <div className="module-item-name">{p.name || `Workflow ${i+1}`}</div>
+              <div className="module-item-meta">{p.trigger || p.trigger_type || "Sem trigger"}</div>
+            </div>
+            <span className={`badge ${isActive?"lime":"rose"}`}>{status || "desconhecido"}</span>
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+/* ── CAMPAIGNS ── */
+function Campaigns() {
+  return (
+    <ModulePage
+      title="Campanhas"
+      eyebrow="Módulos RD"
+      description="Histórico de campanhas de e-mail sincronizadas do RD Station."
+      endpoint="/api/rd-modules/client/{id}/campaigns?limit=100"
+      renderItem={(item, i) => {
+        const p = item?.payload || {};
+        const openRate = parseFloat(p.open_rate || p.opens_rate || 0);
+        const rateColor = openRate >= 25 ? "var(--lime)" : openRate >= 15 ? "var(--amber)" : "var(--rose)";
+        return (
+          <div key={i} className="module-item">
+            <div className="module-item-icon" style={{background:"var(--amber-dim)"}}>📧</div>
+            <div className="module-item-info">
+              <div className="module-item-name">{p.name || p.subject || `Campanha ${i+1}`}</div>
+              <div className="module-item-meta">
+                {p.status || ""}
+                {p.sent || p.emails_sent ? ` · ${(p.sent||p.emails_sent||0).toLocaleString("pt-BR")} enviados` : ""}
+              </div>
+            </div>
+            {openRate > 0 && <span style={{color:rateColor,fontWeight:700,fontSize:14}}>{openRate.toFixed(1)}%</span>}
+          </div>
+        );
+      }}
+    />
+  );
+}
+
+/* ── FLOW STUDIO ── */
+function FlowStudio() {
+  const [clients, setClients] = useState([]);
+  const [clientId, setClientId] = useState("");
+  const [tab, setTab] = useState("flow");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [err, setErr] = useState("");
+  const [form, setForm] = useState({
+    goal:"", flow_type:"nutricao", flow_days:14, email_count:5,
+    product:"", audience:"", awareness:"consciência do problema",
+    // email fields
+    tone:"consultivo", objective:"gerar resposta", theme:"nutrição", cta:"saiba mais", target:"leads da base",
+  });
+
+  useEffect(() => {
+    api("/api/clients/").then(res => {
+      const l = Array.isArray(res)?res:[];
+      setClients(l);
+      if (l.length) setClientId(String(l[0].id));
+    });
+  }, []);
+
+  async function generate() {
+    setLoading(true); setErr(""); setResult(null);
+    try {
+      const client = clients.find(c=>String(c.id)===clientId);
+      const body = tab==="flow" ? {
+        ...form,
+        client_name: client?.name||"",
+        client_segment: client?.segment||"",
+        client_description: client?.description||"",
+      } : {
+        tone: form.tone, objective: form.objective, theme: form.theme,
+        cta: form.cta, target: form.target,
+        client_name: client?.name||"",
+        product: form.product,
+      };
+      const url = tab==="flow" ? "/api/flows-advanced/generate-flow" : "/api/flows-advanced/generate-email";
+      setResult(await api(url, { method:"POST", body: JSON.stringify(body) }));
+    } catch(e) { setErr(e.message); }
+    finally { setLoading(false); }
+  }
+
+  const flow = result?.flow;
+  const email = result?.email;
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-eyebrow">IA Generativa</div>
+        <h1 className="page-title">Flow Studio IA</h1>
+        <p className="page-sub">Gere fluxos de automação e emails completos com inteligência artificial.</p>
+      </div>
+      {err && <Alert>{err}</Alert>}
+
+      <div className="pill-tabs" style={{width:"fit-content"}}>
+        {[["flow","🔄 Fluxo"],["email","📧 Email"]].map(([k,l]) => (
+          <button key={k} className={`pill-tab ${tab===k?"active":""}`} onClick={()=>{setTab(k);setResult(null);setErr("");}}>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      <div className="two-col">
+        <div className="card">
+          <div className="card-title">Configurações</div>
+          <div className="field"><label>Cliente</label><ClientSelect value={clientId} onChange={setClientId} clients={clients} /></div>
+
+          {tab==="flow" ? <>
+            <div className="field"><label>Objetivo do fluxo</label><input value={form.goal} onChange={e=>setForm({...form,goal:e.target.value})} placeholder="Ex: nutrir leads capturados via webinar" /></div>
+            <div className="field"><label>Tipo de fluxo</label><select value={form.flow_type} onChange={e=>setForm({...form,flow_type:e.target.value})}>
+              {[["nutricao","Nutrição"],["boas-vindas","Boas-vindas"],["reengajamento","Reengajamento"],["pos-venda","Pós-venda"],["onboarding","Onboarding"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+            </select></div>
+            <div className="field"><label>Produto/Serviço</label><input value={form.product} onChange={e=>setForm({...form,product:e.target.value})} placeholder="Ex: Curso de marketing digital" /></div>
+            <div className="field"><label>Público-alvo</label><input value={form.audience} onChange={e=>setForm({...form,audience:e.target.value})} placeholder="Ex: Empreendedores B2B" /></div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              <div className="field"><label>Duração (dias)</label><input type="number" value={form.flow_days} onChange={e=>setForm({...form,flow_days:e.target.value})} min={5} max={60} /></div>
+              <div className="field"><label>Nº de emails</label><input type="number" value={form.email_count} onChange={e=>setForm({...form,email_count:e.target.value})} min={2} max={12} /></div>
+            </div>
+          </> : <>
+            <div className="field"><label>Tema</label><input value={form.theme} onChange={e=>setForm({...form,theme:e.target.value})} placeholder="Ex: reativação de leads inativos" /></div>
+            <div className="field"><label>Objetivo</label><input value={form.objective} onChange={e=>setForm({...form,objective:e.target.value})} placeholder="Ex: agendar uma conversa" /></div>
+            <div className="field"><label>Tom de voz</label><select value={form.tone} onChange={e=>setForm({...form,tone:e.target.value})}>
+              {["consultivo","direto","amigável","educativo","persuasivo","urgente"].map(t=><option key={t}>{t}</option>)}
+            </select></div>
+            <div className="field"><label>CTA principal</label><input value={form.cta} onChange={e=>setForm({...form,cta:e.target.value})} placeholder="Ex: agendar uma call" /></div>
+            <div className="field"><label>Público-alvo</label><input value={form.target} onChange={e=>setForm({...form,target:e.target.value})} placeholder="Ex: leads B2B de tecnologia" /></div>
+          </>}
+
+          <button className="btn btn-primary" onClick={generate} disabled={loading} style={{width:"100%",justifyContent:"center"}}>
+            {loading ? <><Spinner/> Gerando com IA...</> : <>{icons.ai} Gerar com IA</>}
+          </button>
+        </div>
+
+        <div className="card">
+          {!result && !loading && (
+            <div className="empty">
+              <div className="empty-icon">✨</div>
+              <div className="empty-title">Pronto para gerar</div>
+              <p>Configure os parâmetros e clique em "Gerar com IA" para criar o {tab==="flow"?"fluxo":"email"} automaticamente.</p>
+            </div>
+          )}
+
+          {loading && <div style={{padding:60,textAlign:"center"}}><Spinner size={28}/><p style={{marginTop:16,color:"var(--text-3)",fontSize:13}}>IA trabalhando...</p></div>}
+
+          {flow && <>
+            <div className="row-between" style={{marginBottom:16}}>
+              <div className="card-title" style={{margin:0}}>{flow.flow_name}</div>
+              <span className="badge lime">fluxo gerado</span>
+            </div>
+            <p style={{fontSize:13.5,color:"var(--text-2)",marginBottom:16,lineHeight:1.6}}>{flow.strategy_summary}</p>
+            <div style={{fontSize:12,color:"var(--text-3)",marginBottom:12}}>Trigger: <strong style={{color:"var(--text)"}}>{flow.trigger}</strong></div>
+            <div className="scroll-list">
+              {(flow.steps||[]).map((step,i) => (
+                <div key={i} style={{display:"flex",gap:12,padding:"10px 0",borderBottom:"1px solid var(--line)"}}>
+                  <div style={{width:28,height:28,borderRadius:8,background:"var(--lime-dim)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Syne",fontWeight:700,fontSize:11,color:"var(--lime)",flexShrink:0}}>D{step.day}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13.5,fontWeight:600,color:"var(--text)"}}>{step.title}</div>
+                    <div style={{fontSize:12,color:"var(--text-3)",marginTop:2}}>{step.subject || step.description}</div>
+                    {step.cta && <span className="badge cyan" style={{marginTop:4}}>{step.cta}</span>}
+                  </div>
+                  <span className="badge gray">{step.type}</span>
+                </div>
+              ))}
+            </div>
+            {flow.success_metrics && (
+              <div style={{marginTop:16,padding:12,background:"var(--lime-dim2)",borderRadius:"10px",border:"1px solid rgba(184,245,74,0.1)"}}>
+                <div style={{fontSize:11,fontWeight:600,color:"var(--lime)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Projeção de resultados</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+                  {[["Abertura", flow.success_metrics.expected_open_rate],["Conversão",flow.success_metrics.expected_conversion_rate],["ROI",flow.success_metrics.estimated_roi]].map(([l,v]) => v ? (
+                    <div key={l}><div style={{fontSize:10,color:"var(--text-3)"}}>{l}</div><div style={{fontSize:13,fontWeight:600,color:"var(--lime)"}}>{v}</div></div>
+                  ) : null)}
+                </div>
+              </div>
+            )}
+          </>}
+
+          {email && <>
+            <div className="row-between" style={{marginBottom:16}}>
+              <div className="card-title" style={{margin:0}}>Email gerado</div>
+              <span className="badge lime">A/B pronto</span>
+            </div>
+            {[["A",email.version_a],["B",email.version_b]].map(([v,ver]) => ver ? (
+              <div key={v} style={{background:"var(--ink)",border:"1px solid var(--line)",borderRadius:10,padding:16,marginBottom:12}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+                  <span className="badge amber">Versão {v}</span>
+                  <span style={{fontSize:12,color:"var(--text-3)"}}>{ver.angle}</span>
+                </div>
+                <div style={{fontSize:13.5,fontWeight:600,color:"var(--text)",marginBottom:4}}>Assunto: {ver.subject}</div>
+                <div style={{fontSize:12,color:"var(--text-3)",marginBottom:12}}>Pré-header: {ver.preheader}</div>
+                <div className="ai-result md" style={{fontSize:12}} dangerouslySetInnerHTML={{__html:renderMd(ver.body)}} />
+                <div style={{marginTop:8,display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:12,color:"var(--text-3)"}}>CTA:</span>
+                  <span className="badge lime">{ver.cta_text}</span>
+                </div>
+              </div>
+            ) : null)}
+            {email.reasoning && <p style={{fontSize:12.5,color:"var(--text-3)",marginTop:8,lineHeight:1.6}}>💡 {email.reasoning}</p>}
+          </>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── HEALTH AUDIT ── */
+function HealthAudit() {
+  const [clients, setClients] = useState([]);
+  const [clientId, setClientId] = useState("");
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    api("/api/clients/").then(res => {
+      const l=Array.isArray(res)?res:[];
+      setClients(l);
+      if(l.length) setClientId(String(l[0].id));
+    });
+  },[]);
+
+  async function load() {
+    setLoading(true);setErr("");setData(null);
+    try { setData(await api(`/api/health-audit/client/${clientId}?ai=true`)); }
+    catch(e) { setErr(e.message); }
+    finally { setLoading(false); }
+  }
+
+  const d = data?.data;
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-eyebrow">Diagnóstico</div>
+        <h1 className="page-title">Auditoria de Saúde</h1>
+        <p className="page-sub">Diagnóstico completo da conta RD Station com análise de workflows, leads e landing pages.</p>
+      </div>
+      {err && <Alert>{err}</Alert>}
+
+      <div className="card">
+        <div className="row">
+          <ClientSelect value={clientId} onChange={setClientId} clients={clients} />
+          <button className="btn btn-primary" onClick={load} disabled={!clientId||loading}>
+            {loading ? <><Spinner/>Auditando...</> : <>{icons.health} Gerar auditoria</>}
+          </button>
+        </div>
+      </div>
+
+      {loading && <div style={{padding:80,textAlign:"center"}}><Spinner size={28}/><p style={{marginTop:16,color:"var(--text-3)"}}>Analisando conta...</p></div>}
+
+      {d && (
+        <div>
+          <div className="kpi-grid">
+            {[
+              ["Score Geral", d.overall_score, d.health_label?.replace(/[✅⚠️🔴]/g,"").trim() || "", d.overall_score>=75?"lime":d.overall_score>=45?"amber":"rose"],
+              ["Workflows", d.workflows?.active||0, `${d.workflows?.total||0} total`, "cyan"],
+              ["Leads quentes", d.leads?.hot||0, `${d.leads?.engagement_rate||0}% engaj.`, "lime"],
+              ["LPs top", d.landing_pages?.top||0, `${d.landing_pages?.critical||0} críticas`, "amber"],
+            ].map(([l,v,sub,c]) => (
+              <div key={l} className={`kpi-card ${c}`}>
+                <div className="kpi-label">{l}</div>
+                <div className="kpi-value">{v}</div>
+                {sub && <div className="kpi-change neutral">{sub}</div>}
+              </div>
+            ))}
+          </div>
+
+          <div className="two-col">
+            <div className="card">
+              <div className="card-title">Diagnóstico por Módulo</div>
+              {[
+                ["Workflows", d.workflows?.score||0, d.workflows?.issues||[]],
+                ["Leads", d.leads?.score||0, d.leads?.issues||[]],
+                ["Landing Pages", d.landing_pages?.score||0, d.landing_pages?.issues||[]],
+              ].map(([l,s,issues]) => (
+                <div key={l} style={{marginBottom:20}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+                    <span style={{fontSize:13.5,fontWeight:600,color:"var(--text)"}}>{l}</span>
+                    <span style={{fontFamily:"Syne",fontSize:18,fontWeight:700,color:s>=75?"var(--lime)":s>=50?"var(--amber)":"var(--rose)"}}>{s}</span>
+                  </div>
+                  <BarMetric label="" value={s} color={s>=75?"var(--lime)":s>=50?"var(--amber)":"var(--rose)"} />
+                  {issues.map((issue,i) => (
+                    <div key={i} style={{fontSize:12,color:"var(--rose)",padding:"6px 10px",background:"var(--rose-dim)",borderRadius:6,marginTop:4}}>⚠ {issue}</div>
+                  ))}
+                </div>
+              ))}
+            </div>
+
+            <div className="card">
+              <div className="card-title">Análise IA</div>
+              {d.ai_commentary ? (
+                <div>
+                  {d.ai_commentary.summary && <p style={{fontSize:14,color:"var(--text-2)",lineHeight:1.7,marginBottom:16}}>{d.ai_commentary.summary}</p>}
+                  {(d.ai_commentary.actions||[]).slice(0,4).map((a,i) => (
+                    <div key={i} style={{display:"flex",gap:10,padding:"10px 12px",background:"var(--ink)",borderRadius:8,marginBottom:8,border:"1px solid var(--line)"}}>
+                      <span style={{color:"var(--lime)",fontWeight:700,fontSize:12,flexShrink:0}}>#{i+1}</span>
+                      <div>
+                        <div style={{fontSize:13.5,fontWeight:600,color:"var(--text)"}}>{a.action}</div>
+                        <div style={{display:"flex",gap:6,marginTop:4}}>
+                          <span className="badge gray">{a.area}</span>
+                          <span className={`badge ${a.effort==="baixo"?"lime":a.effort==="medio"?"amber":"rose"}`}>{a.effort}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : <div className="empty"><p>Auditoria sem comentário de IA. Tente novamente com ai=true.</p></div>}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── PROSPECT ── */
+function Prospect() {
+  const [form, setForm] = useState({ company_name:"", niche:"", city:"", website:"", instagram:"" });
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function analyze() {
+    setLoading(true);setErr("");setResult(null);
+    try { setResult(await api("/api/prospect/analyze-business",{method:"POST",body:JSON.stringify(form)})); }
+    catch(e) { setErr(e.message); }
+    finally { setLoading(false); }
+  }
+
+  const d = result?.analysis;
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-eyebrow">Comercial</div>
+        <h1 className="page-title">Diagnóstico de Prospecção</h1>
+        <p className="page-sub">Analise um prospect e gere diagnóstico comercial completo com abordagem personalizada.</p>
+      </div>
+      {err && <Alert>{err}</Alert>}
+
+      <div className="two-col">
+        <div className="card">
+          <div className="card-title">Dados da empresa</div>
+          {[["company_name","Nome da empresa","Ex: TechSoft Ltda"],["niche","Nicho/segmento","Ex: Software B2B"],["city","Cidade","Ex: São Paulo"],["website","Website","https://..."],["instagram","Instagram","@handle"]].map(([k,l,p]) => (
+            <div key={k} className="field">
+              <label>{l}</label>
+              <input value={form[k]} onChange={e=>setForm({...form,[k]:e.target.value})} placeholder={p} />
+            </div>
+          ))}
+          <button className="btn btn-primary" onClick={analyze} disabled={loading} style={{width:"100%",justifyContent:"center"}}>
+            {loading ? <><Spinner/>Analisando...</> : <>{icons.ai} Gerar diagnóstico</>}
+          </button>
+        </div>
+
+        <div className="card">
+          {!d && !loading && <div className="empty"><div className="empty-icon">🎯</div><div className="empty-title">Pronto para prospectar</div><p>Preencha os dados e gere um diagnóstico comercial personalizado.</p></div>}
+          {loading && <div style={{padding:60,textAlign:"center"}}><Spinner size={28}/></div>}
+          {d && (
+            <div>
+              <div className="row-between" style={{marginBottom:16}}>
+                <div className="card-title" style={{margin:0}}>{d.company_name || "Empresa"}</div>
+                <span className={`badge ${d.potential?.includes("Alto")?"lime":"amber"}`}>Potencial {d.potential}</span>
+              </div>
+              <p style={{fontSize:14,color:"var(--text-2)",lineHeight:1.7,marginBottom:20}}>{d.executive_summary}</p>
+
+              {[["⚠ Pontos fracos","rose",d.weak_points],["✅ Oportunidades","lime",d.opportunities],["💬 Ângulos de venda","cyan",d.sales_angles],["🗓 Plano de ação","amber",d.action_plan]].map(([title,c,items]) => items?.length ? (
+                <div key={title} style={{marginBottom:16}}>
+                  <div style={{fontSize:12,fontWeight:600,color:`var(--${c})`,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>{title}</div>
+                  {items.map((item,i) => <div key={i} style={{fontSize:13,color:"var(--text-2)",padding:"7px 10px",background:"var(--ink)",borderRadius:8,marginBottom:4,lineHeight:1.5}}>{item}</div>)}
+                </div>
+              ) : null)}
+
+              {d.proposal && (
+                <div style={{padding:16,background:"var(--lime-dim2)",borderRadius:"10px",border:"1px solid rgba(184,245,74,0.15)",marginTop:12}}>
+                  <div style={{fontSize:11,fontWeight:600,color:"var(--lime)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Proposta sugerida</div>
+                  <p style={{fontSize:13,color:"var(--text-2)",marginBottom:8}}>{d.proposal.pitch}</p>
+                  {(d.proposal.entregas||[]).map((e,i) => <div key={i} style={{fontSize:12,color:"var(--lime)",padding:"4px 0"}}>→ {e}</div>)}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── EXECUTIVE REPORT ── */
+function ExecutiveReport() {
+  const [clients, setClients] = useState([]);
+  const [clientId, setClientId] = useState("");
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    api("/api/clients/").then(res => {
+      const l=Array.isArray(res)?res:[];
+      setClients(l);
+      if(l.length) setClientId(String(l[0].id));
+    });
+  },[]);
+
+  async function load() {
+    setLoading(true);setErr("");setData(null);
+    try { setData(await api(`/api/executive-report/client/${clientId}`)); }
+    catch(e) { setErr(e.message); }
+    finally { setLoading(false); }
+  }
+
+  const r = data?.report;
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-eyebrow">Relatórios</div>
+        <h1 className="page-title">Relatório Executivo</h1>
+        <p className="page-sub">Relatório estratégico completo com score, diagnóstico e próximos passos por cliente.</p>
+      </div>
+      {err && <Alert>{err}</Alert>}
+
+      <div className="card">
+        <div className="row">
+          <ClientSelect value={clientId} onChange={setClientId} clients={clients} />
+          <button className="btn btn-primary" onClick={load} disabled={!clientId||loading}>
+            {loading ? <><Spinner/>Gerando...</> : <>{icons.report} Gerar relatório</>}
+          </button>
+        </div>
+      </div>
+
+      {r && (
+        <div>
+          <div className="kpi-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))"}}>
+            <div className={`kpi-card ${r.score_data?.score>=75?"lime":r.score_data?.score>=50?"amber":"rose"}`}>
+              <div className="kpi-label">Score</div>
+              <div className="kpi-value">{r.score_data?.score||0}<span style={{fontSize:16,opacity:0.5}}>/100</span></div>
+              <div className="kpi-change neutral">{r.score_data?.priority||""}</div>
+            </div>
+            {Object.entries(r.score_data?.counts||{}).map(([k,v]) => (
+              <div key={k} className="kpi-card">
+                <div className="kpi-label">{k.replace(/_/g," ")}</div>
+                <div className="kpi-value">{v}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="two-col">
+            <div className="card">
+              <div className="card-title">Diagnóstico Estratégico</div>
+              <p style={{fontSize:14,color:"var(--text-2)",lineHeight:1.7,marginBottom:16}}>{r.executive_resume}</p>
+              {(r.strategic_diagnosis||[]).map((d,i) => (
+                <div key={i} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:"1px solid var(--line)"}}>
+                  <span style={{color:"var(--lime)",flexShrink:0}}>→</span>
+                  <span style={{fontSize:13.5,color:"var(--text-2)"}}>{d}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="card">
+              <div className="card-title">Próximos Passos</div>
+              {(r.next_steps||[]).map((s,i) => (
+                <div key={i} style={{display:"flex",gap:10,padding:"10px 12px",background:"var(--ink)",borderRadius:8,marginBottom:8}}>
+                  <span style={{fontFamily:"Syne",fontWeight:800,color:"var(--lime)",fontSize:14,flexShrink:0}}>{i+1}</span>
+                  <span style={{fontSize:13.5,color:"var(--text-2)"}}>{s}</span>
+                </div>
+              ))}
+
+              {(r.risk_flags||[]).length > 0 && (
+                <div style={{marginTop:16}}>
+                  <div style={{fontSize:11,fontWeight:600,color:"var(--rose)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Riscos identificados</div>
+                  {r.risk_flags.map((f,i) => <div key={i} style={{fontSize:12.5,color:"var(--rose)",padding:"6px 10px",background:"var(--rose-dim)",borderRadius:6,marginBottom:4}}>⚠ {f}</div>)}
+                </div>
+              )}
+
+              {(r.opportunity_flags||[]).length > 0 && (
+                <div style={{marginTop:12}}>
+                  <div style={{fontSize:11,fontWeight:600,color:"var(--lime)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Oportunidades</div>
+                  {r.opportunity_flags.map((f,i) => <div key={i} style={{fontSize:12.5,color:"var(--lime)",padding:"6px 10px",background:"var(--lime-dim2)",borderRadius:6,marginBottom:4}}>✓ {f}</div>)}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── ALERTS ── */
+function AlertsPanel() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    api("/api/alerts/agency")
+      .then(d => { setData(d); setLoading(false); })
+      .catch(e => { setErr(e.message); setLoading(false); });
+  },[]);
+
+  const d = data?.alerts || data || {};
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-eyebrow">Monitoramento</div>
+        <h1 className="page-title">Central de Alertas</h1>
+        <p className="page-sub">Monitoramento automático de anomalias e alertas de performance da carteira.</p>
+      </div>
+      {err && <Alert>{err}</Alert>}
+      {loading && <div style={{padding:80,textAlign:"center"}}><Spinner size={28}/></div>}
+
+      {d && !loading && (
+        <div>
+          <div className="kpi-grid">
+            {[["Críticos","rose",d.totals?.critical||0],["Avisos","amber",d.totals?.warnings||0],["Ações","lime",d.totals?.actions||0]].map(([l,c,v]) => (
+              <div key={l} className={`kpi-card ${c}`}>
+                <div className="kpi-label">{l}</div>
+                <div className="kpi-value" style={{color:`var(--${c})`}}>{v}</div>
+              </div>
+            ))}
+          </div>
+
+          {[["🔴 Críticos","critical","rose"],["⚠ Avisos","warnings","amber"],["→ Ações","actions","lime"]].map(([title,key,c]) => {
+            const items = d[key] || [];
+            if (!items.length) return null;
+            return (
+              <div key={key} className="card">
+                <div className="card-title">{title}</div>
+                {items.map((a,i) => (
+                  <div key={i} style={{display:"flex",gap:12,padding:"10px 0",borderBottom:"1px solid var(--line)",alignItems:"flex-start"}}>
+                    <span style={{color:`var(--${c})`,fontSize:11,fontWeight:700,whiteSpace:"nowrap",marginTop:2}}>{a.client_name}</span>
+                    <span style={{fontSize:13.5,color:"var(--text-2)",lineHeight:1.5}}>{a.message}</span>
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── APP ROOT ── */
+function App() {
+  const [section, setSection] = useState("dashboard");
+  const [auth, setAuth] = useState(!!getToken());
+
+  function logout() { clearToken(); setAuth(false); }
+
+  if (!auth) return <LoginPage onLogin={() => setAuth(true)} />;
+
+  const pages = {
+    dashboard: <Dashboard />,
+    clients: <ClientsPanel />,
+    portfolio: <Portfolio />,
+    landing_pages: <LandingPages />,
+    leads: <Leads />,
+    segmentations: <Segmentations />,
+    workflows: <Workflows />,
+    campaigns: <Campaigns />,
+    flow_studio: <FlowStudio />,
+    health_audit: <HealthAudit />,
+    prospect: <Prospect />,
+    report: <ExecutiveReport />,
+    alerts: <AlertsPanel />,
+  };
+
+  return (
+    <div className="app">
+      <Sidebar section={section} setSection={setSection} onLogout={logout} />
+      <main className="main">
+        {pages[section] || <Dashboard />}
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
 </body>
 </html>
