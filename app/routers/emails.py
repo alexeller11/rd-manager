@@ -42,7 +42,11 @@ async def generate_email(req: EmailRequest):
         "SELECT data FROM rd_snapshots WHERE client_id=$1 ORDER BY created_at DESC LIMIT 1", req.client_id
     )
     rd_data = parse_json_field(snap_row["data"]) if snap_row else {}
+
+    # fix #2: asyncpg.Record é imutável — converte para dict antes de adicionar rd_data
+    client = dict(client)
     client["rd_data"] = rd_data
+
     context = build_client_context(client)
     benchmarks = {"open_rate": 20, "click_rate": 2}
 
@@ -182,7 +186,11 @@ async def generate_segmentation(req: EmailRequest):
         "SELECT data FROM rd_snapshots WHERE client_id=$1 ORDER BY created_at DESC LIMIT 1", req.client_id
     )
     rd_data = parse_json_field(snap_row["data"]) if snap_row else {}
+
+    # fix #2: asyncpg.Record é imutável — converte para dict antes de adicionar rd_data
+    client = dict(client)
     client["rd_data"] = rd_data
+
     context = build_client_context(client)
     benchmarks = {"open_rate": 20, "click_rate": 2}
     segs_info = ""
@@ -201,7 +209,7 @@ Para cada segmento:
 ### Segmento [N]: [Nome descritivo]
 **Critério de entrada:** [regra exata no RD Station]
 **Tamanho estimado:** [% da base]
-**Mensagem principal:** [ângulo específico]
+**Mensagem principal:** [campo específico]
 **Melhor tipo de email:** [qual tipo funciona]
 **CTA ideal:** [o que pedir]
 **Frequência recomendada:** [emails/mês]
@@ -219,15 +227,25 @@ Para cada segmento:
     return {"result": result}
 
 
+# fix #1: serializa created_at para str — asyncpg.Record não converte datetime automaticamente
 @router.get("/history/{client_id}")
 async def get_email_history(client_id: int):
-    return await db_fetchall(
+    rows = await db_fetchall(
         "SELECT id, type, subject, created_at FROM email_strategies WHERE client_id=$1 ORDER BY created_at DESC LIMIT 30",
         client_id
     )
+    return [
+        {"id": r["id"], "type": r["type"], "subject": r["subject"], "created_at": str(r["created_at"])}
+        for r in (rows or [])
+    ]
 
 
 @router.get("/detail/{email_id}")
 async def get_email_detail(email_id: int):
     row = await db_fetchone("SELECT * FROM email_strategies WHERE id=$1", email_id)
-    return row or {}
+    if not row:
+        return {}
+    d = dict(row)
+    if "created_at" in d and d["created_at"] is not None:
+        d["created_at"] = str(d["created_at"])
+    return d
