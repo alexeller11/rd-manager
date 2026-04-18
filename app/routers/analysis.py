@@ -1,76 +1,10 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from app.ai_service import call_ai, build_client_context, SYSTEM_STRATEGIST, SYSTEM_SEO, SYSTEM_EXPERT
+from app.ai_service import call_ai, build_client_context, build_rd_detail, SYSTEM_STRATEGIST, SYSTEM_SEO, SYSTEM_EXPERT
 from app.routers.clients import fetch_client
 from app.database import db_fetchval, db_fetchall, db_fetchone, parse_json_field
 
 router = APIRouter()
-
-
-def _build_rd_detail(client: dict) -> str:
-    """Extrai e formata os dados reais do snapshot RD para enriquecer os prompts."""
-    rd = client.get("rd_data") or {}
-    if not rd:
-        return ""
-
-    lines = []
-
-    # Métricas gerais
-    lines.append("── MÉTRICAS RD STATION ──")
-    lines.append(f"Total de leads: {rd.get('total_leads', 'N/A')}")
-    lines.append(f"Taxa média de abertura: {rd.get('avg_open_rate', 'N/A')}%")
-    lines.append(f"Taxa média de clique: {rd.get('avg_click_rate', 'N/A')}%")
-    lines.append(f"Taxa média de conversão: {rd.get('avg_conversion_rate', 'N/A')}%")
-    lines.append(f"Leads novos (últimos 30d): {rd.get('new_leads_30d', 'N/A')}")
-    lines.append(f"Leads convertidos (últimos 30d): {rd.get('converted_leads_30d', 'N/A')}")
-
-    # Campanhas recentes
-    campaigns = rd.get("recent_campaigns") or []
-    if campaigns:
-        lines.append("\n── CAMPANHAS RECENTES ──")
-        for i, c in enumerate(campaigns[:8], 1):
-            lines.append(
-                f"{i}. \"{c.get('name', 'Sem nome')}\" | "
-                f"Enviados: {c.get('sent', 0)} | "
-                f"Abertura: {c.get('open_rate', 0):.1f}% | "
-                f"Clique: {c.get('click_rate', 0):.1f}% | "
-                f"Status: {c.get('status', '?')}"
-            )
-
-    # Segmentações
-    segmentations = rd.get("segmentations") or []
-    if segmentations:
-        lines.append("\n── SEGMENTAÇÕES ──")
-        for i, s in enumerate(segmentations[:8], 1):
-            lines.append(
-                f"{i}. \"{s.get('name', 'Sem nome')}\" | "
-                f"Contatos: {s.get('contacts_count', 0)}"
-            )
-
-    # Automações / Fluxos
-    automations = rd.get("automations") or []
-    if automations:
-        lines.append("\n── AUTOMAÇÕES (FLUXOS) ──")
-        for i, a in enumerate(automations[:8], 1):
-            lines.append(
-                f"{i}. \"{a.get('name', 'Sem nome')}\" | "
-                f"Status: {a.get('status', '?')} | "
-                f"Leads no fluxo: {a.get('leads_count', 0)}"
-            )
-
-    # Landing Pages
-    landing_pages = rd.get("landing_pages") or []
-    if landing_pages:
-        lines.append("\n── LANDING PAGES ──")
-        for i, lp in enumerate(landing_pages[:6], 1):
-            lines.append(
-                f"{i}. \"{lp.get('name', 'Sem nome')}\" | "
-                f"Visitas: {lp.get('visits', 0)} | "
-                f"Conversões: {lp.get('conversions', 0)} | "
-                f"Taxa: {lp.get('conversion_rate', 0):.1f}%"
-            )
-
-    return "\n".join(lines)
 
 
 ANALYSIS_GUIDES = {
@@ -234,9 +168,8 @@ async def run_analysis(req: AnalysisRequest):
     if not client:
         raise HTTPException(404, "Cliente não encontrado")
 
-    # Busca snapshot mais recente para enriquecer o prompt
-    from app.database import db_fetchone as _db_fetchone
-    snap_row = await _db_fetchone(
+    # Busca snapshot mais recente
+    snap_row = await db_fetchone(
         "SELECT data FROM rd_snapshots WHERE client_id=$1 ORDER BY created_at DESC LIMIT 1",
         req.client_id
     )
@@ -244,10 +177,11 @@ async def run_analysis(req: AnalysisRequest):
         client["rd_data"] = parse_json_field(snap_row["data"])
 
     config = ANALYSIS_GUIDES.get(req.type, ANALYSIS_GUIDES["complete"])
-    context = build_client_context(client)
-    rd_detail = _build_rd_detail(client)
 
-    # Substitui placeholder de open_rate no guia cold_metrics se existir
+    # build_client_context já inclui os dados RD detalhados
+    context = build_client_context(client)
+
+    # Substitui placeholder de open_rate no guia cold_metrics
     guide_text = config["guide"]
     avg_open = (client.get("rd_data") or {}).get("avg_open_rate", "N/A")
     guide_text = guide_text.replace("{avg_open_rate}", str(avg_open))
@@ -258,8 +192,6 @@ OBJETIVO: {config['label']}
 
 CONTEXTO DO CLIENTE:
 {context}
-
-{rd_detail}
 
 INSTRUÇÕES:
 {guide_text}"""

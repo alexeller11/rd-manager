@@ -35,7 +35,7 @@ SYSTEM_DEFAULT = SYSTEM_STRATEGIST
 
 
 # ---------------------------------------------------------------------------
-# Pool global de conexões httpx — reutilizado entre todos os providers de IA
+# Pool global de conexões httpx
 # ---------------------------------------------------------------------------
 _AI_HTTP_CLIENT: Optional[httpx.AsyncClient] = None
 
@@ -169,8 +169,6 @@ async def call_ai(
     temperature: float = 0.4,
 ) -> str:
     errors = []
-
-    # Ordem de prioridade: Groq primeiro (rápido e gratuito), depois fallbacks
     providers = ["groq", "sambanova", "openai"]
 
     for provider in providers:
@@ -221,7 +219,6 @@ Não explique depois.
     system_with_json = f"{system or SYSTEM_STRATEGIST}\n\n{json_instruction}"
 
     for attempt in range(_retry):
-        # Temperatura reduzida a cada tentativa para forçar JSON mais determinístico
         temperature = max(0.1, 0.2 - attempt * 0.1)
         raw = await call_ai(
             prompt=prompt,
@@ -242,13 +239,79 @@ Não explique depois.
             if attempt == _retry - 1:
                 logger.error(f"call_ai_json esgotou tentativas. Raw: {raw[:500]}")
                 return {"error": "json_parse_failed", "raw": raw}
-            # Pequena pausa antes de tentar novamente
             await asyncio.sleep(0.5)
 
     return {"error": "json_parse_failed", "raw": ""}
 
 
+def build_rd_detail(rd: dict) -> str:
+    """
+    Formata os dados reais do snapshot RD Station em texto estruturado
+    para enriquecer prompts de IA em qualquer router.
+    """
+    if not rd:
+        return ""
+
+    lines = []
+
+    lines.append("── MÉTRICAS RD STATION ──")
+    lines.append(f"Total de leads: {rd.get('total_leads', 'N/A')}")
+    lines.append(f"Taxa média de abertura: {rd.get('avg_open_rate', 'N/A')}%")
+    lines.append(f"Taxa média de clique: {rd.get('avg_click_rate', 'N/A')}%")
+    lines.append(f"Taxa média de conversão: {rd.get('avg_conversion_rate', 'N/A')}%")
+    lines.append(f"Leads novos (últimos 30d): {rd.get('new_leads_30d', 'N/A')}")
+    lines.append(f"Leads convertidos (últimos 30d): {rd.get('converted_leads_30d', 'N/A')}")
+
+    campaigns = rd.get("recent_campaigns") or []
+    if campaigns:
+        lines.append("\n── CAMPANHAS RECENTES ──")
+        for i, c in enumerate(campaigns[:8], 1):
+            lines.append(
+                f"{i}. \"{c.get('name', 'Sem nome')}\" | "
+                f"Enviados: {c.get('sent', 0)} | "
+                f"Abertura: {c.get('open_rate', 0):.1f}% | "
+                f"Clique: {c.get('click_rate', 0):.1f}% | "
+                f"Status: {c.get('status', '?')}"
+            )
+
+    segmentations = rd.get("segmentations") or []
+    if segmentations:
+        lines.append("\n── SEGMENTAÇÕES ──")
+        for i, s in enumerate(segmentations[:8], 1):
+            lines.append(
+                f"{i}. \"{s.get('name', 'Sem nome')}\" | "
+                f"Contatos: {s.get('contacts_count', 0)}"
+            )
+
+    automations = rd.get("automations") or []
+    if automations:
+        lines.append("\n── AUTOMAÇÕES (FLUXOS) ──")
+        for i, a in enumerate(automations[:8], 1):
+            lines.append(
+                f"{i}. \"{a.get('name', 'Sem nome')}\" | "
+                f"Status: {a.get('status', '?')} | "
+                f"Leads no fluxo: {a.get('leads_count', 0)}"
+            )
+
+    landing_pages = rd.get("landing_pages") or []
+    if landing_pages:
+        lines.append("\n── LANDING PAGES ──")
+        for i, lp in enumerate(landing_pages[:6], 1):
+            lines.append(
+                f"{i}. \"{lp.get('name', 'Sem nome')}\" | "
+                f"Visitas: {lp.get('visits', 0)} | "
+                f"Conversões: {lp.get('conversions', 0)} | "
+                f"Taxa: {lp.get('conversion_rate', 0):.1f}%"
+            )
+
+    return "\n".join(lines)
+
+
 def build_client_context(client: dict) -> str:
+    """
+    Monta o contexto completo do cliente para prompts de IA.
+    Inclui dados cadastrais + métricas RD detalhadas + resumo CRM.
+    """
     name = client.get("name") or "Empresa"
     segment = client.get("segment") or "Não informado"
     description = client.get("description") or "Sem descrição"
@@ -271,18 +334,15 @@ def build_client_context(client: dict) -> str:
 
     rd_data = client.get("rd_data") or {}
     if rd_data:
-        parts.append(
-            "Resumo RD: "
-            f"Leads={rd_data.get('total_leads', 0)} | "
-            f"Emails recentes={len(rd_data.get('recent_campaigns', []))} | "
-            f"Landing pages={len(rd_data.get('landing_pages', []))} | "
-            f"Automações={len(rd_data.get('automations', []))}"
-        )
+        # Inclui o detalhe completo dos dados RD no contexto
+        rd_detail = build_rd_detail(rd_data)
+        if rd_detail:
+            parts.append("\n" + rd_detail)
 
     crm_data = client.get("crm_data") or {}
     if crm_data:
         parts.append(
-            f"Resumo CRM: Negócios={crm_data.get('total_deals', 0)} | "
+            f"\nResumo CRM: Negócios={crm_data.get('total_deals', 0)} | "
             f"Ganhos={crm_data.get('won_deals', 0)}"
         )
 
