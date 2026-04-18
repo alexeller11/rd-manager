@@ -39,10 +39,7 @@ def _to_iso_date(days_back: int = 30) -> str:
     return dt.strftime("%Y-%m-%d")
 
 
-# ── fix #12: client compartilhado por request (connection pool) ────────────────
-# Em vez de criar/destruir um AsyncClient em cada _rd_get,
-# criamos UM client por bloco de chamadas e repassamos via argumento.
-# Isso reutiliza conexões TCP para o mesmo host.
+# ── Client compartilhado por request (connection pool) ────────────────────────
 
 @asynccontextmanager
 async def _rd_client(token: str):
@@ -110,19 +107,19 @@ async def _get_email_metrics(client, start_date: str, end_date: str):
     return await _rd_get(client, "/analytics/emails", {"start_date": start_date, "end_date": end_date})
 
 
-# ── fix #7: score qualitativo (não apenas quantidade) ─────────────────────────
+# ── Score qualitativo ─────────────────────────────────────────────────────────
 
 def _compute_score(landing: dict, workflows: dict, segmentations: dict, campaigns: dict, metrics: dict) -> int:
     score = 0
 
-    # Landing pages: até 20pts — premia pelo menos 1 ativa
+    # Landing pages: até 20pts
     lp_count = landing.get("count", 0)
     if lp_count >= 3:
         score += 20
     elif lp_count >= 1:
         score += 10
 
-    # Workflows: até 20pts — premia workflows ativos
+    # fix #1: wf_items lido de "items" no nível raiz do normalize(), não de raw
     wf_items = workflows.get("items", [])
     wf_active = sum(1 for w in wf_items if str(w.get("status", "")).lower() in ("active", "enabled", "ativo"))
     if wf_active >= 3:
@@ -130,7 +127,7 @@ def _compute_score(landing: dict, workflows: dict, segmentations: dict, campaign
     elif wf_active >= 1:
         score += 12
     elif workflows.get("count", 0) >= 1:
-        score += 5  # têm workflows mas nenhum ativo
+        score += 5
 
     # Segmentações: até 20pts
     seg_count = segmentations.get("count", 0)
@@ -141,7 +138,7 @@ def _compute_score(landing: dict, workflows: dict, segmentations: dict, campaign
     elif seg_count >= 1:
         score += 6
 
-    # Campanhas: até 20pts — premia open_rate
+    # Campanhas: até 20pts
     camp_count = campaigns.get("count", 0)
     if camp_count >= 1:
         score += 10
@@ -154,7 +151,7 @@ def _compute_score(landing: dict, workflows: dict, segmentations: dict, campaign
     elif open_rate >= 15:
         score += 5
 
-    # Métricas disponíveis: até 20pts — penaliza erros de API
+    # Métricas disponíveis: até 20pts
     if "error" not in landing and "error" not in campaigns:
         score += 20
 
@@ -191,10 +188,10 @@ async def rd_overview(
         items = _safe_list(result)
         return {"raw": result, "items": items, "count": len(items), "preview": _safe_preview(items)}
 
-    landing      = normalize(landing_raw, "landing_pages")
+    landing       = normalize(landing_raw, "landing_pages")
     segmentations = normalize(segment_raw, "segmentations")
-    workflows    = normalize(workflow_raw, "workflows")
-    campaigns    = normalize(campaign_raw, "campaigns")
+    workflows     = normalize(workflow_raw, "workflows")
+    campaigns     = normalize(campaign_raw, "campaigns")
 
     if isinstance(metrics_raw, Exception):
         logger.warning("rd_overview: falha em metrics para cliente %s: %s", client_id, metrics_raw)
@@ -284,7 +281,6 @@ async def rd_leads_base(
             if str(seg.get("id") or seg.get("uuid") or "")
         ]
 
-        # fix #4: gather paralelo em vez de loop sequencial
         async def _fetch_segment(seg):
             segment_id = str(seg.get("id") or seg.get("uuid") or "")
             contacts_data = await _get_segment_contacts(client, segment_id=segment_id, page=1, limit=leads_per_segment)
@@ -300,7 +296,15 @@ async def rd_leads_base(
             return_exceptions=True,
         )
 
-    results = [r for r in collected_segments if not isinstance(r, Exception)]
+    # fix #2: loga erros individuais de segmento em vez de silenciar
+    results = []
+    for i, r in enumerate(collected_segments):
+        if isinstance(r, Exception):
+            seg_id = str(valid_segments[i].get("id") or valid_segments[i].get("uuid") or i)
+            logger.warning("rd_leads_base: falha ao buscar segmento %s para cliente %s: %s", seg_id, client_id, r)
+        else:
+            results.append(r)
+
     total_contacts = sum(r["contacts_count"] for r in results)
 
     return {
@@ -333,13 +337,18 @@ async def rd_workflow_detail(client_id: int, workflow_id: str):
     return {"client_id": client_id, "workflow_id": workflow_id, "data": data}
 
 
+# fix #3: rd_automations chama _get_workflows diretamente — evita double token fetch
 @router.get("/automations/{client_id}")
 async def rd_automations(
     client_id: int,
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=200),
 ):
-    return await rd_workflows(client_id=client_id, page=page, limit=limit)
+    token = await get_valid_mkt_token(client_id)
+    async with _rd_client(token) as client:
+        data = await _get_workflows(client, page=page, limit=limit)
+    items = _safe_list(data)
+    return {"client_id": client_id, "count": len(items), "items": items, "raw": data}
 
 
 @router.get("/campaigns/{client_id}")
