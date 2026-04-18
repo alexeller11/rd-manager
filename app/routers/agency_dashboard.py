@@ -2,15 +2,19 @@
 Dashboard consolidado da agência — visão única de todos os clientes.
 Agrega métricas, ranking de performance, alertas críticos, delta mensal
 e portfolio classificado (at_risk / expansion / maintenance).
+
+Endpoints adicionados:
+  GET  /api/agency/stats         — KPIs rápidos para o header do dashboard
+  POST /api/agency/run-all-sync  — dispara sync em lote para todos os clientes
 """
 import asyncio
 import json
 import logging
 from datetime import datetime, timezone
 
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks
 
-from app.database import db_fetch_all, db_fetch_one, db_execute
+from app.database import db_fetch_all, db_fetch_one, db_execute, db_fetchall
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -33,7 +37,6 @@ async def _ensure_active_column():
             )
             _active_column_ensured = True
         except Exception:
-            # Não marca como concluído se falhou — permite retry na próxima chamada
             logger.exception("_ensure_active_column: falha ao adicionar coluna active")
 
 
@@ -112,76 +115,75 @@ async def _fetch_latest_snapshot(cid: int):
     )
 
 
-@router.get("/overview")
-async def agency_overview():
-    await _ensure_active_column()
+def _parse_snap(row) -> dict:
+    if not row:
+        return {}
+    try:
+        return json.loads(row["data"]) if isinstance(row["data"], str) else (row["data"] or {})
+    except Exception:
+        return {}
 
+
+def _metrics_from_data(cid: int, name: str, data: dict) -> dict:
+    total_leads        = _safe_int(data.get("total_leads"))
+    campaigns          = data.get("recent_campaigns") or []
+    avg_open           = _safe_float(data.get("avg_open_rate"))
+    avg_click          = _safe_float(data.get("avg_click_rate"))
+    automations        = data.get("automations") or []
+    landing_pages      = data.get("landing_pages") or []
+    total_conversions  = sum(lp.get("conversions", 0) for lp in landing_pages)
+    active_automations = sum(1 for a in automations if a.get("status") == "active")
+
+    health = 0
+    if total_leads > 0:          health += 20
+    if avg_open >= 20:            health += 20
+    elif avg_open > 0:            health += 10
+    if avg_click >= 3:            health += 20
+    elif avg_click > 0:           health += 10
+    if active_automations >= 3:   health += 20
+    elif active_automations > 0:  health += 10
+    if total_conversions > 0:    health += 20
+
+    return {
+        "client_id":          cid,
+        "name":               name,
+        "total_leads":        total_leads,
+        "total_campaigns":    len(campaigns),
+        "total_conversions":  total_conversions,
+        "avg_open_rate":      avg_open,
+        "avg_click_rate":     avg_click,
+        "active_automations": active_automations,
+        "health_score":       health,
+        "status":             _status_label(health),
+        "synced_at":          data.get("synced_at", ""),
+    }
+
+
+async def _build_client_metrics() -> list:
+    await _ensure_active_column()
     clients = await db_fetch_all("SELECT id, name FROM clients ORDER BY name")
     if not clients:
-        return {
-            "status": "sem_clientes",
-            "message": "Nenhum cliente cadastrado ainda",
-            "totals": {},
-            "ranking": [],
-            "alerts": [],
-            "delta": {},
-            "portfolio": {"at_risk": [], "expansion": [], "maintenance": []},
-        }
+        return []
 
     client_ids = [c["id"] for c in clients]
-    name_map = {c["id"]: c["name"] for c in clients}
+    name_map   = {c["id"]: c["name"] for c in clients}
 
     snap_results = await asyncio.gather(
         *[_fetch_latest_snapshot(cid) for cid in client_ids],
         return_exceptions=True,
     )
-    snapshots = [
-        r for r in snap_results
-        if r is not None and not isinstance(r, Exception)
-    ]
 
     client_metrics = []
-    for snap in snapshots:
-        cid = snap["client_id"]
-        try:
-            data = json.loads(snap["data"]) if isinstance(snap["data"], str) else snap["data"]
-        except Exception:
-            data = {}
+    synced_ids = set()
 
-        total_leads        = _safe_int(data.get("total_leads"))
-        campaigns          = data.get("recent_campaigns") or []
-        avg_open           = _safe_float(data.get("avg_open_rate"))
-        avg_click          = _safe_float(data.get("avg_click_rate"))
-        automations        = data.get("automations") or []
-        landing_pages      = data.get("landing_pages") or []
-        total_conversions  = sum(lp.get("conversions", 0) for lp in landing_pages)
-        active_automations = sum(1 for a in automations if a.get("status") == "active")
+    for snap in snap_results:
+        if snap is None or isinstance(snap, Exception):
+            continue
+        cid  = snap["client_id"]
+        data = _parse_snap(snap)
+        client_metrics.append(_metrics_from_data(cid, name_map.get(cid, f"Cliente {cid}"), data))
+        synced_ids.add(cid)
 
-        health = 0
-        if total_leads > 0:          health += 20
-        if avg_open >= 20:            health += 20
-        elif avg_open > 0:            health += 10
-        if avg_click >= 3:            health += 20
-        elif avg_click > 0:           health += 10
-        if active_automations >= 3:   health += 20
-        elif active_automations > 0:  health += 10
-        if total_conversions > 0:    health += 20
-
-        client_metrics.append({
-            "client_id":          cid,
-            "name":               name_map.get(cid, f"Cliente {cid}"),
-            "total_leads":        total_leads,
-            "total_campaigns":    len(campaigns),
-            "total_conversions":  total_conversions,
-            "avg_open_rate":      avg_open,
-            "avg_click_rate":     avg_click,
-            "active_automations": active_automations,
-            "health_score":       health,
-            "status":             _status_label(health),
-            "synced_at":          data.get("synced_at", ""),
-        })
-
-    synced_ids = {m["client_id"] for m in client_metrics}
     for c in clients:
         if c["id"] not in synced_ids:
             client_metrics.append({
@@ -198,8 +200,26 @@ async def agency_overview():
                 "synced_at":          "",
             })
 
+    return client_metrics
+
+
+@router.get("/overview")
+async def agency_overview():
+    client_metrics = await _build_client_metrics()
+
+    if not client_metrics:
+        return {
+            "status": "sem_clientes",
+            "message": "Nenhum cliente cadastrado ainda",
+            "totals": {},
+            "ranking": [],
+            "alerts": [],
+            "delta": {},
+            "portfolio": {"at_risk": [], "expansion": [], "maintenance": []},
+        }
+
     synced_metrics = [m for m in client_metrics if m["synced_at"]]
-    divisor_avg = max(len(synced_metrics), 1)
+    divisor_avg    = max(len(synced_metrics), 1)
 
     totals = {
         "total_clients":     len(client_metrics),
@@ -213,7 +233,7 @@ async def agency_overview():
 
     ranking   = sorted(client_metrics, key=lambda x: x["health_score"], reverse=True)[:10]
     alerts    = [m for m in client_metrics if m["health_score"] < 50]
-    delta     = await _compute_monthly_delta(client_ids)
+    delta     = await _compute_monthly_delta([m["client_id"] for m in client_metrics])
     portfolio = _build_portfolio(client_metrics)
 
     return {
@@ -227,12 +247,111 @@ async def agency_overview():
 
 
 @router.get("/dashboard")
-async def agency_dashboard():
+async def agency_dashboard_alias():
     return await agency_overview()
 
 
+# ── /stats — KPIs rápidos para o header do dashboard ─────────────────────────
+@router.get("/stats")
+async def agency_stats():
+    """
+    Retorna KPIs resumidos para popular os cards do topo do dashboard:
+      - total_clients
+      - total_leads
+      - avg_health_score
+      - critical_clients  (score < 50)
+      - clients_no_sync   (nunca sincronizados)
+      - synced_clients    (com snapshot)
+    """
+    client_metrics = await _build_client_metrics()
+
+    if not client_metrics:
+        return {
+            "total_clients":   0,
+            "total_leads":     0,
+            "avg_health_score": 0.0,
+            "critical_clients": 0,
+            "clients_no_sync":  0,
+            "synced_clients":   0,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    synced   = [m for m in client_metrics if m["synced_at"]]
+    no_sync  = [m for m in client_metrics if not m["synced_at"]]
+    critical = [m for m in client_metrics if m["health_score"] < 50]
+
+    avg_health = round(
+        sum(m["health_score"] for m in synced) / max(len(synced), 1), 1
+    )
+
+    return {
+        "total_clients":    len(client_metrics),
+        "total_leads":      sum(m["total_leads"] for m in client_metrics),
+        "avg_health_score": avg_health,
+        "critical_clients": len(critical),
+        "clients_no_sync":  len(no_sync),
+        "synced_clients":   len(synced),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+# ── /run-all-sync — dispara sync em lote para todos os clientes ──────────────
+_run_all_status: dict = {"running": False, "progress": 0, "total": 0, "errors": [], "finished_at": None}
+
+
+async def _run_all_sync_job():
+    global _run_all_status
+    try:
+        clients = await db_fetchall("SELECT id, name FROM clients ORDER BY name")
+        total   = len(clients)
+        _run_all_status.update({"running": True, "progress": 0, "total": total, "errors": [], "finished_at": None})
+
+        from app.services.rd_fullsync import run_full_sync_for_client
+
+        batch_size = 3
+        for i in range(0, total, batch_size):
+            batch = clients[i : i + batch_size]
+            results = await asyncio.gather(
+                *[run_full_sync_for_client(c["id"]) for c in batch],
+                return_exceptions=True,
+            )
+            for c, result in zip(batch, results):
+                if isinstance(result, Exception):
+                    _run_all_status["errors"].append(
+                        {"client_id": c["id"], "name": c["name"], "error": str(result)}
+                    )
+            _run_all_status["progress"] = min(i + batch_size, total)
+            if i + batch_size < total:
+                await asyncio.sleep(1)
+
+    except Exception:
+        logger.exception("_run_all_sync_job: erro inesperado")
+    finally:
+        _run_all_status["running"]     = False
+        _run_all_status["progress"]    = _run_all_status["total"]
+        _run_all_status["finished_at"] = datetime.now(timezone.utc).isoformat()
+
+
+@router.post("/run-all-sync")
+async def run_all_sync(background_tasks: BackgroundTasks):
+    """Dispara sync completo para todos os clientes em background (lotes de 3)."""
+    if _run_all_status["running"]:
+        return {
+            "message": "Sync já está em andamento.",
+            "progress": _run_all_status["progress"],
+            "total":    _run_all_status["total"],
+        }
+    background_tasks.add_task(_run_all_sync_job)
+    return {"message": "Sync iniciado para todos os clientes.", "status": "started"}
+
+
+@router.get("/run-all-sync/status")
+async def run_all_sync_status():
+    """Retorna o progresso do sync em lote."""
+    return _run_all_status
+
+
 async def _fetch_delta_for_client(cid: int):
-    """Retorna (now_data, prev_data) para um cliente."""
     now_row, prev_row = await asyncio.gather(
         db_fetch_one(
             "SELECT data FROM rd_snapshots WHERE client_id = $1 ORDER BY created_at DESC LIMIT 1",
@@ -247,16 +366,7 @@ async def _fetch_delta_for_client(cid: int):
             cid,
         ),
     )
-
-    def parse_snap(row):
-        if not row:
-            return {}
-        try:
-            return json.loads(row["data"]) if isinstance(row["data"], str) else row["data"]
-        except Exception:
-            return {}
-
-    return parse_snap(now_row), parse_snap(prev_row)
+    return _parse_snap(now_row), _parse_snap(prev_row)
 
 
 async def _compute_monthly_delta(client_ids: list) -> dict:
@@ -293,7 +403,7 @@ async def _compute_monthly_delta(client_ids: list) -> dict:
     }
 
 
-# fix #2: serializa created_at para str — asyncpg.Record não converte datetime automaticamente
+# fix #2: serializa created_at para str
 @router.get("/clients-summary")
 async def clients_summary():
     await _ensure_active_column()
