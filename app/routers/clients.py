@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -8,8 +9,9 @@ from app.database import db_execute, db_fetch_all, db_fetch_one, db_fetchval
 
 router = APIRouter()
 
-# Flag de memoize — garante que os ALTER TABLE rodam apenas uma vez por processo
+# fix #1: lock para garantir que os ALTER TABLE não rodem em paralelo
 _clients_table_initialized = False
+_clients_table_lock = asyncio.Lock()
 
 
 # =============================
@@ -38,62 +40,61 @@ async def _ensure_clients_table():
     global _clients_table_initialized
     if _clients_table_initialized:
         return
+    async with _clients_table_lock:
+        if _clients_table_initialized:
+            return
 
-    await db_execute(
-        """
-        CREATE TABLE IF NOT EXISTS clients (
-            id SERIAL PRIMARY KEY,
-            name TEXT NOT NULL,
-            segment TEXT,
-            website TEXT,
-            description TEXT,
-            rd_token TEXT,
-            rd_refresh_token TEXT,
-            rd_crm_token TEXT,
-            rd_account_id TEXT,
-            persona TEXT,
-            tone TEXT,
-            main_pain TEXT,
-            objections TEXT,
-            created_at TIMESTAMPTZ DEFAULT NOW(),
-            updated_at TIMESTAMPTZ DEFAULT NOW()
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS clients (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                segment TEXT,
+                website TEXT,
+                description TEXT,
+                rd_token TEXT,
+                rd_refresh_token TEXT,
+                rd_crm_token TEXT,
+                rd_account_id TEXT,
+                persona TEXT,
+                tone TEXT,
+                main_pain TEXT,
+                objections TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            )
+            """
         )
-        """
-    )
 
-    # Garante colunas created_at/updated_at em bancos antigos
-    await db_execute(
-        """
-        ALTER TABLE clients
-        ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
-        """
-    )
-    await db_execute(
-        """
-        ALTER TABLE clients
-        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
-        """
-    )
-
-    await db_execute(
-        """
-        CREATE TABLE IF NOT EXISTS rd_credentials (
-            client_id INTEGER PRIMARY KEY REFERENCES clients(id) ON DELETE CASCADE,
-            access_token TEXT,
-            refresh_token TEXT,
-            expires_at TIMESTAMPTZ,
-            updated_at TIMESTAMPTZ
+        await db_execute(
+            "ALTER TABLE clients ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();"
         )
-        """
-    )
+        await db_execute(
+            "ALTER TABLE clients ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();"
+        )
 
-    _clients_table_initialized = True
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS rd_credentials (
+                client_id INTEGER PRIMARY KEY REFERENCES clients(id) ON DELETE CASCADE,
+                access_token TEXT,
+                refresh_token TEXT,
+                expires_at TIMESTAMPTZ,
+                updated_at TIMESTAMPTZ
+            )
+            """
+        )
+
+        _clients_table_initialized = True
 
 
 # =============================
 # FUNÇÃO CRÍTICA DE COMPATIBILIDADE
 # =============================
 
+# fix #3: retorna None em vez de lançar HTTPException —
+# os callers em intelligence.py, agency_dashboard.py e rd_station.py
+# verificam `if not client` e precisam receber None para funcionar corretamente.
 async def fetch_client(client_id: int):
     await _ensure_clients_table()
 
@@ -116,17 +117,21 @@ async def fetch_client(client_id: int):
     WHERE c.id = $1
     """
 
-    client = await db_fetch_one(query, client_id)
-
-    if not client:
-        raise HTTPException(status_code=404, detail="Cliente não encontrado")
-
-    return client
+    return await db_fetch_one(query, client_id)  # None se não encontrado
 
 
 # =============================
 # LISTAR CLIENTES
 # =============================
+
+# fix #2: serializa created_at/updated_at para str — asyncpg.Record não converte datetime
+def _serialize_client(row) -> dict:
+    d = dict(row)
+    for field in ("created_at", "updated_at"):
+        if field in d and d[field] is not None:
+            d[field] = str(d[field])
+    return d
+
 
 @router.get("/")
 async def list_clients():
@@ -158,7 +163,7 @@ async def list_clients():
     """
 
     rows = await db_fetch_all(query)
-    return rows or []
+    return [_serialize_client(r) for r in rows] if rows else []
 
 
 # =============================
@@ -167,7 +172,10 @@ async def list_clients():
 
 @router.get("/{client_id}")
 async def get_client(client_id: int):
-    return await fetch_client(client_id)
+    client = await fetch_client(client_id)
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    return _serialize_client(client)
 
 
 # =============================
@@ -220,11 +228,7 @@ async def update_client(client_id: int, payload: ClientUpdate):
     await _ensure_clients_table()
 
     current = await db_fetch_one(
-        """
-        SELECT id, name, segment, website, description
-        FROM clients
-        WHERE id = $1
-        """,
+        "SELECT id, name, segment, website, description FROM clients WHERE id = $1",
         client_id,
     )
 
