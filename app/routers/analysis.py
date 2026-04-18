@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from app.ai_service import call_ai, build_client_context, build_rd_detail, SYSTEM_STRATEGIST, SYSTEM_SEO, SYSTEM_EXPERT
 from app.routers.clients import fetch_client
 from app.database import db_fetchval, db_fetchall, db_fetchone, parse_json_field
+import json
 
 router = APIRouter()
 
@@ -157,6 +158,92 @@ ANALYSIS_GUIDES = {
 }
 
 
+async def _enrich_rd_data_from_db(client_id: int, rd_data: dict) -> dict:
+    """
+    Enriquece rd_data com dados reais sincronizados no banco (rd_objects),
+    sobrescrevendo/completando campanhas, segmentações, automações e LPs
+    que podem não estar no snapshot.
+    """
+    rd = dict(rd_data) if rd_data else {}
+
+    # Campanhas
+    rows_campaigns = await db_fetchall(
+        """SELECT payload FROM rd_objects
+           WHERE client_id=$1 AND object_type='campaigns'
+           ORDER BY synced_at DESC LIMIT 15""",
+        client_id
+    )
+    if rows_campaigns:
+        campaigns = []
+        for row in rows_campaigns:
+            p = parse_json_field(row["payload"]) if isinstance(row["payload"], str) else (row["payload"] or {})
+            campaigns.append({
+                "name": p.get("name") or p.get("subject") or p.get("title") or "Sem nome",
+                "sent": p.get("emails_sent") or p.get("sent") or 0,
+                "open_rate": float(p.get("open_rate") or p.get("opens_rate") or 0),
+                "click_rate": float(p.get("click_rate") or p.get("clicks_rate") or 0),
+                "status": p.get("status") or p.get("state") or "?",
+            })
+        rd["recent_campaigns"] = campaigns
+
+    # Segmentações
+    rows_segs = await db_fetchall(
+        """SELECT payload FROM rd_objects
+           WHERE client_id=$1 AND object_type='segmentations'
+           ORDER BY synced_at DESC LIMIT 15""",
+        client_id
+    )
+    if rows_segs:
+        segs = []
+        for row in rows_segs:
+            p = parse_json_field(row["payload"]) if isinstance(row["payload"], str) else (row["payload"] or {})
+            segs.append({
+                "name": p.get("name") or p.get("title") or "Sem nome",
+                "contacts_count": p.get("contacts_count") or p.get("contacts") or p.get("leads") or 0,
+            })
+        rd["segmentations"] = segs
+
+    # Automações / Workflows
+    rows_flows = await db_fetchall(
+        """SELECT payload FROM rd_objects
+           WHERE client_id=$1 AND object_type='workflows'
+           ORDER BY synced_at DESC LIMIT 15""",
+        client_id
+    )
+    if rows_flows:
+        automations = []
+        for row in rows_flows:
+            p = parse_json_field(row["payload"]) if isinstance(row["payload"], str) else (row["payload"] or {})
+            automations.append({
+                "name": p.get("name") or p.get("title") or "Sem nome",
+                "status": p.get("status") or p.get("workflow_status") or p.get("state") or "?",
+                "leads_count": p.get("leads_count") or p.get("contacts_count") or 0,
+            })
+        rd["automations"] = automations
+
+    # Landing Pages
+    rows_lps = await db_fetchall(
+        """SELECT payload FROM rd_objects
+           WHERE client_id=$1 AND object_type='landing_pages'
+           ORDER BY synced_at DESC LIMIT 10""",
+        client_id
+    )
+    if rows_lps:
+        lps = []
+        for row in rows_lps:
+            p = parse_json_field(row["payload"]) if isinstance(row["payload"], str) else (row["payload"] or {})
+            cr = p.get("conversion_rate") or 0
+            lps.append({
+                "name": p.get("title") or p.get("name") or "Sem nome",
+                "visits": p.get("visits_count") or p.get("visitors_count") or 0,
+                "conversions": p.get("conversions_count") or p.get("conversions") or 0,
+                "conversion_rate": float(cr) * 100 if float(cr) <= 1 else float(cr),
+            })
+        rd["landing_pages"] = lps
+
+    return rd
+
+
 class AnalysisRequest(BaseModel):
     client_id: int
     type: str = "complete"
@@ -168,22 +255,26 @@ async def run_analysis(req: AnalysisRequest):
     if not client:
         raise HTTPException(404, "Cliente não encontrado")
 
-    # Busca snapshot mais recente
+    # Snapshot mais recente
     snap_row = await db_fetchone(
         "SELECT data FROM rd_snapshots WHERE client_id=$1 ORDER BY created_at DESC LIMIT 1",
         req.client_id
     )
+    rd_data = {}
     if snap_row:
-        client["rd_data"] = parse_json_field(snap_row["data"])
+        rd_data = parse_json_field(snap_row["data"]) or {}
+
+    # Enriquece com dados reais do banco (rd_objects sincronizados)
+    rd_data = await _enrich_rd_data_from_db(req.client_id, rd_data)
+    client["rd_data"] = rd_data
 
     config = ANALYSIS_GUIDES.get(req.type, ANALYSIS_GUIDES["complete"])
 
-    # build_client_context já inclui os dados RD detalhados
     context = build_client_context(client)
 
     # Substitui placeholder de open_rate no guia cold_metrics
     guide_text = config["guide"]
-    avg_open = (client.get("rd_data") or {}).get("avg_open_rate", "N/A")
+    avg_open = rd_data.get("avg_open_rate", "N/A")
     guide_text = guide_text.replace("{avg_open_rate}", str(avg_open))
 
     prompt = f"""Atue como um Consultor de Marketing de Elite.
