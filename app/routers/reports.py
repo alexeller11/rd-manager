@@ -33,7 +33,11 @@ async def generate_report(req: ReportRequest):
     crm_data = parse_json_field(crm_row["data"]) if crm_row else {}
 
     health = calc_health_score(snap)
-    context = build_client_context({**client, "rd_data": snap, "crm_data": crm_data})
+
+    client_dict = dict(client)
+    client_dict["rd_data"] = snap
+    client_dict["crm_data"] = crm_data
+    context = build_client_context(client_dict)
 
     period_label = req.period or "último período"
     type_map = {
@@ -87,7 +91,6 @@ Estruture assim:
 
 @router.get("/history/{client_id}")
 async def get_report_history(client_id: int):
-    # Reutiliza análises salvas como relatórios
     return await db_fetchall(
         "SELECT id, type, created_at FROM analyses WHERE client_id=$1 ORDER BY created_at DESC LIMIT 20",
         client_id

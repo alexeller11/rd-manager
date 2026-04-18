@@ -13,10 +13,8 @@ from app.routers.clients import fetch_client
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# A URL correta para a API pública do RD CRM é crm.rdstation.com/api/v1
 RD_CRM = "https://crm.rdstation.com/api/v1"
 
-# Pool de conexões reutilizável por processo
 _CRM_HTTP_CLIENT: Optional[httpx.AsyncClient] = None
 
 
@@ -133,7 +131,9 @@ async def analyze_crm(req: dict):
     if not crm_data:
         raise HTTPException(400, "Sincronize o CRM primeiro para gerar dados para a IA.")
 
-    context = build_client_context({**client_obj, "crm_data": crm_data})
+    client_dict = dict(client_obj)
+    client_dict["crm_data"] = crm_data
+    context = build_client_context(client_dict)
     prompt = f"Analise o pipeline e performance de vendas deste cliente. Identifique gargalos e oportunidades.\n\n{context}"
 
     result = await call_ai(prompt, system=SYSTEM_STRATEGIST)

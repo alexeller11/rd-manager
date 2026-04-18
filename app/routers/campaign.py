@@ -44,6 +44,8 @@ async def plan_campaign(req: CampaignRequest):
         req.client_id,
     )
     rd_data = parse_json_field(snap_row["data"]) if snap_row else {}
+
+    client = dict(client)
     client["rd_data"] = rd_data
 
     context = build_client_context(client)
