@@ -46,12 +46,12 @@ async def generate_flow(req: FlowGenerate):
         raise HTTPException(404, "Cliente não encontrado")
 
     flow_labels = {
-        "nurturing":    "fluxo de nutrição de leads desde a captura até a conversão",
-        "welcome":      "sequência de boas-vindas para novos leads",
-        "reengagement": "fluxo de reengajamento para leads inativos",
+        "nurturing":     "fluxo de nutrição de leads desde a captura até a conversão",
+        "welcome":       "sequência de boas-vindas para novos leads",
+        "reengagement":  "fluxo de reengajamento para leads inativos",
         "post_purchase": "automação pós-compra para aumentar LTV",
-        "lead_scoring": "fluxo de qualificação e lead scoring automático",
-        "onboarding":   "onboarding de novos clientes",
+        "lead_scoring":  "fluxo de qualificação e lead scoring automático",
+        "onboarding":    "onboarding de novos clientes",
     }
     context = build_client_context(client)
     flow_label = flow_labels.get(req.flow_type, req.flow_type)
@@ -141,14 +141,20 @@ async def save_flow(req: FlowSave):
     return {"id": flow_id, "success": True}
 
 
+# fix #1: serializa created_at para str
 @router.get("/list/{client_id}")
 async def list_flows(client_id: int):
-    return await db_fetchall(
+    rows = await db_fetchall(
         "SELECT id, name, description, created_at FROM flows WHERE client_id=$1 ORDER BY created_at DESC",
         client_id
     )
+    return [
+        {"id": r["id"], "name": r["name"], "description": r["description"], "created_at": str(r["created_at"])}
+        for r in (rows or [])
+    ]
 
 
+# fix #2: serializa created_at/updated_at em detail
 @router.get("/detail/{flow_id}")
 async def get_flow(flow_id: int):
     row = await db_fetchone("SELECT * FROM flows WHERE id=$1", flow_id)
@@ -156,6 +162,9 @@ async def get_flow(flow_id: int):
         raise HTTPException(404, "Fluxo não encontrado")
     d = dict(row)
     d["flow_data"] = parse_json_field(d.get("flow_data"))
+    for field in ("created_at", "updated_at"):
+        if field in d and d[field] is not None:
+            d[field] = str(d[field])
     return d
 
 
