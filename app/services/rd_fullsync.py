@@ -550,6 +550,32 @@ def _extract_lp_url(item: dict) -> str:
     )
 
 
+async def _fetch_segmentation_contacts(
+    client: httpx.AsyncClient,
+    token: str,
+    segmentation: dict,
+    index: int,
+) -> dict:
+    """Busca contatos de uma segmentação individual — usado no gather paralelo."""
+    seg_id = (
+        segmentation.get("id")
+        or segmentation.get("uuid")
+        or segmentation.get("identifier")
+    )
+    if not seg_id:
+        return {"segmentation": segmentation, "index": index, "contacts_res": None, "seg_id": None}
+
+    contacts_res = await _fetch_segment_contacts_debug(
+        client, token, str(seg_id), limit=100, max_pages=10
+    )
+    return {
+        "segmentation": segmentation,
+        "index": index,
+        "contacts_res": contacts_res,
+        "seg_id": str(seg_id),
+    }
+
+
 async def run_full_sync(client_id: int):
     await ensure_sync_tables()
     run_id = await _create_run(client_id)
@@ -608,7 +634,7 @@ async def run_full_sync(client_id: int):
             else:
                 module_errors["landing_pages"] = str(res_lp)
 
-            # Segmentations + Leads
+            # Segmentations — upsert inicial
             segmentations = []
             unique_leads: List[dict] = []
             seen_leads: Set[str] = set()
@@ -624,21 +650,31 @@ async def run_full_sync(client_id: int):
                         item,
                     )
 
-                for segmentation in segmentations[:15]:
-                    seg_id = (
-                        segmentation.get("id")
-                        or segmentation.get("uuid")
-                        or segmentation.get("identifier")
-                    )
-                    if not seg_id:
+                # Fetch paralelo de contatos para até 15 segmentações
+                seg_slice = segmentations[:15]
+                seg_results = await asyncio.gather(
+                    *[
+                        _fetch_segmentation_contacts(client, token, seg, i)
+                        for i, seg in enumerate(seg_slice)
+                    ],
+                    return_exceptions=True,
+                )
+
+                for result in seg_results:
+                    if isinstance(result, Exception):
+                        logger.warning("Erro ao buscar contatos de segmentação: %s", result)
                         continue
 
-                    contacts_res = await _fetch_segment_contacts_debug(
-                        client, token, str(seg_id), limit=100, max_pages=10
-                    )
+                    segmentation = result["segmentation"]
+                    contacts_res = result["contacts_res"]
+                    seg_id = result["seg_id"]
+
+                    if seg_id is None or contacts_res is None:
+                        continue
+
                     leads_debug.append(
                         {
-                            "segmentation_id": str(seg_id),
+                            "segmentation_id": seg_id,
                             "ok": contacts_res["ok"],
                             "count": len(contacts_res["items"]),
                         }
@@ -663,7 +699,7 @@ async def run_full_sync(client_id: int):
                         await _upsert_snapshot(
                             client_id,
                             "segmentation_contacts",
-                            str(seg_id),
+                            seg_id,
                             {
                                 "segmentation": segmentation,
                                 "contacts_count": len(contacts),
