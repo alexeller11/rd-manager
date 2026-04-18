@@ -25,8 +25,25 @@ MKT_CLIENT_ID = (settings.rd_client_id or "").strip()
 MKT_CLIENT_SECRET = (settings.rd_client_secret or "").strip()
 RD_TOKEN_URL = "https://api.rd.services/auth/token"
 
-# ── fix #6: cache in-memory de tokens RD ─────────────────────────────────────
-# Evita uma query ao banco a cada chamada de endpoint que precise do token.
+# Pool HTTP reutilizável para chamadas de auth (token exchange / refresh)
+_AUTH_HTTP_CLIENT: Optional[httpx.AsyncClient] = None
+
+
+def _get_auth_http_client() -> httpx.AsyncClient:
+    global _AUTH_HTTP_CLIENT
+    if _AUTH_HTTP_CLIENT is None or _AUTH_HTTP_CLIENT.is_closed:
+        _AUTH_HTTP_CLIENT = httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0, connect=5.0),
+            limits=httpx.Limits(
+                max_keepalive_connections=5,
+                max_connections=10,
+                keepalive_expiry=30.0,
+            ),
+        )
+    return _AUTH_HTTP_CLIENT
+
+
+# Cache in-memory de tokens RD
 # Estrutura: { client_id: {"token": str, "expires_at": datetime} }
 # TTL conservador: expira 60s antes do token real para garantir margem.
 _token_cache: dict[int, dict] = {}
@@ -53,9 +70,6 @@ def _cache_get(client_id: int) -> str | None:
 
 def _cache_invalidate(client_id: int) -> None:
     _token_cache.pop(client_id, None)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 async def save_mkt_token(
@@ -125,7 +139,6 @@ async def save_mkt_token(
         (access_token or "").strip(),
     )
 
-    # atualiza cache após salvar no banco
     _cache_put(client_id, (access_token or "").strip(), expires_at)
 
     return {
@@ -158,14 +171,11 @@ def _parse_expires_at(value) -> datetime | None:
 def _normalize_password_for_bcrypt(password: str) -> str:
     if password is None:
         return ""
-
     if not isinstance(password, str):
         password = str(password)
-
     raw = password.encode("utf-8")
     if len(raw) <= 72:
         return password
-
     trimmed = raw[:72]
     while True:
         try:
@@ -188,11 +198,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-
     expire = datetime.now(timezone.utc) + (
         expires_delta or timedelta(minutes=settings.token_expire_minutes)
     )
-
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=ALGORITHM)
     return encoded_jwt
@@ -218,12 +226,9 @@ async def ensure_admin_exists():
         """,
         settings.admin_username,
     )
-
     if existing:
         return existing
-
     password_hash = hash_password(settings.admin_password)
-
     await db_execute(
         """
         INSERT INTO admins (username, password_hash)
@@ -232,7 +237,6 @@ async def ensure_admin_exists():
         settings.admin_username,
         password_hash,
     )
-
     return await get_admin_by_username(settings.admin_username)
 
 
@@ -240,14 +244,9 @@ async def authenticate_admin(username: str, password: str):
     user = await get_admin_by_username(username)
     if not user:
         return None
-
     if not verify_password(password, user["password_hash"]):
         return None
-
-    return {
-        "id": user["id"],
-        "username": user["username"],
-    }
+    return {"id": user["id"], "username": user["username"]}
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -256,7 +255,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         detail="Not authenticated",
         headers={"WWW-Authenticate": "Bearer"},
     )
-
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
         username: str | None = payload.get("sub")
@@ -264,19 +262,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-
     user = await get_admin_by_username(username)
     if user is None:
         raise credentials_exception
-
-    return {
-        "id": user["id"],
-        "username": user["username"],
-    }
+    return {"id": user["id"], "username": user["username"]}
 
 
 async def get_valid_mkt_token(client_id: int) -> str:
-    # fix #6: tenta cache antes de ir ao banco
     cached = _cache_get(client_id)
     if cached:
         return cached
@@ -299,7 +291,7 @@ async def get_valid_mkt_token(client_id: int) -> str:
         if expires_soon and row.get("refresh_token"):
             refreshed = await refresh_mkt_token(client_id)
             if refreshed:
-                return refreshed  # refresh_mkt_token já atualiza o cache via save_mkt_token
+                return refreshed
 
         token = row["access_token"]
         _cache_put(client_id, token, expires_at)
@@ -322,7 +314,7 @@ async def get_valid_mkt_token(client_id: int) -> str:
 
 
 async def refresh_mkt_token(client_id: int) -> str | None:
-    _cache_invalidate(client_id)  # invalida cache antes de refrescar
+    _cache_invalidate(client_id)
 
     row = await db_fetch_one(
         """
@@ -343,8 +335,9 @@ async def refresh_mkt_token(client_id: int) -> str | None:
         "grant_type": "refresh_token",
     }
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(RD_TOKEN_URL, data=payload)
+    # Usa pool reutilizável em vez de AsyncClient avulso
+    http = _get_auth_http_client()
+    response = await http.post(RD_TOKEN_URL, data=payload)
 
     if response.status_code >= 400:
         return None
@@ -371,6 +364,4 @@ async def migrate_plaintext_rd_credentials():
         FROM rd_credentials
         """
     ) or []
-
-    # Mantido apenas como stub seguro para compatibilidade.
     return rows
