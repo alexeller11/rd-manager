@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import secrets
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Header
 from pydantic import BaseModel
@@ -85,12 +86,22 @@ async def trigger_weekly(client_id: int, background_tasks: BackgroundTasks):
     return {"message": "Análise semanal iniciada. Disponível em instantes."}
 
 
+# fix #1: run-all processa em lotes de 5 para não sobrecarregar DB e AI
 @router.post("/weekly/run-all")
 async def run_all_weekly(background_tasks: BackgroundTasks):
     clients = await db_fetchall("SELECT id FROM clients")
-    for c in clients:
-        background_tasks.add_task(run_weekly_analysis_job, c["id"])
-    return {"message": f"Análise iniciada para {len(clients)} clientes (máx. 5 simultâneas)."}
+    client_ids = [c["id"] for c in clients]
+
+    async def _run_batch():
+        batch_size = 5
+        for i in range(0, len(client_ids), batch_size):
+            batch = client_ids[i:i + batch_size]
+            await asyncio.gather(*[run_weekly_analysis_job(cid) for cid in batch])
+            if i + batch_size < len(client_ids):
+                await asyncio.sleep(2)  # pausa entre lotes
+
+    background_tasks.add_task(_run_batch)
+    return {"message": f"Análise iniciada para {len(client_ids)} clientes em lotes de 5."}
 
 
 @router.get("/weekly/latest/{client_id}")
@@ -104,15 +115,20 @@ async def get_latest_weekly(client_id: int):
     return {"result": row["result"], "week_ref": row["week_ref"], "created_at": str(row["created_at"])}
 
 
+# fix #2: serializa created_at para str — asyncpg.Record não converte datetime automaticamente
 @router.get("/weekly/history/{client_id}")
 async def get_weekly_history(client_id: int):
-    return await db_fetchall(
+    rows = await db_fetchall(
         "SELECT id, week_ref, created_at FROM weekly_analyses WHERE client_id=$1 ORDER BY created_at DESC LIMIT 12",
         client_id
     )
+    return [
+        {"id": r["id"], "week_ref": r["week_ref"], "created_at": str(r["created_at"])}
+        for r in rows
+    ]
 
 
-# ─── A/B Test Advisor ────────────────────────────────────────────────────────
+# ─── A/B Test Advisor ───────────────────────────────────────────────────────────
 
 class ABTestRequest(BaseModel):
     client_id: int
@@ -169,7 +185,7 @@ DADOS DO CLIENTE:
     return {"result": result}
 
 
-# ─── Calendário Editorial ─────────────────────────────────────────────────────
+# ─── Calendário Editorial ──────────────────────────────────────────────────────────
 
 class CalendarRequest(BaseModel):
     client_id: int
@@ -210,7 +226,7 @@ Crie um calendário com 8 a 12 envios. Para cada envio:
     return {"result": result, "month": month}
 
 
-# ─── Radar de Concorrência ───────────────────────────────────────────────────
+# ─── Radar de Concorrência ───────────────────────────────────────────────────────────
 
 class CompetitorRequest(BaseModel):
     client_id: int
@@ -255,7 +271,7 @@ DADOS DO CLIENTE:
     return {"result": result}
 
 
-# ─── Dashboard do cliente (AUTENTICADO) ──────────────────────────────────────
+# ─── Dashboard do cliente (AUTENTICADO) ──────────────────────────────────────────────
 # ATENÇÃO: este endpoint exige o header X-Client-Token igual ao rd_token do cliente.
 # Nunca expor dados de marketing sem autenticação.
 
@@ -270,10 +286,10 @@ async def get_public_dashboard(
     if not client_row:
         raise HTTPException(404, "Cliente não encontrado")
 
-    # Validação de token — rejeita se token ausente ou não confere
+    # fix #3: secrets.compare_digest evita timing attack na comparação de token
     stored_token = (client_row.get("rd_token") or "").strip()
     provided = (x_client_token or "").strip()
-    if not stored_token or not provided or provided != stored_token:
+    if not stored_token or not provided or not secrets.compare_digest(provided, stored_token):
         raise HTTPException(403, "Acesso negado: token inválido ou ausente")
 
     snap_row = await db_fetchone(
