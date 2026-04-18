@@ -15,18 +15,26 @@ from app.database import db_fetch_all, db_fetch_one, db_execute
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# Flag de memoize — garante que o ALTER TABLE roda apenas uma vez por processo
+# fix #1: lock para garantir que o ALTER TABLE não rode em paralelo
 _active_column_ensured = False
+_active_column_lock = asyncio.Lock()
 
 
 async def _ensure_active_column():
     global _active_column_ensured
     if _active_column_ensured:
         return
-    await db_execute(
-        "ALTER TABLE clients ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;"
-    )
-    _active_column_ensured = True
+    async with _active_column_lock:
+        if _active_column_ensured:
+            return
+        try:
+            await db_execute(
+                "ALTER TABLE clients ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;"
+            )
+            _active_column_ensured = True
+        except Exception:
+            # Não marca como concluído se falhou — permite retry na próxima chamada
+            logger.exception("_ensure_active_column: falha ao adicionar coluna active")
 
 
 def _safe_float(val, default=0.0) -> float:
@@ -123,7 +131,6 @@ async def agency_overview():
     client_ids = [c["id"] for c in clients]
     name_map = {c["id"]: c["name"] for c in clients}
 
-    # fix #15: busca todos os snapshots em paralelo
     snap_results = await asyncio.gather(
         *[_fetch_latest_snapshot(cid) for cid in client_ids],
         return_exceptions=True,
@@ -141,24 +148,24 @@ async def agency_overview():
         except Exception:
             data = {}
 
-        total_leads       = _safe_int(data.get("total_leads"))
-        campaigns         = data.get("recent_campaigns") or []
-        avg_open          = _safe_float(data.get("avg_open_rate"))
-        avg_click         = _safe_float(data.get("avg_click_rate"))
-        automations       = data.get("automations") or []
-        landing_pages     = data.get("landing_pages") or []
-        total_conversions = sum(lp.get("conversions", 0) for lp in landing_pages)
+        total_leads        = _safe_int(data.get("total_leads"))
+        campaigns          = data.get("recent_campaigns") or []
+        avg_open           = _safe_float(data.get("avg_open_rate"))
+        avg_click          = _safe_float(data.get("avg_click_rate"))
+        automations        = data.get("automations") or []
+        landing_pages      = data.get("landing_pages") or []
+        total_conversions  = sum(lp.get("conversions", 0) for lp in landing_pages)
         active_automations = sum(1 for a in automations if a.get("status") == "active")
 
         health = 0
-        if total_leads > 0:         health += 20
-        if avg_open >= 20:           health += 20
-        elif avg_open > 0:           health += 10
-        if avg_click >= 3:           health += 20
-        elif avg_click > 0:          health += 10
-        if active_automations >= 3:  health += 20
-        elif active_automations > 0: health += 10
-        if total_conversions > 0:   health += 20
+        if total_leads > 0:          health += 20
+        if avg_open >= 20:            health += 20
+        elif avg_open > 0:            health += 10
+        if avg_click >= 3:            health += 20
+        elif avg_click > 0:           health += 10
+        if active_automations >= 3:   health += 20
+        elif active_automations > 0:  health += 10
+        if total_conversions > 0:    health += 20
 
         client_metrics.append({
             "client_id":          cid,
@@ -195,16 +202,15 @@ async def agency_overview():
     divisor_avg = max(len(synced_metrics), 1)
 
     totals = {
-        "total_clients":    len(client_metrics),
-        "total_leads":      sum(m["total_leads"] for m in client_metrics),
-        "total_campaigns":  sum(m["total_campaigns"] for m in client_metrics),
+        "total_clients":     len(client_metrics),
+        "total_leads":       sum(m["total_leads"] for m in client_metrics),
+        "total_campaigns":   sum(m["total_campaigns"] for m in client_metrics),
         "total_conversions": sum(m["total_conversions"] for m in client_metrics),
-        "avg_open_rate":    round(sum(m["avg_open_rate"] for m in synced_metrics) / divisor_avg, 1),
-        "avg_click_rate":   round(sum(m["avg_click_rate"] for m in synced_metrics) / divisor_avg, 1),
-        "avg_health_score": round(sum(m["health_score"] for m in synced_metrics) / divisor_avg, 1),
+        "avg_open_rate":     round(sum(m["avg_open_rate"] for m in synced_metrics) / divisor_avg, 1),
+        "avg_click_rate":    round(sum(m["avg_click_rate"] for m in synced_metrics) / divisor_avg, 1),
+        "avg_health_score":  round(sum(m["health_score"] for m in synced_metrics) / divisor_avg, 1),
     }
 
-    # fix #5: delta mensal em paralelo
     ranking   = sorted(client_metrics, key=lambda x: x["health_score"], reverse=True)[:10]
     alerts    = [m for m in client_metrics if m["health_score"] < 50]
     delta     = await _compute_monthly_delta(client_ids)
@@ -254,7 +260,6 @@ async def _fetch_delta_for_client(cid: int):
 
 
 async def _compute_monthly_delta(client_ids: list) -> dict:
-    # fix #5: busca now/prev de todos os clientes em paralelo
     results = await asyncio.gather(
         *[_fetch_delta_for_client(cid) for cid in client_ids],
         return_exceptions=True,
@@ -279,17 +284,24 @@ async def _compute_monthly_delta(client_ids: list) -> dict:
         return round((now - prev) / prev * 100, 1)
 
     return {
-        "leads_now":              total_leads_now,
-        "leads_prev":             total_leads_prev,
-        "leads_delta_pct":        pct(total_leads_now, total_leads_prev),
-        "conversions_now":        total_conv_now,
-        "conversions_prev":       total_conv_prev,
-        "conversions_delta_pct":  pct(total_conv_now, total_conv_prev),
+        "leads_now":             total_leads_now,
+        "leads_prev":            total_leads_prev,
+        "leads_delta_pct":       pct(total_leads_now, total_leads_prev),
+        "conversions_now":       total_conv_now,
+        "conversions_prev":      total_conv_prev,
+        "conversions_delta_pct": pct(total_conv_now, total_conv_prev),
     }
 
 
+# fix #2: serializa created_at para str — asyncpg.Record não converte datetime automaticamente
 @router.get("/clients-summary")
 async def clients_summary():
     await _ensure_active_column()
     clients = await db_fetch_all("SELECT id, name, created_at FROM clients ORDER BY name")
-    return {"clients": [dict(c) for c in (clients or [])], "total": len(clients or [])}
+    return {
+        "clients": [
+            {"id": c["id"], "name": c["name"], "created_at": str(c["created_at"])}
+            for c in (clients or [])
+        ],
+        "total": len(clients or []),
+    }
