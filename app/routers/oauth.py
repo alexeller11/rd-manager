@@ -1,6 +1,7 @@
 import logging
 import os
 import secrets
+import time
 
 import httpx
 from fastapi import APIRouter, Request
@@ -15,9 +16,20 @@ settings = get_settings()
 
 RD_AUTH_URL = "https://api.rd.services/auth/dialog"
 
-# Armazena estados CSRF em memória (TTL simples por lookup).
+# fix #1: estado CSRF agora guarda (client_id, timestamp) com TTL de 10 minutos.
 # Em multi-instância usar Redis; aqui é suficiente para single-instance.
-_pending_states: dict[str, int] = {}
+_CSRF_TTL = 600  # segundos
+_pending_states: dict[str, tuple[int, float]] = {}
+
+
+def _cleanup_expired_states() -> None:
+    """Remove estados CSRF expirados — chamado a cada callback."""
+    now = time.monotonic()
+    expired = [k for k, (_, ts) in _pending_states.items() if now - ts > _CSRF_TTL]
+    for k in expired:
+        _pending_states.pop(k, None)
+    if expired:
+        logger.debug("OAuth: %d estados CSRF expirados removidos", len(expired))
 
 
 def get_redirect_uri() -> str:
@@ -68,9 +80,9 @@ async def start_oauth(client_id: int):
     if not MKT_CLIENT_ID:
         return HTMLResponse(_html("Erro", "RD_CLIENT_ID não configurado.", ok=False), status_code=500)
 
-    # Gera token CSRF e associa ao client_id
+    # Gera token CSRF e associa ao client_id com timestamp
     csrf_token = secrets.token_urlsafe(24)
-    _pending_states[csrf_token] = client_id
+    _pending_states[csrf_token] = (client_id, time.monotonic())
 
     redirect_uri = get_redirect_uri()
     state = f"{client_id}:{csrf_token}"
@@ -93,6 +105,9 @@ async def oauth_callback(
     state: str | None = None,
     error: str | None = None,
 ):
+    # Limpa estados expirados a cada callback
+    _cleanup_expired_states()
+
     if error:
         logger.warning("OAuth erro retornado pela RD: %s", error)
         return HTMLResponse(_html("Erro na conexão RD", f"Erro retornado pela RD: {error}", ok=False), status_code=400)
@@ -110,10 +125,20 @@ async def oauth_callback(
     except Exception:
         return HTMLResponse(_html("Erro na conexão RD", "State inválido.", ok=False), status_code=400)
 
-    expected_client_id = _pending_states.pop(csrf_token, None)
-    if expected_client_id is None or expected_client_id != client_id:
-        logger.warning("OAuth CSRF falhou: client_id=%s csrf=%s", client_id, csrf_token[:8])
+    # fix #1: valida TTL — rejeita estados expirados
+    entry = _pending_states.pop(csrf_token, None)
+    if entry is None:
+        logger.warning("OAuth CSRF falhou: csrf=%s não encontrado", csrf_token[:8])
         return HTMLResponse(_html("Erro na conexão RD", "Token CSRF inválido ou expirado.", ok=False), status_code=400)
+
+    expected_client_id, issued_at = entry
+    if expected_client_id != client_id:
+        logger.warning("OAuth CSRF client_id mismatch: esperado=%s recebido=%s", expected_client_id, client_id)
+        return HTMLResponse(_html("Erro na conexão RD", "Token CSRF inválido.", ok=False), status_code=400)
+
+    if time.monotonic() - issued_at > _CSRF_TTL:
+        logger.warning("OAuth CSRF expirado para cliente %s", client_id)
+        return HTMLResponse(_html("Erro na conexão RD", "Sessão de autorização expirada. Tente novamente.", ok=False), status_code=400)
 
     payload = {
         "client_id": MKT_CLIENT_ID,
@@ -127,9 +152,10 @@ async def oauth_callback(
         response = await client.post(RD_TOKEN_URL, data=payload)
 
     if response.status_code >= 400:
-        logger.error("OAuth falha ao trocar token: %s", response.text[:200])
+        # fix #2: loga o detalhe internamente, exibe mensagem genérica para o usuário
+        logger.error("OAuth falha ao trocar token (status %s): %s", response.status_code, response.text[:500])
         return HTMLResponse(
-            _html("Erro na conexão RD", f"Falha ao trocar token: {response.text[:500]}", ok=False),
+            _html("Erro na conexão RD", "Falha ao conectar com a RD Station. Tente novamente ou contate o suporte.", ok=False),
             status_code=500,
         )
 
