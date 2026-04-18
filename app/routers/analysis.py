@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.ai_service import call_ai, build_client_context, SYSTEM_STRATEGIST, SYSTEM_SEO, SYSTEM_EXPERT
 from app.routers.clients import fetch_client
-from app.database import db_fetchval, db_fetchall
+from app.database import db_fetchval, db_fetchall, db_fetchone
 
 router = APIRouter()
 
@@ -181,7 +181,6 @@ CONTEXTO DO CLIENTE:
 
     result = await call_ai(prompt, system=config["system"], max_tokens=3500)
 
-    # Persiste a análise no banco
     analysis_id = await db_fetchval(
         "INSERT INTO analyses (client_id, type, prompt, result) VALUES ($1,$2,$3,$4) RETURNING id",
         req.client_id, req.type, prompt[:1000], result
@@ -190,19 +189,27 @@ CONTEXTO DO CLIENTE:
     return {"result": result, "analysis_id": analysis_id}
 
 
+# fix #1 + #3: import no topo, serializa created_at para str
 @router.get("/history/{client_id}")
 async def get_analysis_history(client_id: int):
     rows = await db_fetchall(
         "SELECT id, type, created_at FROM analyses WHERE client_id=$1 ORDER BY created_at DESC LIMIT 20",
         client_id
     )
-    return rows
+    return [
+        {"id": r["id"], "type": r["type"], "created_at": str(r["created_at"])}
+        for r in (rows or [])
+    ]
 
 
+# fix #2: serializa todos os campos datetime do row
 @router.get("/detail/{analysis_id}")
 async def get_analysis_detail(analysis_id: int):
-    from app.database import db_fetchone
     row = await db_fetchone("SELECT * FROM analyses WHERE id=$1", analysis_id)
     if not row:
         raise HTTPException(404, "Análise não encontrada")
-    return row
+    d = dict(row)
+    for field in ("created_at", "updated_at"):
+        if field in d and d[field] is not None:
+            d[field] = str(d[field])
+    return d
