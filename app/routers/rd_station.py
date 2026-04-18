@@ -36,23 +36,29 @@ router = APIRouter()
 RD_API = "https://api.rd.services"
 SYNC_LOCKS: dict[int, asyncio.Lock] = {}
 
-# Pool global de conexões httpx — reutilizado em todas as requisições
+# Pool global de conexões httpx
 _RD_HTTP_CLIENT: Optional[httpx.AsyncClient] = None
+# fix #1: lock para criação thread-safe do client
+_RD_HTTP_CLIENT_LOCK = asyncio.Lock()
 
 
-def get_http_client() -> httpx.AsyncClient:
+async def get_http_client() -> httpx.AsyncClient:
     global _RD_HTTP_CLIENT
-    if _RD_HTTP_CLIENT is None or _RD_HTTP_CLIENT.is_closed:
-        _RD_HTTP_CLIENT = httpx.AsyncClient(
-            base_url=RD_API,
-            limits=httpx.Limits(
-                max_keepalive_connections=30,
-                max_connections=60,
-                keepalive_expiry=30.0,
-            ),
-            timeout=httpx.Timeout(30.0, connect=5.0),
-            follow_redirects=True,
-        )
+    if _RD_HTTP_CLIENT is not None and not _RD_HTTP_CLIENT.is_closed:
+        return _RD_HTTP_CLIENT
+    async with _RD_HTTP_CLIENT_LOCK:
+        # double-check após adquirir o lock
+        if _RD_HTTP_CLIENT is None or _RD_HTTP_CLIENT.is_closed:
+            _RD_HTTP_CLIENT = httpx.AsyncClient(
+                base_url=RD_API,
+                limits=httpx.Limits(
+                    max_keepalive_connections=30,
+                    max_connections=60,
+                    keepalive_expiry=30.0,
+                ),
+                timeout=httpx.Timeout(30.0, connect=5.0),
+                follow_redirects=True,
+            )
     return _RD_HTTP_CLIENT
 
 
@@ -140,7 +146,6 @@ async def rd_request(
     retries: int = 3,
     bypass_cache: bool = False,
 ) -> dict:
-    # Cache apenas para GET
     if method == "GET" and not bypass_cache:
         params_key = frozenset((params or {}).items())
         cache_key = f"{client_id}:{path}:{hash(params_key)}"
@@ -159,7 +164,7 @@ async def rd_request(
         "Accept": "application/json",
     }
 
-    client = get_http_client()
+    client = await get_http_client()
     for attempt in range(retries):
         response = await client.request(method, path, headers=headers, params=params or {})
 
@@ -259,7 +264,10 @@ async def _fetch_emails(client_id: int) -> tuple[list[dict], float, float]:
     total_click = 0
 
     for em in emails_raw:
-        sent = max(safe_int(em.get("sends") or em.get("sent_count")), 1)
+        sent = safe_int(em.get("sends") or em.get("sent_count"))
+        # fix #2: pula e-mails com 0 envios — evita taxas falsas
+        if sent == 0:
+            continue
         opens = safe_int(em.get("opens") or em.get("open_count"))
         clicks = safe_int(em.get("clicks") or em.get("click_count"))
         total_sent += sent
@@ -308,7 +316,6 @@ async def _fetch_landing_pages(client_id: int) -> list[dict]:
         conversions = safe_int(lp.get("conversions_count") or lp.get("leads"))
         rate = round(conversions / max(visitors, 1) * 100, 1)
 
-        # URL real da landing page — prioriza campos diretos da API
         url = (
             lp.get("url")
             or lp.get("page_url")
@@ -317,7 +324,6 @@ async def _fetch_landing_pages(client_id: int) -> list[dict]:
             or ""
         )
 
-        # conversion_identifier para uso em analytics
         conversion_identifier = (
             lp.get("conversion_identifier")
             or lp.get("identifier")
@@ -377,7 +383,6 @@ async def sync_client(client_id: int):
             }
 
             await save_rd_snapshot(client_id, snapshot)
-            # Invalida cache deste cliente após sync
             rd_cache.delete_prefix(f"{client_id}:")
             await _finish_sync_run(sync_run_id, "success", {"snapshot_saved": True})
 
@@ -403,20 +408,23 @@ async def sync_client(client_id: int):
 
 @router.get("/diagnose/{client_id}")
 async def diagnose_token(client_id: int):
+    # fix #3: diagnose em paralelo em vez de loop sequencial
     endpoints = [
         ("segmentations", "/platform/segmentations"),
         ("emails", "/platform/emails"),
         ("landing_pages", "/platform/landing_pages"),
         ("workflows", "/platform/workflows"),
     ]
-    results = []
-    for label, path in endpoints:
+
+    async def _check(label: str, path: str) -> dict:
         try:
             await rd_request(client_id, "GET", path, {"page": 1, "page_size": 1})
-            results.append({"name": label, "ok": True})
+            return {"name": label, "ok": True}
         except HTTPException as e:
-            results.append({"name": label, "ok": False, "status": e.status_code, "detail": e.detail})
-    return results
+            return {"name": label, "ok": False, "status": e.status_code, "detail": e.detail}
+
+    results = await asyncio.gather(*[_check(label, path) for label, path in endpoints])
+    return list(results)
 
 
 @router.get("/snapshot/{client_id}")
@@ -491,13 +499,16 @@ Entregue:
     return {"result": result}
 
 
-@router.post("/flows/generate")
-async def generate_flow(req: dict):
-    client_id = req.get("client_id")
-    objective = req.get("objective")
-    flow_type = req.get("flow_type")
+# fix #4: BaseModel completo para generate_flow — valida client_id, objective e flow_type
+class GenerateFlowRequest(BaseModel):
+    client_id: int
+    objective: str
+    flow_type: Optional[str] = "general"
 
-    client = await fetch_client(client_id)
+
+@router.post("/flows/generate")
+async def generate_flow(req: GenerateFlowRequest):
+    client = await fetch_client(req.client_id)
     if not client:
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
@@ -521,8 +532,8 @@ async def generate_flow(req: dict):
         prompt=f"""
 Crie um fluxo de automação estratégico.
 
-Objetivo: {objective}
-Tipo: {flow_type}
+Objetivo: {req.objective}
+Tipo: {req.flow_type}
 
 Contexto do cliente:
 {context}
