@@ -55,7 +55,6 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Subtle grid background */
     body::before {
       content: '';
       position: fixed;
@@ -85,17 +84,9 @@
 
     .sidebar-inner { padding: 28px 16px 24px; flex: 1; display: flex; flex-direction: column; }
 
-    .brand {
-      padding: 0 8px;
-      margin-bottom: 32px;
-    }
+    .brand { padding: 0 8px; margin-bottom: 32px; }
 
-    .brand-logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
-    }
+    .brand-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 
     .brand-icon {
       width: 36px; height: 36px;
@@ -118,16 +109,9 @@
       letter-spacing: -0.02em;
     }
 
-    .brand-sub {
-      font-size: 11px;
-      color: var(--text-3);
-      padding-left: 46px;
-      letter-spacing: 0.02em;
-    }
+    .brand-sub { font-size: 11px; color: var(--text-3); padding-left: 46px; letter-spacing: 0.02em; }
 
-    .nav-section {
-      margin-bottom: 4px;
-    }
+    .nav-section { margin-bottom: 4px; }
 
     .nav-label {
       font-size: 10px;
@@ -159,11 +143,7 @@
 
     .nav-btn:hover { background: rgba(255,255,255,0.05); color: var(--text); }
 
-    .nav-btn.active {
-      background: var(--lime-dim);
-      color: var(--lime);
-      font-weight: 500;
-    }
+    .nav-btn.active { background: var(--lime-dim); color: var(--lime); font-weight: 500; }
 
     .nav-btn.active::before {
       content: '';
@@ -174,19 +154,10 @@
       border-radius: 0 3px 3px 0;
     }
 
-    .nav-icon {
-      width: 16px; height: 16px;
-      opacity: 0.7;
-      flex-shrink: 0;
-    }
-
+    .nav-icon { width: 16px; height: 16px; opacity: 0.7; flex-shrink: 0; }
     .nav-btn.active .nav-icon { opacity: 1; }
 
-    .sidebar-footer {
-      padding: 16px;
-      border-top: 1px solid var(--line);
-      margin-top: auto;
-    }
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--line); margin-top: auto; }
 
     .logout-btn {
       width: 100%;
@@ -207,17 +178,10 @@
     .logout-btn:hover { border-color: var(--rose); color: var(--rose); background: var(--rose-dim); }
 
     /* ── MAIN ── */
-    .main {
-      margin-left: var(--sidebar);
-      flex: 1;
-      padding: 40px 48px;
-      min-height: 100vh;
-    }
+    .main { margin-left: var(--sidebar); flex: 1; padding: 40px 48px; min-height: 100vh; }
 
     /* ── PAGE HEADER ── */
-    .page-header {
-      margin-bottom: 32px;
-    }
+    .page-header { margin-bottom: 32px; }
 
     .page-eyebrow {
       font-size: 11px;
@@ -238,11 +202,7 @@
       margin-bottom: 10px;
     }
 
-    .page-sub {
-      font-size: 14px;
-      color: var(--text-2);
-      line-height: 1.5;
-    }
+    .page-sub { font-size: 14px; color: var(--text-2); line-height: 1.5; }
 
     /* ── CARDS ── */
     .card {
@@ -266,12 +226,7 @@
     }
 
     /* ── KPI GRID ── */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 28px;
-    }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
 
     .kpi-card {
       background: var(--ink-2);
@@ -300,30 +255,11 @@
     .kpi-card.amber::after { background: var(--amber); }
     .kpi-card.rose::after { background: var(--rose); }
 
-    .kpi-label {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-3);
-      margin-bottom: 10px;
-    }
+    .kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-3); margin-bottom: 10px; }
 
-    .kpi-value {
-      font-family: 'Syne', sans-serif;
-      font-size: 34px;
-      font-weight: 700;
-      letter-spacing: -0.04em;
-      color: var(--text);
-      line-height: 1;
-    }
+    .kpi-value { font-family: 'Syne', sans-serif; font-size: 34px; font-weight: 700; letter-spacing: -0.04em; color: var(--text); line-height: 1; }
 
-    .kpi-change {
-      font-size: 12px;
-      margin-top: 6px;
-      font-weight: 500;
-    }
-
+    .kpi-change { font-size: 12px; margin-top: 6px; font-weight: 500; }
     .kpi-change.up { color: var(--lime); }
     .kpi-change.down { color: var(--rose); }
     .kpi-change.neutral { color: var(--text-3); }
@@ -379,8 +315,10 @@
     .btn-blue { background: var(--blue); color: #fff; }
     .btn-blue:hover:not(:disabled) { filter: brightness(1.1); }
 
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-cyan { background: var(--cyan-dim); color: var(--cyan); border: 1px solid rgba(74,245,212,0.2); }
+    .btn-cyan:hover:not(:disabled) { background: rgba(74,245,212,0.18); }
 
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .btn-sm { padding: 6px 12px; font-size: 12px; }
 
     /* ── FORMS ── */
@@ -417,7 +355,6 @@
     }
 
     textarea { resize: vertical; min-height: 80px; }
-
     select option { background: var(--ink-2); }
 
     /* ── ALERTS ── */
@@ -467,20 +404,9 @@
 
     .client-info { flex: 1; min-width: 0; }
 
-    .client-name {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 3px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    .client-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    .client-meta {
-      font-size: 12px;
-      color: var(--text-3);
-    }
+    .client-meta { font-size: 12px; color: var(--text-3); }
 
     .client-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
@@ -506,31 +432,12 @@
     .ai-result h1 { font-size: 22px; margin-top: 0; }
     .ai-result h2 { font-size: 17px; color: var(--lime); }
     .ai-result h3 { font-size: 15px; }
-
     .ai-result p { margin-bottom: 12px; }
-
-    .ai-result ul, .ai-result ol {
-      padding-left: 20px;
-      margin-bottom: 12px;
-    }
-
+    .ai-result ul, .ai-result ol { padding-left: 20px; margin-bottom: 12px; }
     .ai-result li { margin-bottom: 6px; }
-
     .ai-result strong { color: var(--text); font-weight: 600; }
-
-    .ai-result code {
-      background: rgba(184,245,74,0.1);
-      color: var(--lime);
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 12px;
-    }
-
-    .ai-result hr {
-      border: none;
-      border-top: 1px solid var(--line);
-      margin: 20px 0;
-    }
+    .ai-result code { background: rgba(184,245,74,0.1); color: var(--lime); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .ai-result hr { border: none; border-top: 1px solid var(--line); margin: 20px 0; }
 
     /* ── MODULE ITEMS ── */
     .module-item {
@@ -557,71 +464,12 @@
     }
 
     .module-item-info { flex: 1; min-width: 0; }
-
-    .module-item-name {
-      font-weight: 500;
-      color: var(--text);
-      margin-bottom: 2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
+    .module-item-name { font-weight: 500; color: var(--text); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .module-item-meta { font-size: 12px; color: var(--text-3); }
 
-    /* ── DATA TABLE ── */
-    .data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-
-    .data-table th {
-      text-align: left;
-      padding: 10px 16px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-3);
-      border-bottom: 1px solid var(--line);
-    }
-
-    .data-table td {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--line);
-      color: var(--text-2);
-    }
-
-    .data-table tr:last-child td { border-bottom: none; }
-    .data-table tr:hover td { background: rgba(255,255,255,0.02); color: var(--text); }
-
     /* ── SCORE BAR ── */
-    .score-bar {
-      width: 100%;
-      height: 6px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 99px;
-      overflow: hidden;
-    }
-
-    .score-bar-fill {
-      height: 100%;
-      border-radius: 99px;
-      transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
-    }
-
-    /* ── HEALTH RING ── */
-    .health-ring {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .health-score-num {
-      font-family: 'Syne', sans-serif;
-      font-size: 52px;
-      font-weight: 800;
-      letter-spacing: -0.05em;
-      line-height: 1;
-    }
+    .score-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+    .score-bar-fill { height: 100%; border-radius: 99px; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
 
     /* ── SPINNER ── */
     .spinner {
@@ -636,26 +484,9 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── EMPTY STATE ── */
-    .empty {
-      text-align: center;
-      padding: 60px 40px;
-      color: var(--text-3);
-    }
-
-    .empty-icon {
-      font-size: 40px;
-      margin-bottom: 16px;
-      opacity: 0.4;
-    }
-
-    .empty-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--text-2);
-      margin-bottom: 8px;
-    }
-
+    .empty { text-align: center; padding: 60px 40px; color: var(--text-3); }
+    .empty-icon { font-size: 40px; margin-bottom: 16px; opacity: 0.4; }
+    .empty-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 600; color: var(--text-2); margin-bottom: 8px; }
     .empty p { font-size: 13.5px; max-width: 320px; margin: 0 auto; }
 
     /* ── GRID LAYOUTS ── */
@@ -665,138 +496,159 @@
     .row-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 
     /* ── LOGIN ── */
-    .login-wrap {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px 20px;
-      position: relative;
-      z-index: 1;
-    }
+    .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 20px; position: relative; z-index: 1; }
 
-    .login-card {
-      background: var(--ink-2);
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      padding: 48px;
-      width: 100%;
-      max-width: 420px;
-      box-shadow: var(--shadow);
-    }
+    .login-card { background: var(--ink-2); border: 1px solid var(--line); border-radius: 24px; padding: 48px; width: 100%; max-width: 420px; box-shadow: var(--shadow); }
 
-    .login-logo {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 36px;
-    }
+    .login-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; }
 
-    .login-logo-icon {
-      width: 48px; height: 48px;
-      background: var(--lime);
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 18px;
-      color: var(--ink);
-    }
+    .login-logo-icon { width: 48px; height: 48px; background: var(--lime); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--ink); }
 
-    .login-logo-text {
-      font-family: 'Syne', sans-serif;
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-    }
+    .login-logo-text { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
 
-    .login-card h2 {
-      font-family: 'Syne', sans-serif;
-      font-size: 24px;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      margin-bottom: 6px;
-    }
-
-    .login-card p {
-      font-size: 14px;
-      color: var(--text-2);
-      margin-bottom: 28px;
-    }
-
+    .login-card h2 { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 6px; }
+    .login-card p { font-size: 14px; color: var(--text-2); margin-bottom: 28px; }
     .login-card input { max-width: 100%; margin-bottom: 12px; }
 
-    /* ── STATS WIDGET ── */
-    .stat-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--line);
-    }
-
+    /* ── STAT ROW ── */
+    .stat-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
     .stat-row:last-child { border-bottom: none; }
-
     .stat-label { flex: 1; font-size: 13.5px; color: var(--text-2); }
-
     .stat-value { font-weight: 600; font-size: 14px; color: var(--text); }
 
-    .stat-bar { width: 80px; }
-
     /* ── PILL TABS ── */
-    .pill-tabs {
-      display: flex;
-      gap: 6px;
-      background: var(--ink);
-      border: 1px solid var(--line);
-      border-radius: 99px;
-      padding: 4px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-    }
+    .pill-tabs { display: flex; gap: 6px; background: var(--ink); border: 1px solid var(--line); border-radius: 99px; padding: 4px; margin-bottom: 24px; flex-wrap: wrap; }
 
-    .pill-tab {
-      background: transparent;
-      border: none;
-      padding: 7px 16px;
-      border-radius: 99px;
-      cursor: pointer;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-3);
-      transition: all 0.15s;
-    }
-
+    .pill-tab { background: transparent; border: none; padding: 7px 16px; border-radius: 99px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--text-3); transition: all 0.15s; }
     .pill-tab.active { background: var(--lime); color: var(--ink); font-weight: 600; }
     .pill-tab:not(.active):hover { color: var(--text); background: rgba(255,255,255,0.05); }
 
     /* ── SCROLLABLE LIST ── */
-    .scroll-list { max-height: 400px; overflow-y: auto; }
-
+    .scroll-list { max-height: 480px; overflow-y: auto; }
     .scroll-list::-webkit-scrollbar { width: 4px; }
     .scroll-list::-webkit-scrollbar-track { background: transparent; }
     .scroll-list::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 4px; }
 
-    /* ── COLLAPSIBLE JSON ── */
-    .json-block {
-      background: rgba(0,0,0,0.4);
+    /* ── FILTER BAR ── */
+    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .filter-chip { background: var(--ink); border: 1px solid var(--line); color: var(--text-3); padding: 5px 14px; border-radius: 99px; font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+    .filter-chip:hover { border-color: var(--line-2); color: var(--text); }
+    .filter-chip.active { background: var(--lime-dim); border-color: rgba(184,245,74,0.3); color: var(--lime); }
+
+    /* ── FLOW CANVAS (RD Station style) ── */
+    .flow-canvas {
+      background: var(--ink);
       border: 1px solid var(--line);
-      border-radius: var(--r);
-      padding: 16px;
-      font-size: 12px;
-      color: var(--text-3);
+      border-radius: var(--r-lg);
+      padding: 24px;
       overflow-x: auto;
-      font-family: 'DM Mono', 'Courier New', monospace;
-      max-height: 320px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
+      min-height: 300px;
     }
 
-    /* ── MARKDOWN RENDERER (minimal) ── */
+    .flow-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      position: relative;
+    }
+
+    .flow-timeline::before {
+      content: '';
+      position: absolute;
+      left: 28px;
+      top: 0; bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--lime), rgba(184,245,74,0.1));
+    }
+
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 12px 0;
+      position: relative;
+    }
+
+    .flow-step-dot {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      margin-left: 19px;
+      z-index: 1;
+      margin-top: 3px;
+    }
+
+    .flow-step-dot.trigger { background: var(--lime); color: var(--ink); }
+    .flow-step-dot.email { background: var(--blue); color: #fff; }
+    .flow-step-dot.wait { background: var(--amber-dim); border: 2px solid var(--amber); color: var(--amber); }
+    .flow-step-dot.condition { background: var(--cyan-dim); border: 2px solid var(--cyan); color: var(--cyan); transform: rotate(45deg); border-radius: 4px; }
+    .flow-step-dot.action { background: var(--rose-dim); border: 2px solid var(--rose); color: var(--rose); }
+    .flow-step-dot.end { background: rgba(255,255,255,0.1); border: 2px solid var(--line-2); color: var(--text-3); }
+
+    .flow-step-content {
+      flex: 1;
+      background: var(--ink-2);
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      padding: 12px 16px;
+      transition: border-color 0.15s;
+    }
+
+    .flow-step-content:hover { border-color: var(--line-2); }
+
+    .flow-step-title { font-size: 13.5px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .flow-step-desc { font-size: 12px; color: var(--text-3); line-height: 1.5; }
+    .flow-step-cta { margin-top: 8px; }
+
+    .flow-day-badge {
+      width: 32px; height: 32px;
+      background: var(--lime-dim);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 10px;
+      color: var(--lime);
+      flex-shrink: 0;
+      text-align: center;
+      line-height: 1.2;
+    }
+
+    /* ── AI OVERLAY ── */
+    .ai-panel {
+      background: var(--ink-2);
+      border: 1px solid rgba(184,245,74,0.2);
+      border-radius: var(--r-lg);
+      padding: 24px;
+      margin-top: 20px;
+    }
+
+    .ai-panel-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .ai-badge {
+      background: var(--lime);
+      color: var(--ink);
+      padding: 2px 10px;
+      border-radius: 99px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── MARKDOWN ── */
     .md { font-size: 14px; line-height: 1.75; color: var(--text-2); }
     .md h2 { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--lime); margin: 20px 0 8px; }
     .md h3 { font-size: 14px; font-weight: 600; color: var(--text); margin: 16px 0 6px; }
@@ -806,7 +658,6 @@
     .md li { margin-bottom: 4px; }
     .md hr { border: none; border-top: 1px solid var(--line); margin: 16px 0; }
 
-    /* ── RESPONSIVE ── */
     @media (max-width: 900px) {
       .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
       .sidebar.open { transform: translateX(0); }
@@ -820,7 +671,6 @@
 <script type="text/babel">
 const { useState, useEffect, useCallback, useRef } = React;
 const API = "";
-const BUILD = "2026-04-18-v2.0-redesign";
 
 /* ── AUTH ── */
 const getToken = () => { try { return localStorage.getItem("rdm_token"); } catch { return null; } };
@@ -845,7 +695,7 @@ async function api(url, opts = {}) {
   return data;
 }
 
-/* ── SIMPLE MARKDOWN ── */
+/* ── MARKDOWN RENDERER ── */
 function renderMd(text) {
   if (!text) return "";
   return text
@@ -856,18 +706,17 @@ function renderMd(text) {
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/^---$/gm, '<hr/>')
     .replace(/^[\-\*] (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
     .replace(/\n\n/g, '</p><p>')
     .replace(/^(?!<[hup]|<li|<hr)(.+)$/gm, '<p>$1</p>');
 }
 
-/* ── ICONS (inline SVG) ── */
+/* ── ICONS ── */
 const icons = {
   dashboard: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>,
   clients: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>,
   portfolio: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="4" width="14" height="10" rx="1.5"/><path d="M5 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="M1 8h14"/></svg>,
   lp: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="2" width="14" height="12" rx="1.5"/><path d="M1 6h14M5 10h6M5 13h4"/></svg>,
-  leads: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 1a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm-4 9a4 4 0 0 1 8 0"/><circle cx="13" cy="13" r="2"/><path d="M13 11v-1M13 15v-1"/></svg>,
+  leads: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 1a3 3 0 1 1 0 6 3 3 0 0 1 0-6zm-4 9a4 4 0 0 1 8 0"/><circle cx="13" cy="13" r="2"/></svg>,
   seg: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="5" cy="8" r="4"/><circle cx="11" cy="8" r="4"/></svg>,
   flows: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="4" height="4" rx="1"/><rect x="11" y="6" width="4" height="4" rx="1"/><rect x="1" y="11" width="4" height="4" rx="1"/><path d="M5 3h4a2 2 0 0 1 2 2v4M5 13h4a2 2 0 0 0 2-2v-2"/></svg>,
   studio: <svg className="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 14 8 2l6 12"/><path d="M4.5 10h7"/></svg>,
@@ -882,9 +731,12 @@ const icons = {
   refresh: <svg style={{width:14,height:14}} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M13 8A5 5 0 1 1 8 3M13 3v5H8"/></svg>,
   ai: <svg style={{width:14,height:14}} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13M13 3l-1.4 1.4M4.4 11.6 3 13"/></svg>,
   copy: <svg style={{width:14,height:14}} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="4" y="4" width="9" height="11" rx="1.5"/><path d="M4 4V3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h1"/></svg>,
+  link: <svg style={{width:13,height:13}} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M6 8a3 3 0 0 0 4.5 0l2-2a3 3 0 0 0-4.5-4L7 3M10 8a3 3 0 0 0-4.5 0l-2 2a3 3 0 0 0 4.5 4L9 13"/></svg>,
+  filter: <svg style={{width:13,height:13}} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M1 3h14M4 8h8M7 13h2"/></svg>,
+  email: <svg style={{width:13,height:13}} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="3" width="14" height="10" rx="1.5"/><path d="M1 5l7 4.5L15 5"/></svg>,
 };
 
-/* ── COMPONENTS ── */
+/* ── SHARED COMPONENTS ── */
 
 function Spinner({ size = 16 }) {
   return <div className="spinner" style={{width:size,height:size}} />;
@@ -897,38 +749,21 @@ function Alert({ type="error", children }) {
 function CopyBtn({ text }) {
   const [copied, setCopied] = useState(false);
   function copy() {
-    navigator.clipboard?.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
+    navigator.clipboard?.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); });
   }
-  return (
-    <button className="btn btn-ghost btn-sm" onClick={copy}>
-      {icons.copy} {copied ? "Copiado!" : "Copiar"}
-    </button>
-  );
+  return <button className="btn btn-ghost btn-sm" onClick={copy}>{icons.copy} {copied ? "Copiado!" : "Copiar"}</button>;
 }
 
-function AiResultBlock({ result }) {
+function AiResultBlock({ result, title="Análise da IA" }) {
   if (!result) return null;
   return (
-    <div>
-      <div className="row-between" style={{marginBottom:12}}>
-        <span style={{fontSize:12,color:"var(--text-3)"}}>Resultado da IA</span>
-        <CopyBtn text={result} />
+    <div className="ai-panel">
+      <div className="ai-panel-header">
+        <span className="ai-badge">✦ IA</span>
+        <span style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{title}</span>
+        <div style={{marginLeft:"auto"}}><CopyBtn text={result} /></div>
       </div>
       <div className="ai-result md" dangerouslySetInnerHTML={{__html: renderMd(result)}} />
-    </div>
-  );
-}
-
-function ScoreDisplay({ score, label, size = "md" }) {
-  const color = score >= 75 ? "var(--lime)" : score >= 50 ? "var(--amber)" : "var(--rose)";
-  const fs = size === "lg" ? 52 : 32;
-  return (
-    <div style={{display:"flex",alignItems:"baseline",gap:8}}>
-      <span style={{fontFamily:"Syne,sans-serif",fontSize:fs,fontWeight:800,color,letterSpacing:"-0.04em",lineHeight:1}}>{score}</span>
-      {label && <span style={{fontSize:13,color:"var(--text-3)"}}>{label}</span>}
     </div>
   );
 }
@@ -955,6 +790,10 @@ function ClientSelect({ value, onChange, clients }) {
       {(clients||[]).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
     </select>
   );
+}
+
+function FilterChip({ label, active, onClick }) {
+  return <button className={`filter-chip ${active?"active":""}`} onClick={onClick}>{label}</button>;
 }
 
 /* ── SIDEBAR ── */
@@ -1019,11 +858,7 @@ function LoginPage({ onLogin }) {
     setLoading(true); setErr("");
     try {
       const body = new URLSearchParams({ username: user, password: pass });
-      const res = await fetch(API + "/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: body.toString(),
-      });
+      const res = await fetch(API + "/api/auth/login", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: body.toString() });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.detail || "Falha no login");
       setToken(data.access_token);
@@ -1043,14 +878,8 @@ function LoginPage({ onLogin }) {
         <p>Acesse sua conta para gerenciar sua agência.</p>
         {err && <Alert type="error">{err}</Alert>}
         <form onSubmit={submit}>
-          <div className="field">
-            <label>Usuário</label>
-            <input value={user} onChange={e=>setUser(e.target.value)} placeholder="admin" autoFocus />
-          </div>
-          <div className="field">
-            <label>Senha</label>
-            <input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" />
-          </div>
+          <div className="field"><label>Usuário</label><input value={user} onChange={e=>setUser(e.target.value)} placeholder="admin" autoFocus /></div>
+          <div className="field"><label>Senha</label><input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" /></div>
           <button type="submit" className="btn btn-primary" style={{width:"100%",justifyContent:"center",marginTop:8}} disabled={loading}>
             {loading ? <><Spinner/> Entrando...</> : "Entrar"}
           </button>
@@ -1063,14 +892,14 @@ function LoginPage({ onLogin }) {
 /* ── DASHBOARD ── */
 function Dashboard() {
   const [stats, setStats] = useState(null);
+  const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const [overview, setOverview] = useState(null);
 
   useEffect(() => {
     Promise.all([
-      api("/api/agency/stats").catch(e => null),
-      api("/api/agency/overview").catch(e => null),
+      api("/api/agency/stats").catch(() => null),
+      api("/api/agency/overview").catch(() => null),
     ]).then(([s, o]) => { setStats(s); setOverview(o); setLoading(false); })
       .catch(e => { setErr(e.message); setLoading(false); });
   }, []);
@@ -1090,32 +919,13 @@ function Dashboard() {
         <h1 className="page-title">Dashboard da Agência</h1>
         <p className="page-sub">Métricas consolidadas de todos os clientes gerenciados.</p>
       </div>
-
       {err && <Alert type="error">{err}</Alert>}
-
       <div className="kpi-grid">
-        <div className="kpi-card lime">
-          <div className="kpi-label">Clientes ativos</div>
-          <div className="kpi-value">{s.total_clients ?? totals.total_clients ?? "—"}</div>
-          <div className="kpi-change neutral">{s.synced_clients ?? 0} com sync</div>
-        </div>
-        <div className="kpi-card cyan">
-          <div className="kpi-label">Total de leads</div>
-          <div className="kpi-value">{(s.total_leads ?? totals.total_leads ?? 0).toLocaleString("pt-BR")}</div>
-          <div className="kpi-change neutral">Monitorados ativos</div>
-        </div>
-        <div className="kpi-card amber">
-          <div className="kpi-label">Score médio</div>
-          <div className="kpi-value">{Math.round(s.avg_health_score ?? totals.avg_health_score ?? 0)}<span style={{fontSize:18,opacity:0.5}}>/100</span></div>
-          <div className="kpi-change neutral">Saúde da carteira</div>
-        </div>
-        <div className="kpi-card rose">
-          <div className="kpi-label">Clientes críticos</div>
-          <div className="kpi-value" style={{color:"var(--rose)"}}>{s.critical_clients ?? alerts.length ?? 0}</div>
-          <div className="kpi-change down">Precisam de atenção</div>
-        </div>
+        <div className="kpi-card lime"><div className="kpi-label">Clientes ativos</div><div className="kpi-value">{s.total_clients ?? totals.total_clients ?? "—"}</div><div className="kpi-change neutral">{s.synced_clients ?? 0} com sync</div></div>
+        <div className="kpi-card cyan"><div className="kpi-label">Total de leads</div><div className="kpi-value">{(s.total_leads ?? totals.total_leads ?? 0).toLocaleString("pt-BR")}</div><div className="kpi-change neutral">Monitorados ativos</div></div>
+        <div className="kpi-card amber"><div className="kpi-label">Score médio</div><div className="kpi-value">{Math.round(s.avg_health_score ?? totals.avg_health_score ?? 0)}<span style={{fontSize:18,opacity:0.5}}>/100</span></div><div className="kpi-change neutral">Saúde da carteira</div></div>
+        <div className="kpi-card rose"><div className="kpi-label">Clientes críticos</div><div className="kpi-value" style={{color:"var(--rose)"}}>{s.critical_clients ?? alerts.length ?? 0}</div><div className="kpi-change down">Precisam de atenção</div></div>
       </div>
-
       <div className="two-col">
         <div className="card">
           <div className="card-title">Ranking de Clientes</div>
@@ -1135,23 +945,11 @@ function Dashboard() {
             );
           })}
         </div>
-
         <div className="card">
           <div className="card-title">Métricas da Carteira</div>
-          <div>
-            {[
-              ["Taxa de abertura média", `${totals.avg_open_rate ?? 0}%`],
-              ["Taxa de clique média", `${totals.avg_click_rate ?? 0}%`],
-              ["Total de campanhas", totals.total_campaigns ?? 0],
-              ["Total de conversões", totals.total_conversions ?? 0],
-            ].map(([l,v]) => (
-              <div key={l} className="stat-row">
-                <span className="stat-label">{l}</span>
-                <span className="stat-value">{v}</span>
-              </div>
-            ))}
-          </div>
-
+          {[["Taxa de abertura média", `${totals.avg_open_rate ?? 0}%`],["Taxa de clique média", `${totals.avg_click_rate ?? 0}%`],["Total de campanhas", totals.total_campaigns ?? 0],["Total de conversões", totals.total_conversions ?? 0]].map(([l,v]) => (
+            <div key={l} className="stat-row"><span className="stat-label">{l}</span><span className="stat-value">{v}</span></div>
+          ))}
           {alerts.length > 0 && (
             <div style={{marginTop:20}}>
               <div style={{fontSize:12,fontWeight:600,color:"var(--rose)",marginBottom:10,textTransform:"uppercase",letterSpacing:"0.08em"}}>⚠ Clientes em alerta</div>
@@ -1218,22 +1016,15 @@ function ClientsPanel() {
         <h1 className="page-title">Clientes</h1>
         <p className="page-sub">Cadastre, conecte ao RD Station e sincronize dados da sua carteira.</p>
       </div>
-
       {err && <Alert type="error">{err}</Alert>}
       {ok && <Alert type="success">{ok}</Alert>}
-
       <div className="row-between" style={{marginBottom:20}}>
         <div className="row">
-          <button className="btn btn-primary" onClick={()=>setShowForm(!showForm)}>
-            {icons.add} Novo cliente
-          </button>
-          <button className="btn btn-secondary" onClick={load} disabled={loading}>
-            {loading ? <Spinner/> : icons.refresh} Atualizar
-          </button>
+          <button className="btn btn-primary" onClick={()=>setShowForm(!showForm)}>{icons.add} Novo cliente</button>
+          <button className="btn btn-secondary" onClick={load} disabled={loading}>{loading ? <Spinner/> : icons.refresh} Atualizar</button>
         </div>
         <span style={{fontSize:13,color:"var(--text-3)"}}>{clients.length} cliente{clients.length!==1?"s":""}</span>
       </div>
-
       {showForm && (
         <div className="card" style={{marginBottom:24,borderColor:"rgba(184,245,74,0.2)"}}>
           <div className="card-title">{icons.add} Adicionar novo cliente</div>
@@ -1241,10 +1032,7 @@ function ClientsPanel() {
             <div className="two-col">
               <div>
                 <div className="field"><label>Nome *</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Ex: Empresa XYZ" autoFocus /></div>
-                <div className="field"><label>Segmento</label><select value={form.segment} onChange={e=>setForm({...form,segment:e.target.value})}>
-                  <option value="">Selecione...</option>
-                  {["E-commerce","SaaS","Serviços","Educação","Saúde","Varejo","Indústria","Outro"].map(s=><option key={s}>{s}</option>)}
-                </select></div>
+                <div className="field"><label>Segmento</label><select value={form.segment} onChange={e=>setForm({...form,segment:e.target.value})}><option value="">Selecione...</option>{["E-commerce","SaaS","Serviços","Educação","Saúde","Varejo","Indústria","Outro"].map(s=><option key={s}>{s}</option>)}</select></div>
               </div>
               <div>
                 <div className="field"><label>Website</label><input value={form.website} onChange={e=>setForm({...form,website:e.target.value})} placeholder="https://..." /></div>
@@ -1258,9 +1046,8 @@ function ClientsPanel() {
           </form>
         </div>
       )}
-
       {clients.length === 0 && !loading ? (
-        <div className="card"><div className="empty"><div className="empty-icon">👥</div><div className="empty-title">Nenhum cliente ainda</div><p>Adicione o primeiro cliente para começar a gerenciar sua carteira.</p></div></div>
+        <div className="card"><div className="empty"><div className="empty-icon">👥</div><div className="empty-title">Nenhum cliente ainda</div><p>Adicione o primeiro cliente para começar.</p></div></div>
       ) : (
         <div className="card">
           <div className="card-title">Carteira ({clients.length})</div>
@@ -1269,21 +1056,12 @@ function ClientsPanel() {
               <div className="client-avatar">{initials(c.name)}</div>
               <div className="client-info">
                 <div className="client-name">{c.name}</div>
-                <div className="client-meta">
-                  {c.segment && <span>{c.segment}</span>}
-                  {c.website && <span> · {c.website}</span>}
-                </div>
+                <div className="client-meta">{c.segment && <span>{c.segment}</span>}{c.website && <span> · {c.website}</span>}</div>
               </div>
               <div className="client-actions">
-                <span className={`badge ${c.rd_connected?"lime":"gray"}`}>
-                  {c.rd_connected ? "RD conectada" : "Sem RD"}
-                </span>
-                <a href={`/oauth/authorize/${c.id}`} className="btn btn-blue btn-sm">
-                  {icons.connect} Conectar RD
-                </a>
-                <button className="btn btn-secondary btn-sm" onClick={()=>sync(c.id)} disabled={syncingId===c.id || !c.rd_connected}>
-                  {syncingId===c.id ? <Spinner/> : icons.sync} Sync
-                </button>
+                <span className={`badge ${c.rd_connected?"lime":"gray"}`}>{c.rd_connected ? "RD conectada" : "Sem RD"}</span>
+                <a href={`/oauth/authorize/${c.id}`} className="btn btn-blue btn-sm">{icons.connect} Conectar RD</a>
+                <button className="btn btn-secondary btn-sm" onClick={()=>sync(c.id)} disabled={syncingId===c.id || !c.rd_connected}>{syncingId===c.id ? <Spinner/> : icons.sync} Sync</button>
               </div>
             </div>
           ))}
@@ -1301,9 +1079,7 @@ function Portfolio() {
   const [tab, setTab] = useState("all");
 
   useEffect(() => {
-    api("/api/agency/overview")
-      .then(d => { setData(d); setLoading(false); })
-      .catch(e => { setErr(e.message); setLoading(false); });
+    api("/api/agency/overview").then(d => { setData(d); setLoading(false); }).catch(e => { setErr(e.message); setLoading(false); });
   }, []);
 
   if (loading) return <div style={{padding:80,textAlign:"center"}}><Spinner size={32}/></div>;
@@ -1320,7 +1096,6 @@ function Portfolio() {
         <p className="page-sub">Classificação automática por risco, expansão e manutenção.</p>
       </div>
       {err && <Alert>{err}</Alert>}
-
       <div className="kpi-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))"}}>
         {[["Em risco","at_risk","rose"],["Expansão","expansion","lime"],["Manutenção","maintenance","amber"],["Total","all","gray"]].map(([l,k,c]) => {
           const count = k==="all" ? allClients.length : (sections[k]?.items.length||0);
@@ -1332,16 +1107,15 @@ function Portfolio() {
           );
         })}
       </div>
-
       <div className="card">
         {current.length === 0 ? (
           <div className="empty"><div className="empty-title">Sem clientes nesta categoria</div></div>
         ) : current.map(c => {
           const color = c.score >= 75 ? "var(--lime)" : c.score >= 50 ? "var(--amber)" : "var(--rose)";
-          const badgeColor = c.score >= 75 ? "lime" : c.score >= 50 ? "amber" : "rose";
+          const bc = c.score >= 75 ? "lime" : c.score >= 50 ? "amber" : "rose";
           return (
             <div key={c.client_id} className="client-item">
-              <div className="client-avatar" style={{background:`rgba(${badgeColor==="lime"?"184,245,74":badgeColor==="amber"?"245,200,74":"245,74,122"},0.12)`, color:`var(--${badgeColor})`}}>{(c.client_name||"?")[0].toUpperCase()}</div>
+              <div className="client-avatar" style={{background:`var(--${bc}-dim)`,color:`var(--${bc})`}}>{(c.client_name||"?")[0].toUpperCase()}</div>
               <div className="client-info">
                 <div className="client-name">{c.client_name}</div>
                 <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:4}}>
@@ -1352,7 +1126,7 @@ function Portfolio() {
               </div>
               <div style={{textAlign:"right",flexShrink:0}}>
                 <div style={{fontFamily:"Syne",fontSize:22,fontWeight:800,color,letterSpacing:"-0.04em"}}>{c.score}</div>
-                <span className={`badge ${badgeColor}`}>{c.status?.replace(/[🟢🟡🟠🔴]/g,"").trim()}</span>
+                <span className={`badge ${bc}`}>{c.status?.replace(/[🟢🟡🟠🔴]/g,"").trim()}</span>
               </div>
             </div>
           );
@@ -1362,40 +1136,425 @@ function Portfolio() {
   );
 }
 
-/* ── MODULE PAGE (generic) ── */
-function ModulePage({ title, eyebrow, description, endpoint, renderItem }) {
+/* ══════════════════════════════════════════════
+   LANDING PAGES — com link + análise SEO/GEO IA
+══════════════════════════════════════════════ */
+function LandingPages() {
   const [clients, setClients] = useState([]);
   const [clientId, setClientId] = useState("");
-  const [data, setData] = useState(null);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [analyzingId, setAnalyzingId] = useState(null);
+  const [aiResults, setAiResults] = useState({});
 
   useEffect(() => {
     api("/api/clients/").then(res => {
-      const list = Array.isArray(res) ? res : [];
-      setClients(list);
-      if (list.length > 0) setClientId(String(list[0].id));
+      const l = Array.isArray(res)?res:[];
+      setClients(l);
+      if(l.length) setClientId(String(l[0].id));
     }).catch(e => setErr(e.message));
   }, []);
 
   async function load() {
     if (!clientId) return;
-    setLoading(true); setErr(""); setData(null);
-    try { setData(await api(endpoint.replace("{id}", clientId))); }
-    catch(e) { setErr(e.message); }
+    setLoading(true); setErr(""); setItems([]);
+    try {
+      const d = await api(`/api/rd-modules/client/${clientId}/landing_pages?limit=100`);
+      setItems(d?.data?.items || d?.items || []);
+    } catch(e) { setErr(e.message); }
     finally { setLoading(false); }
   }
 
-  const items = data?.data?.items || data?.items || [];
+  async function analyzeLp(item, idx) {
+    const p = item?.payload || {};
+    const url = p.url || p.public_url || p.page_url || "";
+    if (!url) {
+      setAiResults(prev => ({...prev, [idx]: "❌ Esta landing page não tem URL pública disponível para análise."}));
+      return;
+    }
+    setAnalyzingId(idx);
+    try {
+      // First try the seo-geo endpoint, fallback to landing-pages analyze
+      let result;
+      try {
+        const d = await api(`/api/seo-geo/client/${clientId}/landing-pages`);
+        // find matching lp
+        const found = d?.data?.landing_page_audits?.find(a => a.url === url);
+        if (found?.audit) {
+          const a = found.audit;
+          result = `## SEO Score: ${a.seo_score}/100 | GEO Score: ${a.geo_score}/100\n\n**Title:** ${a.title || "Não encontrado"}\n\n**H1:** ${a.h1s?.[0] || "Não encontrado"}\n\n**Meta Description:** ${a.meta_description || "Ausente"}\n\n### Problemas SEO\n${(a.seo_notes||[]).map(n=>`- ${n}`).join("\n") || "- Nenhum"}\n\n### Problemas GEO (IA Search)\n${(a.geo_notes||[]).map(n=>`- ${n}`).join("\n") || "- Nenhum"}\n\n### Quick Wins\n${(a.quick_wins||[]).map(n=>`- ${n}`).join("\n") || "- Nenhum"}`;
+        }
+      } catch {}
+      if (!result) {
+        const d = await api("/api/landing-pages/analyze", { method:"POST", body: JSON.stringify({ url }) });
+        result = d?.analysis || "Análise concluída sem retorno.";
+      }
+      setAiResults(prev => ({...prev, [idx]: result}));
+    } catch(e) {
+      setAiResults(prev => ({...prev, [idx]: `Erro: ${e.message}`}));
+    } finally { setAnalyzingId(null); }
+  }
+
+  const lpUrl = (p) => p.url || p.public_url || p.page_url || "";
 
   return (
     <div>
       <div className="page-header">
-        <div className="page-eyebrow">{eyebrow}</div>
-        <h1 className="page-title">{title}</h1>
-        <p className="page-sub">{description}</p>
+        <div className="page-eyebrow">Módulos RD</div>
+        <h1 className="page-title">Landing Pages</h1>
+        <p className="page-sub">Landing pages sincronizadas do RD Station. Analise performance e identifique oportunidades de melhoria.</p>
       </div>
-      {err && <Alert>{err}</Alert>}
+      {err && <Alert type="error">{err}</Alert>}
+      <div className="card">
+        <div className="row">
+          <ClientSelect value={clientId} onChange={setClientId} clients={clients} />
+          <button className="btn btn-primary" onClick={load} disabled={!clientId||loading}>
+            {loading ? <><Spinner/>Carregando...</> : "Carregar dados"}
+          </button>
+        </div>
+      </div>
+
+      {items.length > 0 && (
+        <div className="card">
+          <div className="row-between" style={{marginBottom:16}}>
+            <div className="card-title" style={{margin:0}}>{items.length} landing pages encontradas</div>
+            <span className="badge lime">sincronizado</span>
+          </div>
+          <div className="scroll-list">
+            {items.map((item, i) => {
+              const p = item?.payload || {};
+              const rate = parseFloat(p.conversion_rate || 0);
+              const rateDisplay = rate > 1 ? rate : rate * 100;
+              const rateColor = rateDisplay >= 10 ? "var(--lime)" : rateDisplay >= 3 ? "var(--amber)" : rateDisplay > 0 ? "var(--rose)" : "var(--text-3)";
+              const url = lpUrl(p);
+              const isPublished = !(p.status || "").toLowerCase().includes("not_published");
+              const aiResult = aiResults[i];
+              const isAnalyzing = analyzingId === i;
+
+              return (
+                <div key={i}>
+                  <div className="module-item" style={{flexWrap:"wrap",gap:12,alignItems:"flex-start"}}>
+                    <div className="module-item-icon" style={{background:"var(--blue-dim)"}}>🔗</div>
+                    <div className="module-item-info" style={{minWidth:200}}>
+                      <div className="module-item-name">{p.name || p.title || `LP ${i+1}`}</div>
+                      <div className="module-item-meta" style={{display:"flex",gap:8,alignItems:"center",marginTop:4,flexWrap:"wrap"}}>
+                        <span className={`badge ${isPublished?"lime":"gray"}`}>{isPublished ? "PUBLISHED" : "NOT_PUBLISHED"}</span>
+                        {p.visits_count > 0 && <span>{p.visits_count?.toLocaleString("pt-BR")} visitas</span>}
+                        {p.conversions_count > 0 && <span>· {p.conversions_count} conversões</span>}
+                      </div>
+                      {url && (
+                        <div style={{marginTop:6}}>
+                          <a href={url} target="_blank" rel="noopener noreferrer"
+                            style={{display:"inline-flex",alignItems:"center",gap:5,fontSize:11,color:"var(--blue)",textDecoration:"none",background:"var(--blue-dim)",padding:"3px 10px",borderRadius:99,border:"1px solid rgba(74,143,245,0.2)"}}>
+                            {icons.link} {url.length > 50 ? url.slice(0,47)+"..." : url}
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,marginLeft:"auto"}}>
+                      {rateDisplay > 0 && (
+                        <div style={{textAlign:"right"}}>
+                          <div style={{fontFamily:"Syne",fontSize:18,fontWeight:700,color:rateColor}}>{rateDisplay.toFixed(1)}%</div>
+                          <div style={{fontSize:10,color:"var(--text-3)"}}>conversão</div>
+                        </div>
+                      )}
+                      <button
+                        className="btn btn-cyan btn-sm"
+                        onClick={() => analyzeLp(item, i)}
+                        disabled={isAnalyzing}
+                        title="Análise SEO + GEO com IA"
+                      >
+                        {isAnalyzing ? <Spinner/> : icons.ai}
+                        {isAnalyzing ? "Analisando..." : "SEO + GEO IA"}
+                      </button>
+                    </div>
+                  </div>
+                  {aiResult && (
+                    <div style={{marginBottom:16,marginLeft:44}}>
+                      <AiResultBlock result={aiResult} title={`Análise SEO/GEO — ${p.name || p.title || "LP"}`} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   LEADS — com filtros por status, fonte e score
+══════════════════════════════════════════════ */
+function Leads() {
+  const [clients, setClients] = useState([]);
+  const [clientId, setClientId] = useState("");
+  const [allItems, setAllItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [filterStage, setFilterStage] = useState("all");
+  const [filterSource, setFilterSource] = useState("all");
+  const [filterScore, setFilterScore] = useState("all");
+  const [search, setSearch] = useState("");
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  useEffect(() => {
+    api("/api/clients/").then(res => {
+      const l = Array.isArray(res)?res:[];
+      setClients(l);
+      if(l.length) setClientId(String(l[0].id));
+    });
+  }, []);
+
+  async function load() {
+    if (!clientId) return;
+    setLoading(true); setErr(""); setAllItems([]); setAiAnalysis(null);
+    try {
+      const d = await api(`/api/rd-modules/client/${clientId}/leads?limit=200`);
+      setAllItems(d?.data?.items || d?.items || []);
+    } catch(e) { setErr(e.message); }
+    finally { setLoading(false); }
+  }
+
+  async function analyzeLeads() {
+    setAiLoading(true);
+    try {
+      const sources = {};
+      const stages = {};
+      allItems.forEach(item => {
+        const p = item?.payload || {};
+        const src = p.traffic_source || p.utm_source || "orgânico";
+        const stg = p.lifecycle_stage || p.stage || "indefinido";
+        sources[src] = (sources[src]||0)+1;
+        stages[stg] = (stages[stg]||0)+1;
+      });
+      const client = clients.find(c=>String(c.id)===clientId);
+      const d = await api("/api/leads/analyze-base", {
+        method:"POST",
+        body: JSON.stringify({
+          client_name: client?.name || "",
+          total_leads: allItems.length,
+          sources, segments: Object.keys(stages),
+          engagement_rate: Math.round(filteredItems.length/Math.max(allItems.length,1)*100),
+        })
+      });
+      setAiAnalysis(d?.analysis);
+    } catch(e) { setErr(e.message); }
+    finally { setAiLoading(false); }
+  }
+
+  const stages = [...new Set(allItems.map(i => (i?.payload?.lifecycle_stage || i?.payload?.stage || "indefinido")))];
+  const sources = [...new Set(allItems.map(i => (i?.payload?.traffic_source || i?.payload?.utm_source || "orgânico")))];
+
+  const filteredItems = allItems.filter(item => {
+    const p = item?.payload || {};
+    const stage = p.lifecycle_stage || p.stage || "indefinido";
+    const source = p.traffic_source || p.utm_source || "orgânico";
+    const email = p.email || "";
+    const name = p.name || "";
+    if (filterStage !== "all" && stage !== filterStage) return false;
+    if (filterSource !== "all" && source !== filterSource) return false;
+    if (filterScore === "hot" && (p.last_conversion_date ? false : true)) return false;
+    if (search && !email.includes(search) && !name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const stageColor = (s) => {
+    const sl = (s||"").toLowerCase();
+    if (sl.includes("cliente") || sl.includes("customer")) return "lime";
+    if (sl.includes("opor") || sl.includes("lead qualif")) return "cyan";
+    if (sl.includes("lead")) return "blue";
+    return "gray";
+  };
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-eyebrow">Módulos RD</div>
+        <h1 className="page-title">Leads</h1>
+        <p className="page-sub">Base de leads sincronizados com filtros por status, fonte e comportamento.</p>
+      </div>
+      {err && <Alert type="error">{err}</Alert>}
+
+      <div className="card">
+        <div className="row">
+          <ClientSelect value={clientId} onChange={setClientId} clients={clients} />
+          <button className="btn btn-primary" onClick={load} disabled={!clientId||loading}>
+            {loading ? <><Spinner/>Carregando...</> : "Carregar leads"}
+          </button>
+        </div>
+      </div>
+
+      {allItems.length > 0 && (
+        <div className="card">
+          {/* FILTROS */}
+          <div style={{marginBottom:16}}>
+            <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"flex-start",marginBottom:12}}>
+              <div style={{flex:1,minWidth:200}}>
+                <input
+                  value={search}
+                  onChange={e=>setSearch(e.target.value)}
+                  placeholder="🔍 Buscar por nome ou email..."
+                  style={{maxWidth:"100%"}}
+                />
+              </div>
+              <div className="row">
+                <button className="btn btn-cyan btn-sm" onClick={analyzeLeads} disabled={aiLoading}>
+                  {aiLoading ? <Spinner/> : icons.ai}
+                  {aiLoading ? "Analisando..." : "Analisar base com IA"}
+                </button>
+              </div>
+            </div>
+
+            <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+              <div>
+                <div style={{fontSize:10,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>Estágio</div>
+                <div className="filter-bar">
+                  <FilterChip label="Todos" active={filterStage==="all"} onClick={()=>setFilterStage("all")} />
+                  {stages.slice(0,6).map(s => <FilterChip key={s} label={s} active={filterStage===s} onClick={()=>setFilterStage(filterStage===s?"all":s)} />)}
+                </div>
+              </div>
+              <div>
+                <div style={{fontSize:10,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>Origem</div>
+                <div className="filter-bar">
+                  <FilterChip label="Todas" active={filterSource==="all"} onClick={()=>setFilterSource("all")} />
+                  {sources.slice(0,5).map(s => <FilterChip key={s} label={s} active={filterSource===s} onClick={()=>setFilterSource(filterSource===s?"all":s)} />)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="row-between" style={{marginBottom:12}}>
+            <span style={{fontSize:13,color:"var(--text-3)"}}>{filteredItems.length} de {allItems.length} leads</span>
+          </div>
+
+          <div className="scroll-list">
+            {filteredItems.slice(0,100).map((item, i) => {
+              const p = item?.payload || {};
+              const email = p.email || p.personal_email || "—";
+              const name = p.name || email.split("@")[0];
+              const stage = p.lifecycle_stage || p.stage || "indefinido";
+              const source = p.traffic_source || p.utm_source || "orgânico";
+              const convs = p.conversions || p.conversion_count || 0;
+              return (
+                <div key={i} className="module-item">
+                  <div className="module-item-icon" style={{background:"var(--cyan-dim)",color:"var(--cyan)",fontFamily:"Syne",fontWeight:700,fontSize:11}}>
+                    {(name[0]||"?").toUpperCase()}
+                  </div>
+                  <div className="module-item-info">
+                    <div className="module-item-name">{name}</div>
+                    <div className="module-item-meta">{email}</div>
+                  </div>
+                  <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+                    <span className={`badge ${stageColor(stage)}`}>{stage}</span>
+                    {source !== "orgânico" && <span className="badge gray">{source}</span>}
+                    {convs > 0 && <span className="badge amber">{convs} conv.</span>}
+                  </div>
+                </div>
+              );
+            })}
+            {filteredItems.length === 0 && <div className="empty"><div className="empty-title">Nenhum lead encontrado</div><p>Tente ajustar os filtros.</p></div>}
+          </div>
+        </div>
+      )}
+
+      {aiAnalysis && (
+        <div className="card">
+          <div className="card-title">Análise IA da Base</div>
+          <div className="two-col">
+            {aiAnalysis.overview && (
+              <div style={{padding:16,background:`var(--${aiAnalysis.overview.health==="saudavel"?"lime":aiAnalysis.overview.health==="atencao"?"amber":"rose"}-dim)`,borderRadius:var(--r),border:`1px solid rgba(${aiAnalysis.overview.health==="saudavel"?"184,245,74":aiAnalysis.overview.health==="atencao"?"245,200,74":"245,74,122"},0.2)`}}>
+                <div style={{fontSize:11,fontWeight:600,color:"var(--text-3)",textTransform:"uppercase",marginBottom:8}}>Diagnóstico geral</div>
+                <p style={{fontSize:13.5,color:"var(--text-2)",lineHeight:1.6}}>{aiAnalysis.overview.summary}</p>
+              </div>
+            )}
+            <div>
+              {(aiAnalysis.actions||[]).slice(0,4).map((a,i) => (
+                <div key={i} style={{display:"flex",gap:10,padding:"9px 12px",background:"var(--ink)",borderRadius:8,marginBottom:6,border:"1px solid var(--line)"}}>
+                  <span className={`badge ${a.when==="imediato"?"rose":a.when==="esta-semana"?"amber":"lime"}`} style={{flexShrink:0}}>{a.when}</span>
+                  <span style={{fontSize:13,color:"var(--text-2)"}}>{a.action}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   SEGMENTAÇÕES — com botão IA por segmentação
+══════════════════════════════════════════════ */
+function Segmentations() {
+  const [clients, setClients] = useState([]);
+  const [clientId, setClientId] = useState("");
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [analyzingId, setAnalyzingId] = useState(null);
+  const [aiResults, setAiResults] = useState({});
+
+  useEffect(() => {
+    api("/api/clients/").then(res => {
+      const l = Array.isArray(res)?res:[];
+      setClients(l);
+      if(l.length) setClientId(String(l[0].id));
+    });
+  }, []);
+
+  async function load() {
+    if (!clientId) return;
+    setLoading(true); setErr(""); setItems([]);
+    try {
+      const d = await api(`/api/rd-modules/client/${clientId}/segmentations?limit=100`);
+      setItems(d?.data?.items || d?.items || []);
+    } catch(e) { setErr(e.message); }
+    finally { setLoading(false); }
+  }
+
+  async function analyzeSeg(item, idx) {
+    const p = item?.payload || {};
+    const segName = p.name || `Segmentação ${idx+1}`;
+    const contacts = p.contacts_count || p.contacts || 0;
+    const client = clients.find(c=>String(c.id)===clientId);
+
+    setAnalyzingId(idx);
+    try {
+      const d = await api("/api/leads/segment", {
+        method:"POST",
+        body: JSON.stringify({
+          client_name: client?.name || "",
+          objective: `Analisar e criar estratégia para o segmento: "${segName}" com ${contacts} contatos`,
+          total_leads: contacts,
+          segments: [segName],
+        })
+      });
+      const segs = d?.segments?.segments || d?.segments;
+      let result = "";
+      if (segs?.total_segments_suggested !== undefined) {
+        const s = segs.segments?.[0] || {};
+        result = `## Estratégia para "${segName}"\n\n**Critério de entrada:** ${s.entry_criteria||"—"}\n\n**Ação recomendada:** ${s.recommended_action||"—"}\n\n**Risco de inação:** ${s.risk_of_inaction||"—"}\n\n**Campanha sugerida:** ${s.suggested_campaign_type||"—"}\n\n${(segs.quick_wins||[]).length > 0 ? "### Quick Wins\n" + segs.quick_wins.map(q=>`- **${q.action}** → ${q.expected_result}`).join("\n") : ""}`;
+      } else {
+        result = JSON.stringify(d, null, 2);
+      }
+      setAiResults(prev => ({...prev, [idx]: result}));
+    } catch(e) {
+      setAiResults(prev => ({...prev, [idx]: `Erro: ${e.message}`}));
+    } finally { setAnalyzingId(null); }
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-eyebrow">Módulos RD</div>
+        <h1 className="page-title">Segmentações</h1>
+        <p className="page-sub">Segmentações da conta RD. Analise cada segmento com IA para criar estratégias direcionadas.</p>
+      </div>
+      {err && <Alert type="error">{err}</Alert>}
 
       <div className="card">
         <div className="row">
@@ -1406,181 +1565,351 @@ function ModulePage({ title, eyebrow, description, endpoint, renderItem }) {
         </div>
       </div>
 
-      {data && (
+      {items.length > 0 && (
         <div className="card">
           <div className="row-between" style={{marginBottom:16}}>
-            <div className="card-title" style={{margin:0}}>
-              {items.length} {title.toLowerCase()} encontrado{items.length!==1?"s":""}
-            </div>
+            <div className="card-title" style={{margin:0}}>{items.length} segmentações encontradas</div>
             <span className="badge lime">sincronizado</span>
           </div>
+          <div className="scroll-list">
+            {items.map((item, i) => {
+              const p = item?.payload || {};
+              const count = p.contacts_count || p.contacts || 0;
+              const aiResult = aiResults[i];
+              const isAnalyzing = analyzingId === i;
 
-          {items.length === 0 ? (
-            <div className="empty"><div className="empty-title">Nenhum dado disponível</div><p>Sincronize o cliente primeiro para carregar os dados.</p></div>
-          ) : (
-            <div className="scroll-list">
-              {items.map((item, i) => renderItem ? renderItem(item, i) : (
-                <div key={i} className="module-item">
-                  <div className="module-item-info">
-                    <div className="module-item-name">{item?.payload?.name || item?.payload?.title || item?.payload?.email || item?.object_key || `Item ${i+1}`}</div>
-                    <div className="module-item-meta">{item?.synced_at ? `Sincronizado: ${new Date(item.synced_at).toLocaleDateString("pt-BR")}` : ""}</div>
+              return (
+                <div key={i}>
+                  <div className="module-item" style={{alignItems:"center"}}>
+                    <div className="module-item-icon" style={{background:"var(--lime-dim)"}}>⚡</div>
+                    <div className="module-item-info">
+                      <div className="module-item-name">{p.name || `Segmentação ${i+1}`}</div>
+                      <div className="module-item-meta">
+                        {count > 0 ? `${count.toLocaleString("pt-BR")} contatos` : "Contatos não carregados"}
+                        {p.status && ` · ${p.status}`}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+                      {count > 0 && <span className="badge lime">{count.toLocaleString("pt-BR")}</span>}
+                      <button
+                        className="btn btn-cyan btn-sm"
+                        onClick={() => analyzeSeg(item, i)}
+                        disabled={isAnalyzing}
+                        title="Analisar segmento com IA"
+                      >
+                        {isAnalyzing ? <Spinner/> : icons.ai}
+                        {isAnalyzing ? "Analisando..." : "Estratégia IA"}
+                      </button>
+                    </div>
                   </div>
+                  {aiResult && (
+                    <div style={{marginBottom:16,marginLeft:44}}>
+                      <AiResultBlock result={aiResult} title={`Estratégia — ${p.name || "Segmentação"}`} />
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-/* ── LANDING PAGES ── */
-function LandingPages() {
-  return (
-    <ModulePage
-      title="Landing Pages"
-      eyebrow="Módulos RD"
-      description="Landing pages sincronizadas do RD Station. Analise performance e identifique oportunidades de melhoria."
-      endpoint="/api/rd-modules/client/{id}/landing_pages?limit=100"
-      renderItem={(item, i) => {
-        const p = item?.payload || {};
-        const rate = p.conversion_rate ? (p.conversion_rate > 1 ? p.conversion_rate : p.conversion_rate*100) : 0;
-        const rateColor = rate >= 10 ? "var(--lime)" : rate >= 3 ? "var(--amber)" : "var(--rose)";
-        return (
-          <div key={i} className="module-item">
-            <div className="module-item-icon" style={{background:"var(--blue-dim)"}}>🔗</div>
-            <div className="module-item-info">
-              <div className="module-item-name">{p.name || p.title || `LP ${i+1}`}</div>
-              <div className="module-item-meta">
-                {p.visits_count ? `${p.visits_count} visitas · ` : ""}
-                {p.conversions_count ? `${p.conversions_count} conversões` : ""}
-                {p.status ? ` · ${p.status}` : ""}
-              </div>
-            </div>
-            {rate > 0 && <span style={{color:rateColor,fontWeight:700,fontFamily:"Syne",fontSize:16}}>{rate.toFixed(1)}%</span>}
-          </div>
-        );
-      }}
-    />
-  );
-}
-
-/* ── LEADS ── */
-function Leads() {
-  return (
-    <ModulePage
-      title="Leads"
-      eyebrow="Módulos RD"
-      description="Base de leads sincronizados. Visualize o funil, origem e estágio de cada contato."
-      endpoint="/api/rd-modules/client/{id}/leads?limit=100"
-      renderItem={(item, i) => {
-        const p = item?.payload || {};
-        const email = p.email || p.personal_email || "—";
-        const name = p.name || email.split("@")[0];
-        const stage = p.lifecycle_stage || p.stage || "";
-        const source = p.traffic_source || p.utm_source || "";
-        return (
-          <div key={i} className="module-item">
-            <div className="module-item-icon" style={{background:"var(--cyan-dim)",color:"var(--cyan)",fontFamily:"Syne",fontWeight:700,fontSize:11}}>
-              {(name[0]||"?").toUpperCase()}
-            </div>
-            <div className="module-item-info">
-              <div className="module-item-name">{name}</div>
-              <div className="module-item-meta">{email}{stage ? ` · ${stage}` : ""}{source ? ` · ${source}` : ""}</div>
-            </div>
-            {p.score && <span className="badge amber">{p.score}</span>}
-          </div>
-        );
-      }}
-    />
-  );
-}
-
-/* ── SEGMENTATIONS ── */
-function Segmentations() {
-  return (
-    <ModulePage
-      title="Segmentações"
-      eyebrow="Módulos RD"
-      description="Segmentações da conta RD. Use para campanhas direcionadas e automações inteligentes."
-      endpoint="/api/rd-modules/client/{id}/segmentations?limit=100"
-      renderItem={(item, i) => {
-        const p = item?.payload || {};
-        const count = p.contacts_count || p.contacts || 0;
-        return (
-          <div key={i} className="module-item">
-            <div className="module-item-icon" style={{background:"var(--lime-dim)"}}>⚡</div>
-            <div className="module-item-info">
-              <div className="module-item-name">{p.name || `Segmentação ${i+1}`}</div>
-              <div className="module-item-meta">{count ? `${count.toLocaleString("pt-BR")} contatos` : "Contatos não carregados"}</div>
-            </div>
-            {count > 0 && <span className="badge lime">{count.toLocaleString("pt-BR")}</span>}
-          </div>
-        );
-      }}
-    />
-  );
-}
-
-/* ── WORKFLOWS ── */
+/* ══════════════════════════════════════════════
+   WORKFLOWS — visualização do fluxo + IA
+══════════════════════════════════════════════ */
 function Workflows() {
-  return (
-    <ModulePage
-      title="Workflows"
-      eyebrow="Módulos RD"
-      description="Automações configuradas no RD Station. Monitore status e desempenho dos fluxos."
-      endpoint="/api/rd-modules/client/{id}/workflows?limit=100"
-      renderItem={(item, i) => {
-        const p = item?.payload || {};
-        const status = (p.status || p.state || "").toLowerCase();
-        const isActive = ["active","enabled","ativo"].includes(status);
-        return (
-          <div key={i} className="module-item">
-            <div className="module-item-icon" style={{background:isActive?"var(--lime-dim)":"var(--rose-dim)"}}>⚙️</div>
-            <div className="module-item-info">
-              <div className="module-item-name">{p.name || `Workflow ${i+1}`}</div>
-              <div className="module-item-meta">{p.trigger || p.trigger_type || "Sem trigger"}</div>
-            </div>
-            <span className={`badge ${isActive?"lime":"rose"}`}>{status || "desconhecido"}</span>
-          </div>
-        );
-      }}
-    />
-  );
-}
+  const [clients, setClients] = useState([]);
+  const [clientId, setClientId] = useState("");
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const [expandedId, setExpandedId] = useState(null);
+  const [analyzingId, setAnalyzingId] = useState(null);
+  const [aiResults, setAiResults] = useState({});
 
-/* ── CAMPAIGNS ── */
-function Campaigns() {
+  useEffect(() => {
+    api("/api/clients/").then(res => {
+      const l = Array.isArray(res)?res:[];
+      setClients(l);
+      if(l.length) setClientId(String(l[0].id));
+    });
+  }, []);
+
+  async function load() {
+    if (!clientId) return;
+    setLoading(true); setErr(""); setItems([]);
+    try {
+      const d = await api(`/api/rd-modules/client/${clientId}/workflows?limit=100`);
+      setItems(d?.data?.items || d?.items || []);
+    } catch(e) { setErr(e.message); }
+    finally { setLoading(false); }
+  }
+
+  async function analyzeWorkflow(item, idx) {
+    const p = item?.payload || {};
+    const wfName = p.name || `Workflow ${idx+1}`;
+    const client = clients.find(c=>String(c.id)===clientId);
+    setAnalyzingId(idx);
+    try {
+      const d = await api("/api/flows-advanced/generate-flow", {
+        method:"POST",
+        body: JSON.stringify({
+          flow_days: 14,
+          email_count: 4,
+          flow_type: "otimizacao",
+          goal: `Otimizar e melhorar o workflow existente: "${wfName}" (status: ${p.status||"?"})`,
+          product: "",
+          audience: "leads da base",
+          awareness: "já conhecem a empresa",
+          client_name: client?.name || "",
+          client_segment: client?.segment || "",
+          client_description: client?.description || "",
+        })
+      });
+      const flow = d?.flow;
+      let result = "";
+      if (flow?.strategy_summary) {
+        result = `## Diagnóstico: ${wfName}\n\n**Status atual:** ${p.status||"desconhecido"}\n\n**Estratégia sugerida:** ${flow.strategy_summary}\n\n**Trigger recomendado:** ${flow.trigger||"—"}\n\n### Otimizações sugeridas\n${(flow.optimization_tips||[]).map(t=>`- ${t}`).join("\n")}\n\n### Próximos passos\n${(flow.steps||[]).slice(0,4).map(s=>`**D${s.day} — ${s.title}:** ${s.description||s.subject||""}`).join("\n\n")}`;
+      } else {
+        result = `Análise do workflow "${wfName}" concluída. Verifique os dados retornados.`;
+      }
+      setAiResults(prev => ({...prev, [idx]: result}));
+    } catch(e) {
+      setAiResults(prev => ({...prev, [idx]: `Erro: ${e.message}`}));
+    } finally { setAnalyzingId(null); }
+  }
+
+  // Parse workflow steps from payload
+  function getSteps(p) {
+    const steps = p.steps || p.nodes || p.actions || [];
+    if (Array.isArray(steps) && steps.length) return steps;
+    // Build synthetic steps from metadata
+    const synthetic = [];
+    if (p.trigger || p.trigger_type) {
+      synthetic.push({ type: "trigger", label: p.trigger || p.trigger_type || "Gatilho", day: 0 });
+    }
+    if (p.actions_count || p.emails_count) {
+      for (let i = 0; i < Math.min(p.actions_count || p.emails_count || 2, 5); i++) {
+        synthetic.push({ type: "email", label: `Email ${i+1}`, day: (i+1)*3 });
+      }
+    }
+    if (synthetic.length === 0) {
+      synthetic.push({ type: "trigger", label: "Entrada no fluxo", day: 0 });
+      synthetic.push({ type: "email", label: "Comunicação automática", day: 3 });
+      synthetic.push({ type: "end", label: "Fim do fluxo", day: null });
+    }
+    return synthetic;
+  }
+
   return (
-    <ModulePage
-      title="Campanhas"
-      eyebrow="Módulos RD"
-      description="Histórico de campanhas de e-mail sincronizadas do RD Station."
-      endpoint="/api/rd-modules/client/{id}/campaigns?limit=100"
-      renderItem={(item, i) => {
-        const p = item?.payload || {};
-        const openRate = parseFloat(p.open_rate || p.opens_rate || 0);
-        const rateColor = openRate >= 25 ? "var(--lime)" : openRate >= 15 ? "var(--amber)" : "var(--rose)";
-        return (
-          <div key={i} className="module-item">
-            <div className="module-item-icon" style={{background:"var(--amber-dim)"}}>📧</div>
-            <div className="module-item-info">
-              <div className="module-item-name">{p.name || p.subject || `Campanha ${i+1}`}</div>
-              <div className="module-item-meta">
-                {p.status || ""}
-                {p.sent || p.emails_sent ? ` · ${(p.sent||p.emails_sent||0).toLocaleString("pt-BR")} enviados` : ""}
+    <div>
+      <div className="page-header">
+        <div className="page-eyebrow">Módulos RD</div>
+        <h1 className="page-title">Workflows</h1>
+        <p className="page-sub">Automações configuradas no RD Station. Visualize o fluxo e otimize com IA.</p>
+      </div>
+      {err && <Alert type="error">{err}</Alert>}
+
+      <div className="card">
+        <div className="row">
+          <ClientSelect value={clientId} onChange={setClientId} clients={clients} />
+          <button className="btn btn-primary" onClick={load} disabled={!clientId||loading}>
+            {loading ? <><Spinner/>Carregando...</> : "Carregar dados"}
+          </button>
+        </div>
+      </div>
+
+      {items.length > 0 && (
+        <div>
+          <div style={{fontSize:13,color:"var(--text-3)",marginBottom:12}}>
+            {items.length} workflows encontrados · {items.filter(i=>{const s=(i?.payload?.status||"").toLowerCase(); return["active","enabled","ativo"].includes(s);}).length} ativos
+          </div>
+          {items.map((item, i) => {
+            const p = item?.payload || {};
+            const status = (p.status || p.state || "").toLowerCase();
+            const isActive = ["active","enabled","ativo"].includes(status);
+            const isExpanded = expandedId === i;
+            const steps = getSteps(p);
+            const aiResult = aiResults[i];
+            const isAnalyzing = analyzingId === i;
+
+            return (
+              <div key={i} className="card" style={{marginBottom:12,borderColor:isActive?"rgba(184,245,74,0.15)":"var(--line)"}}>
+                {/* Header */}
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{width:40,height:40,borderRadius:12,background:isActive?"var(--lime-dim)":"var(--rose-dim)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>
+                    {isActive ? "⚡" : "⏸"}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:15,fontWeight:600,color:"var(--text)",marginBottom:4}}>{p.name || `Workflow ${i+1}`}</div>
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                      <span className={`badge ${isActive?"lime":"rose"}`}>{status || "desconhecido"}</span>
+                      {p.trigger && <span className="badge gray">⚡ {p.trigger}</span>}
+                      {(p.leads_count || p.contacts_count) > 0 && (
+                        <span className="badge cyan">{(p.leads_count || p.contacts_count).toLocaleString("pt-BR")} leads</span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{display:"flex",gap:8,flexShrink:0}}>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => setExpandedId(isExpanded ? null : i)}
+                    >
+                      {isExpanded ? "▲ Ocultar" : "▼ Ver fluxo"}
+                    </button>
+                    <button
+                      className="btn btn-cyan btn-sm"
+                      onClick={() => analyzeWorkflow(item, i)}
+                      disabled={isAnalyzing}
+                    >
+                      {isAnalyzing ? <Spinner/> : icons.ai}
+                      {isAnalyzing ? "Analisando..." : "Otimizar com IA"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* FLOW VISUALIZATION */}
+                {isExpanded && (
+                  <div style={{marginTop:20}}>
+                    <div style={{fontSize:11,fontWeight:600,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:12}}>Estrutura do fluxo</div>
+                    <div className="flow-canvas">
+                      <div className="flow-timeline">
+                        {steps.map((step, si) => {
+                          const type = (step.type||step.kind||"email").toLowerCase();
+                          const label = step.label || step.name || step.title || step.action || "Etapa";
+                          const desc = step.description || step.subject || step.body_angle || "";
+                          const cta = step.cta || step.cta_text || "";
+                          const day = step.day !== undefined && step.day !== null ? step.day : null;
+
+                          return (
+                            <div key={si} className="flow-step">
+                              {day !== null ? (
+                                <div className="flow-day-badge">D{day}</div>
+                              ) : (
+                                <div className="flow-day-badge" style={{background:"var(--ink-3)",color:"var(--text-3)"}}>—</div>
+                              )}
+                              <div className={`flow-step-dot ${type}`}>{
+                                type==="trigger" ? "▶" :
+                                type==="email" ? "✉" :
+                                type==="wait" ? "⏱" :
+                                type==="condition" ? "?" :
+                                type==="action" ? "★" : "■"
+                              }</div>
+                              <div className="flow-step-content" style={{flex:1}}>
+                                <div className="flow-step-title">{label}</div>
+                                {desc && <div className="flow-step-desc">{desc}</div>}
+                                {cta && (
+                                  <div className="flow-step-cta">
+                                    <span className="badge cyan">{cta}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <span className={`badge ${type==="trigger"?"lime":type==="email"?"blue":type==="wait"?"amber":type==="condition"?"cyan":"gray"}`}>{type}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* AI RESULT */}
+                {aiResult && (
+                  <div style={{marginTop:16}}>
+                    <AiResultBlock result={aiResult} title={`Otimização IA — ${p.name||"Workflow"}`} />
+                  </div>
+                )}
               </div>
-            </div>
-            {openRate > 0 && <span style={{color:rateColor,fontWeight:700,fontSize:14}}>{openRate.toFixed(1)}%</span>}
-          </div>
-        );
-      }}
-    />
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
-/* ── FLOW STUDIO ── */
+/* ══════════════════════════════════════════════
+   CAMPAIGNS
+══════════════════════════════════════════════ */
+function Campaigns() {
+  const [clients, setClients] = useState([]);
+  const [clientId, setClientId] = useState("");
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    api("/api/clients/").then(res => {
+      const l = Array.isArray(res)?res:[];
+      setClients(l);
+      if(l.length) setClientId(String(l[0].id));
+    });
+  }, []);
+
+  async function load() {
+    if (!clientId) return;
+    setLoading(true); setErr(""); setItems([]);
+    try {
+      const d = await api(`/api/rd-modules/client/${clientId}/campaigns?limit=100`);
+      setItems(d?.data?.items || d?.items || []);
+    } catch(e) { setErr(e.message); }
+    finally { setLoading(false); }
+  }
+
+  return (
+    <div>
+      <div className="page-header">
+        <div className="page-eyebrow">Módulos RD</div>
+        <h1 className="page-title">Campanhas</h1>
+        <p className="page-sub">Histórico de campanhas de e-mail sincronizadas do RD Station.</p>
+      </div>
+      {err && <Alert type="error">{err}</Alert>}
+      <div className="card">
+        <div className="row">
+          <ClientSelect value={clientId} onChange={setClientId} clients={clients} />
+          <button className="btn btn-primary" onClick={load} disabled={!clientId||loading}>
+            {loading ? <><Spinner/>Carregando...</> : "Carregar dados"}
+          </button>
+        </div>
+      </div>
+      {items.length > 0 && (
+        <div className="card">
+          <div className="row-between" style={{marginBottom:16}}>
+            <div className="card-title" style={{margin:0}}>{items.length} campanhas encontradas</div>
+            <span className="badge lime">sincronizado</span>
+          </div>
+          <div className="scroll-list">
+            {items.map((item, i) => {
+              const p = item?.payload || {};
+              const openRate = parseFloat(p.open_rate || p.opens_rate || 0);
+              const rateColor = openRate >= 25 ? "var(--lime)" : openRate >= 15 ? "var(--amber)" : "var(--rose)";
+              return (
+                <div key={i} className="module-item">
+                  <div className="module-item-icon" style={{background:"var(--amber-dim)"}}>📧</div>
+                  <div className="module-item-info">
+                    <div className="module-item-name">{p.name || p.subject || `Campanha ${i+1}`}</div>
+                    <div className="module-item-meta">
+                      {p.status || ""}
+                      {(p.sent||p.emails_sent) ? ` · ${(p.sent||p.emails_sent||0).toLocaleString("pt-BR")} enviados` : ""}
+                    </div>
+                  </div>
+                  {openRate > 0 && <span style={{color:rateColor,fontWeight:700,fontSize:14}}>{openRate.toFixed(1)}%</span>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   FLOW STUDIO IA — visual tipo RD Station
+══════════════════════════════════════════════ */
 function FlowStudio() {
   const [clients, setClients] = useState([]);
   const [clientId, setClientId] = useState("");
@@ -1591,15 +1920,15 @@ function FlowStudio() {
   const [form, setForm] = useState({
     goal:"", flow_type:"nutricao", flow_days:14, email_count:5,
     product:"", audience:"", awareness:"consciência do problema",
-    // email fields
     tone:"consultivo", objective:"gerar resposta", theme:"nutrição", cta:"saiba mais", target:"leads da base",
   });
+  const [emailTabView, setEmailTabView] = useState("A");
 
   useEffect(() => {
     api("/api/clients/").then(res => {
       const l = Array.isArray(res)?res:[];
       setClients(l);
-      if (l.length) setClientId(String(l[0].id));
+      if(l.length) setClientId(String(l[0].id));
     });
   }, []);
 
@@ -1607,18 +1936,24 @@ function FlowStudio() {
     setLoading(true); setErr(""); setResult(null);
     try {
       const client = clients.find(c=>String(c.id)===clientId);
-      const body = tab==="flow" ? {
-        ...form,
-        client_name: client?.name||"",
-        client_segment: client?.segment||"",
-        client_description: client?.description||"",
-      } : {
-        tone: form.tone, objective: form.objective, theme: form.theme,
-        cta: form.cta, target: form.target,
-        client_name: client?.name||"",
-        product: form.product,
-      };
-      const url = tab==="flow" ? "/api/flows-advanced/generate-flow" : "/api/flows-advanced/generate-email";
+      let body, url;
+      if (tab === "flow") {
+        body = {
+          ...form,
+          client_name: client?.name||"",
+          client_segment: client?.segment||"",
+          client_description: client?.description||"",
+        };
+        url = "/api/flows-advanced/generate-flow";
+      } else {
+        body = {
+          tone: form.tone, objective: form.objective, theme: form.theme,
+          cta: form.cta, target: form.target,
+          client_name: client?.name||"",
+          product: form.product,
+        };
+        url = "/api/flows-advanced/generate-email";
+      }
       setResult(await api(url, { method:"POST", body: JSON.stringify(body) }));
     } catch(e) { setErr(e.message); }
     finally { setLoading(false); }
@@ -1627,119 +1962,232 @@ function FlowStudio() {
   const flow = result?.flow;
   const email = result?.email;
 
+  const stepTypeColors = {
+    trigger: { bg: "var(--lime-dim)", border: "rgba(184,245,74,0.3)", dot: "var(--lime)", icon: "▶" },
+    email: { bg: "var(--blue-dim)", border: "rgba(74,143,245,0.3)", dot: "var(--blue)", icon: "✉" },
+    wait: { bg: "var(--amber-dim)", border: "rgba(245,200,74,0.3)", dot: "var(--amber)", icon: "⏱" },
+    condition: { bg: "var(--cyan-dim)", border: "rgba(74,245,212,0.3)", dot: "var(--cyan)", icon: "◇" },
+    action: { bg: "var(--rose-dim)", border: "rgba(245,74,122,0.3)", dot: "var(--rose)", icon: "✦" },
+    end: { bg: "rgba(255,255,255,0.04)", border: "var(--line)", dot: "var(--text-3)", icon: "■" },
+  };
+
   return (
     <div>
       <div className="page-header">
         <div className="page-eyebrow">IA Generativa</div>
         <h1 className="page-title">Flow Studio IA</h1>
-        <p className="page-sub">Gere fluxos de automação e emails completos com inteligência artificial.</p>
+        <p className="page-sub">Gere fluxos completos e emails A/B com inteligência artificial. Visão estratégica para tomada de decisão.</p>
       </div>
-      {err && <Alert>{err}</Alert>}
+      {err && <Alert type="error">{err}</Alert>}
 
       <div className="pill-tabs" style={{width:"fit-content"}}>
-        {[["flow","🔄 Fluxo"],["email","📧 Email"]].map(([k,l]) => (
+        {[["flow","🔄 Fluxo de Automação"],["email","📧 Email com A/B"]].map(([k,l]) => (
           <button key={k} className={`pill-tab ${tab===k?"active":""}`} onClick={()=>{setTab(k);setResult(null);setErr("");}}>
             {l}
           </button>
         ))}
       </div>
 
-      <div className="two-col">
-        <div className="card">
+      <div className="two-col" style={{alignItems:"flex-start"}}>
+        {/* CONFIG PANEL */}
+        <div className="card" style={{position:"sticky",top:20}}>
           <div className="card-title">Configurações</div>
           <div className="field"><label>Cliente</label><ClientSelect value={clientId} onChange={setClientId} clients={clients} /></div>
 
-          {tab==="flow" ? <>
-            <div className="field"><label>Objetivo do fluxo</label><input value={form.goal} onChange={e=>setForm({...form,goal:e.target.value})} placeholder="Ex: nutrir leads capturados via webinar" /></div>
-            <div className="field"><label>Tipo de fluxo</label><select value={form.flow_type} onChange={e=>setForm({...form,flow_type:e.target.value})}>
-              {[["nutricao","Nutrição"],["boas-vindas","Boas-vindas"],["reengajamento","Reengajamento"],["pos-venda","Pós-venda"],["onboarding","Onboarding"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
-            </select></div>
-            <div className="field"><label>Produto/Serviço</label><input value={form.product} onChange={e=>setForm({...form,product:e.target.value})} placeholder="Ex: Curso de marketing digital" /></div>
-            <div className="field"><label>Público-alvo</label><input value={form.audience} onChange={e=>setForm({...form,audience:e.target.value})} placeholder="Ex: Empreendedores B2B" /></div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div className="field"><label>Duração (dias)</label><input type="number" value={form.flow_days} onChange={e=>setForm({...form,flow_days:e.target.value})} min={5} max={60} /></div>
-              <div className="field"><label>Nº de emails</label><input type="number" value={form.email_count} onChange={e=>setForm({...form,email_count:e.target.value})} min={2} max={12} /></div>
-            </div>
-          </> : <>
-            <div className="field"><label>Tema</label><input value={form.theme} onChange={e=>setForm({...form,theme:e.target.value})} placeholder="Ex: reativação de leads inativos" /></div>
-            <div className="field"><label>Objetivo</label><input value={form.objective} onChange={e=>setForm({...form,objective:e.target.value})} placeholder="Ex: agendar uma conversa" /></div>
-            <div className="field"><label>Tom de voz</label><select value={form.tone} onChange={e=>setForm({...form,tone:e.target.value})}>
-              {["consultivo","direto","amigável","educativo","persuasivo","urgente"].map(t=><option key={t}>{t}</option>)}
-            </select></div>
-            <div className="field"><label>CTA principal</label><input value={form.cta} onChange={e=>setForm({...form,cta:e.target.value})} placeholder="Ex: agendar uma call" /></div>
-            <div className="field"><label>Público-alvo</label><input value={form.target} onChange={e=>setForm({...form,target:e.target.value})} placeholder="Ex: leads B2B de tecnologia" /></div>
-          </>}
+          {tab==="flow" ? (
+            <>
+              <div className="field"><label>Objetivo do fluxo</label><input value={form.goal} onChange={e=>setForm({...form,goal:e.target.value})} placeholder="Ex: nutrir leads capturados via webinar" /></div>
+              <div className="field"><label>Tipo de fluxo</label>
+                <select value={form.flow_type} onChange={e=>setForm({...form,flow_type:e.target.value})}>
+                  {[["nutricao","🌱 Nutrição"],["boas-vindas","👋 Boas-vindas"],["reengajamento","🔄 Reengajamento"],["pos-venda","🛒 Pós-venda"],["onboarding","🚀 Onboarding"]].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              </div>
+              <div className="field"><label>Produto/Serviço</label><input value={form.product} onChange={e=>setForm({...form,product:e.target.value})} placeholder="Ex: Curso de marketing digital" /></div>
+              <div className="field"><label>Público-alvo</label><input value={form.audience} onChange={e=>setForm({...form,audience:e.target.value})} placeholder="Ex: Empreendedores B2B" /></div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <div className="field"><label>Duração (dias)</label><input type="number" value={form.flow_days} onChange={e=>setForm({...form,flow_days:e.target.value})} min={5} max={60} style={{maxWidth:"100%"}} /></div>
+                <div className="field"><label>Nº de emails</label><input type="number" value={form.email_count} onChange={e=>setForm({...form,email_count:e.target.value})} min={2} max={12} style={{maxWidth:"100%"}} /></div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="field"><label>Tema do email</label><input value={form.theme} onChange={e=>setForm({...form,theme:e.target.value})} placeholder="Ex: reativação de leads inativos" /></div>
+              <div className="field"><label>Objetivo</label><input value={form.objective} onChange={e=>setForm({...form,objective:e.target.value})} placeholder="Ex: agendar uma conversa" /></div>
+              <div className="field"><label>Tom de voz</label>
+                <select value={form.tone} onChange={e=>setForm({...form,tone:e.target.value})}>
+                  {["consultivo","direto","amigável","educativo","persuasivo","urgente"].map(t=><option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="field"><label>CTA principal</label><input value={form.cta} onChange={e=>setForm({...form,cta:e.target.value})} placeholder="Ex: agendar uma call" /></div>
+              <div className="field"><label>Público-alvo</label><input value={form.target} onChange={e=>setForm({...form,target:e.target.value})} placeholder="Ex: leads B2B de tecnologia" /></div>
+            </>
+          )}
 
-          <button className="btn btn-primary" onClick={generate} disabled={loading} style={{width:"100%",justifyContent:"center"}}>
+          <button className="btn btn-primary" onClick={generate} disabled={loading} style={{width:"100%",justifyContent:"center",marginTop:4}}>
             {loading ? <><Spinner/> Gerando com IA...</> : <>{icons.ai} Gerar com IA</>}
           </button>
         </div>
 
-        <div className="card">
+        {/* RESULT PANEL */}
+        <div>
           {!result && !loading && (
-            <div className="empty">
-              <div className="empty-icon">✨</div>
-              <div className="empty-title">Pronto para gerar</div>
-              <p>Configure os parâmetros e clique em "Gerar com IA" para criar o {tab==="flow"?"fluxo":"email"} automaticamente.</p>
+            <div className="card"><div className="empty"><div className="empty-icon">✨</div><div className="empty-title">Pronto para gerar</div><p>Configure os parâmetros e clique em "Gerar com IA" para criar o {tab==="flow"?"fluxo":"email"} automaticamente.</p></div></div>
+          )}
+
+          {loading && (
+            <div className="card" style={{minHeight:200,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
+              <Spinner size={32}/>
+              <p style={{color:"var(--text-3)",fontSize:13}}>IA processando sua solicitação...</p>
             </div>
           )}
 
-          {loading && <div style={{padding:60,textAlign:"center"}}><Spinner size={28}/><p style={{marginTop:16,color:"var(--text-3)",fontSize:13}}>IA trabalhando...</p></div>}
-
-          {flow && <>
-            <div className="row-between" style={{marginBottom:16}}>
-              <div className="card-title" style={{margin:0}}>{flow.flow_name}</div>
-              <span className="badge lime">fluxo gerado</span>
-            </div>
-            <p style={{fontSize:13.5,color:"var(--text-2)",marginBottom:16,lineHeight:1.6}}>{flow.strategy_summary}</p>
-            <div style={{fontSize:12,color:"var(--text-3)",marginBottom:12}}>Trigger: <strong style={{color:"var(--text)"}}>{flow.trigger}</strong></div>
-            <div className="scroll-list">
-              {(flow.steps||[]).map((step,i) => (
-                <div key={i} style={{display:"flex",gap:12,padding:"10px 0",borderBottom:"1px solid var(--line)"}}>
-                  <div style={{width:28,height:28,borderRadius:8,background:"var(--lime-dim)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Syne",fontWeight:700,fontSize:11,color:"var(--lime)",flexShrink:0}}>D{step.day}</div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:13.5,fontWeight:600,color:"var(--text)"}}>{step.title}</div>
-                    <div style={{fontSize:12,color:"var(--text-3)",marginTop:2}}>{step.subject || step.description}</div>
-                    {step.cta && <span className="badge cyan" style={{marginTop:4}}>{step.cta}</span>}
+          {/* ── FLOW RESULT ── */}
+          {flow && (
+            <div>
+              {/* Header */}
+              <div className="card" style={{borderColor:"rgba(184,245,74,0.2)"}}>
+                <div className="row-between">
+                  <div>
+                    <div style={{fontSize:11,color:"var(--lime)",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:6}}>{clients.find(c=>String(c.id)===clientId)?.name||""}</div>
+                    <h2 style={{fontFamily:"Syne",fontSize:20,fontWeight:700,color:"var(--text)",letterSpacing:"-0.03em",marginBottom:8}}>{flow.flow_name}</h2>
+                    <p style={{fontSize:13.5,color:"var(--text-2)",lineHeight:1.6,maxWidth:480}}>{flow.strategy_summary}</p>
                   </div>
-                  <span className="badge gray">{step.type}</span>
+                  <span className="badge lime">fluxo gerado</span>
                 </div>
-              ))}
-            </div>
-            {flow.success_metrics && (
-              <div style={{marginTop:16,padding:12,background:"var(--lime-dim2)",borderRadius:"10px",border:"1px solid rgba(184,245,74,0.1)"}}>
-                <div style={{fontSize:11,fontWeight:600,color:"var(--lime)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Projeção de resultados</div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                  {[["Abertura", flow.success_metrics.expected_open_rate],["Conversão",flow.success_metrics.expected_conversion_rate],["ROI",flow.success_metrics.estimated_roi]].map(([l,v]) => v ? (
-                    <div key={l}><div style={{fontSize:10,color:"var(--text-3)"}}>{l}</div><div style={{fontSize:13,fontWeight:600,color:"var(--lime)"}}>{v}</div></div>
-                  ) : null)}
-                </div>
+                {flow.trigger && (
+                  <div style={{marginTop:16,display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:11,color:"var(--text-3)"}}>Trigger:</span>
+                    <span className="badge cyan">▶ {flow.trigger}</span>
+                  </div>
+                )}
               </div>
-            )}
-          </>}
 
-          {email && <>
-            <div className="row-between" style={{marginBottom:16}}>
-              <div className="card-title" style={{margin:0}}>Email gerado</div>
-              <span className="badge lime">A/B pronto</span>
-            </div>
-            {[["A",email.version_a],["B",email.version_b]].map(([v,ver]) => ver ? (
-              <div key={v} style={{background:"var(--ink)",border:"1px solid var(--line)",borderRadius:10,padding:16,marginBottom:12}}>
-                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
-                  <span className="badge amber">Versão {v}</span>
-                  <span style={{fontSize:12,color:"var(--text-3)"}}>{ver.angle}</span>
-                </div>
-                <div style={{fontSize:13.5,fontWeight:600,color:"var(--text)",marginBottom:4}}>Assunto: {ver.subject}</div>
-                <div style={{fontSize:12,color:"var(--text-3)",marginBottom:12}}>Pré-header: {ver.preheader}</div>
-                <div className="ai-result md" style={{fontSize:12}} dangerouslySetInnerHTML={{__html:renderMd(ver.body)}} />
-                <div style={{marginTop:8,display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:12,color:"var(--text-3)"}}>CTA:</span>
-                  <span className="badge lime">{ver.cta_text}</span>
+              {/* FLOW TIMELINE — RD Station style */}
+              <div className="card">
+                <div className="card-title">Mapa do Fluxo</div>
+                <div className="flow-canvas">
+                  <div className="flow-timeline">
+                    {(flow.steps||[]).map((step, si) => {
+                      const type = (step.type||"email").toLowerCase();
+                      const tc = stepTypeColors[type] || stepTypeColors.email;
+                      const isLast = si === (flow.steps||[]).length - 1;
+
+                      return (
+                        <div key={si} className="flow-step">
+                          <div className="flow-day-badge">
+                            {step.day !== undefined && step.day !== null ? <>D<br/>{step.day}</> : "—"}
+                          </div>
+                          <div className="flow-step-dot" style={{background:tc.bg,border:`2px solid ${tc.border}`,color:tc.dot}}>
+                            <span style={{display:type==="condition"?"inline-block":"inline",transform:type==="condition"?"rotate(-45deg)":"none",fontSize:"8px"}}>{tc.icon}</span>
+                          </div>
+                          <div className="flow-step-content" style={{borderColor:tc.border}}>
+                            <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:step.description||step.body_angle ? 6 : 0}}>
+                              <div className="flow-step-title" style={{flex:1}}>{step.title}</div>
+                              <span className="badge" style={{background:tc.bg,color:tc.dot,border:`1px solid ${tc.border}`,flexShrink:0}}>{type}</span>
+                            </div>
+                            {(step.subject) && <div style={{fontSize:12,color:"var(--text-2)",fontStyle:"italic",marginBottom:4}}>"{step.subject}"</div>}
+                            {(step.description || step.body_angle) && <div className="flow-step-desc">{step.description || step.body_angle}</div>}
+                            {step.cta && (
+                              <div className="flow-step-cta">
+                                <span className="badge lime">→ {step.cta}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            ) : null)}
-            {email.reasoning && <p style={{fontSize:12.5,color:"var(--text-3)",marginTop:8,lineHeight:1.6}}>💡 {email.reasoning}</p>}
-          </>}
+
+              {/* Final action */}
+              {flow.final_action && (
+                <div className="card" style={{background:"var(--lime-dim2)",borderColor:"rgba(184,245,74,0.15)"}}>
+                  <div style={{fontSize:11,fontWeight:600,color:"var(--lime)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Ação final do fluxo</div>
+                  <p style={{fontSize:13.5,color:"var(--text-2)"}}>{flow.final_action}</p>
+                </div>
+              )}
+
+              {/* Metrics */}
+              {flow.success_metrics && (
+                <div className="card">
+                  <div className="card-title">Projeção de Resultados</div>
+                  <div className="three-col" style={{gap:12}}>
+                    {[["Abertura esperada", flow.success_metrics.expected_open_rate, "lime"],["Conversão esperada", flow.success_metrics.expected_conversion_rate, "cyan"],["ROI estimado", flow.success_metrics.estimated_roi, "amber"]].map(([l,v,c]) => v ? (
+                      <div key={l} style={{padding:16,background:"var(--ink)",borderRadius:10,border:"1px solid var(--line)",textAlign:"center"}}>
+                        <div style={{fontSize:11,color:"var(--text-3)",marginBottom:6}}>{l}</div>
+                        <div style={{fontFamily:"Syne",fontSize:18,fontWeight:700,color:`var(--${c})`}}>{v}</div>
+                      </div>
+                    ) : null)}
+                  </div>
+                  {(flow.optimization_tips||[]).length > 0 && (
+                    <div style={{marginTop:16}}>
+                      <div style={{fontSize:11,fontWeight:600,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Dicas de Otimização</div>
+                      {flow.optimization_tips.map((tip,i) => <div key={i} style={{fontSize:13,color:"var(--text-2)",padding:"6px 0",borderBottom:"1px solid var(--line)"}}>→ {tip}</div>)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── EMAIL RESULT ── */}
+          {email && (
+            <div>
+              <div className="card" style={{borderColor:"rgba(184,245,74,0.2)"}}>
+                <div className="row-between" style={{marginBottom:16}}>
+                  <div>
+                    <h2 style={{fontFamily:"Syne",fontSize:20,fontWeight:700,color:"var(--text)",letterSpacing:"-0.03em",marginBottom:6}}>Email gerado com A/B Test</h2>
+                    <p style={{fontSize:13,color:"var(--text-2)"}}>{email.reasoning}</p>
+                  </div>
+                  <span className={`badge ${email.recommended_version==="A"?"lime":"cyan"}`}>Recomendada: Versão {email.recommended_version}</span>
+                </div>
+
+                {email.subject_test_tip && (
+                  <div style={{padding:10,background:"var(--amber-dim)",borderRadius:8,border:"1px solid rgba(245,200,74,0.2)",fontSize:12.5,color:"var(--amber)"}}>
+                    💡 {email.subject_test_tip}
+                  </div>
+                )}
+              </div>
+
+              {/* Version tabs */}
+              <div className="pill-tabs" style={{width:"fit-content"}}>
+                {[["A", email.version_a], ["B", email.version_b]].map(([v, ver]) => ver ? (
+                  <button key={v} className={`pill-tab ${emailTabView===v?"active":""}`} onClick={()=>setEmailTabView(v)}>
+                    Versão {v} {email.recommended_version===v ? "⭐" : ""}
+                  </button>
+                ) : null)}
+              </div>
+
+              {[["A", email.version_a], ["B", email.version_b]].map(([v, ver]) => {
+                if (!ver || emailTabView !== v) return null;
+                return (
+                  <div key={v} className="card">
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+                      <span className="badge amber">Versão {v}</span>
+                      <span style={{fontSize:12,color:"var(--text-3)"}}>{ver.angle}</span>
+                      <div style={{marginLeft:"auto"}}><CopyBtn text={`ASSUNTO: ${ver.subject}\nPRÉ-HEADER: ${ver.preheader}\n\n${ver.body}\n\nCTA: ${ver.cta_text}`} /></div>
+                    </div>
+
+                    <div style={{background:"var(--ink)",borderRadius:10,border:"1px solid var(--line)",overflow:"hidden",marginBottom:16}}>
+                      <div style={{padding:"14px 18px",borderBottom:"1px solid var(--line)",background:"rgba(255,255,255,0.02)"}}>
+                        <div style={{fontSize:11,color:"var(--text-3)",marginBottom:4}}>ASSUNTO</div>
+                        <div style={{fontSize:15,fontWeight:600,color:"var(--text)"}}>{ver.subject}</div>
+                        <div style={{fontSize:12,color:"var(--text-3)",marginTop:4}}>{ver.preheader}</div>
+                      </div>
+                      <div style={{padding:"18px"}}>
+                        <div className="ai-result md" style={{fontSize:13}} dangerouslySetInnerHTML={{__html:renderMd(ver.body)}} />
+                        <div style={{marginTop:16,display:"flex",gap:10,alignItems:"center"}}>
+                          <span style={{fontSize:12,color:"var(--text-3)"}}>CTA:</span>
+                          <button style={{background:"var(--lime)",color:"var(--ink)",border:"none",padding:"8px 20px",borderRadius:8,fontFamily:"Syne",fontWeight:600,fontSize:13,cursor:"default"}}>{ver.cta_text}</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1779,7 +2227,6 @@ function HealthAudit() {
         <p className="page-sub">Diagnóstico completo da conta RD Station com análise de workflows, leads e landing pages.</p>
       </div>
       {err && <Alert>{err}</Alert>}
-
       <div className="card">
         <div className="row">
           <ClientSelect value={clientId} onChange={setClientId} clients={clients} />
@@ -1788,9 +2235,7 @@ function HealthAudit() {
           </button>
         </div>
       </div>
-
       {loading && <div style={{padding:80,textAlign:"center"}}><Spinner size={28}/><p style={{marginTop:16,color:"var(--text-3)"}}>Analisando conta...</p></div>}
-
       {d && (
         <div>
           <div className="kpi-grid">
@@ -1800,35 +2245,23 @@ function HealthAudit() {
               ["Leads quentes", d.leads?.hot||0, `${d.leads?.engagement_rate||0}% engaj.`, "lime"],
               ["LPs top", d.landing_pages?.top||0, `${d.landing_pages?.critical||0} críticas`, "amber"],
             ].map(([l,v,sub,c]) => (
-              <div key={l} className={`kpi-card ${c}`}>
-                <div className="kpi-label">{l}</div>
-                <div className="kpi-value">{v}</div>
-                {sub && <div className="kpi-change neutral">{sub}</div>}
-              </div>
+              <div key={l} className={`kpi-card ${c}`}><div className="kpi-label">{l}</div><div className="kpi-value">{v}</div>{sub && <div className="kpi-change neutral">{sub}</div>}</div>
             ))}
           </div>
-
           <div className="two-col">
             <div className="card">
               <div className="card-title">Diagnóstico por Módulo</div>
-              {[
-                ["Workflows", d.workflows?.score||0, d.workflows?.issues||[]],
-                ["Leads", d.leads?.score||0, d.leads?.issues||[]],
-                ["Landing Pages", d.landing_pages?.score||0, d.landing_pages?.issues||[]],
-              ].map(([l,s,issues]) => (
+              {[["Workflows", d.workflows?.score||0, d.workflows?.issues||[]],["Leads", d.leads?.score||0, d.leads?.issues||[]],["Landing Pages", d.landing_pages?.score||0, d.landing_pages?.issues||[]]].map(([l,s,issues]) => (
                 <div key={l} style={{marginBottom:20}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
                     <span style={{fontSize:13.5,fontWeight:600,color:"var(--text)"}}>{l}</span>
                     <span style={{fontFamily:"Syne",fontSize:18,fontWeight:700,color:s>=75?"var(--lime)":s>=50?"var(--amber)":"var(--rose)"}}>{s}</span>
                   </div>
                   <BarMetric label="" value={s} color={s>=75?"var(--lime)":s>=50?"var(--amber)":"var(--rose)"} />
-                  {issues.map((issue,i) => (
-                    <div key={i} style={{fontSize:12,color:"var(--rose)",padding:"6px 10px",background:"var(--rose-dim)",borderRadius:6,marginTop:4}}>⚠ {issue}</div>
-                  ))}
+                  {issues.map((issue,i) => <div key={i} style={{fontSize:12,color:"var(--rose)",padding:"6px 10px",background:"var(--rose-dim)",borderRadius:6,marginTop:4}}>⚠ {issue}</div>)}
                 </div>
               ))}
             </div>
-
             <div className="card">
               <div className="card-title">Análise IA</div>
               {d.ai_commentary ? (
@@ -1847,7 +2280,7 @@ function HealthAudit() {
                     </div>
                   ))}
                 </div>
-              ) : <div className="empty"><p>Auditoria sem comentário de IA. Tente novamente com ai=true.</p></div>}
+              ) : <div className="empty"><p>Auditoria sem comentário de IA.</p></div>}
             </div>
           </div>
         </div>
@@ -1879,22 +2312,17 @@ function Prospect() {
         <h1 className="page-title">Diagnóstico de Prospecção</h1>
         <p className="page-sub">Analise um prospect e gere diagnóstico comercial completo com abordagem personalizada.</p>
       </div>
-      {err && <Alert>{err}</Alert>}
-
+      {err && <Alert type="error">{err}</Alert>}
       <div className="two-col">
         <div className="card">
           <div className="card-title">Dados da empresa</div>
           {[["company_name","Nome da empresa","Ex: TechSoft Ltda"],["niche","Nicho/segmento","Ex: Software B2B"],["city","Cidade","Ex: São Paulo"],["website","Website","https://..."],["instagram","Instagram","@handle"]].map(([k,l,p]) => (
-            <div key={k} className="field">
-              <label>{l}</label>
-              <input value={form[k]} onChange={e=>setForm({...form,[k]:e.target.value})} placeholder={p} />
-            </div>
+            <div key={k} className="field"><label>{l}</label><input value={form[k]} onChange={e=>setForm({...form,[k]:e.target.value})} placeholder={p} /></div>
           ))}
           <button className="btn btn-primary" onClick={analyze} disabled={loading} style={{width:"100%",justifyContent:"center"}}>
             {loading ? <><Spinner/>Analisando...</> : <>{icons.ai} Gerar diagnóstico</>}
           </button>
         </div>
-
         <div className="card">
           {!d && !loading && <div className="empty"><div className="empty-icon">🎯</div><div className="empty-title">Pronto para prospectar</div><p>Preencha os dados e gere um diagnóstico comercial personalizado.</p></div>}
           {loading && <div style={{padding:60,textAlign:"center"}}><Spinner size={28}/></div>}
@@ -1905,14 +2333,12 @@ function Prospect() {
                 <span className={`badge ${d.potential?.includes("Alto")?"lime":"amber"}`}>Potencial {d.potential}</span>
               </div>
               <p style={{fontSize:14,color:"var(--text-2)",lineHeight:1.7,marginBottom:20}}>{d.executive_summary}</p>
-
               {[["⚠ Pontos fracos","rose",d.weak_points],["✅ Oportunidades","lime",d.opportunities],["💬 Ângulos de venda","cyan",d.sales_angles],["🗓 Plano de ação","amber",d.action_plan]].map(([title,c,items]) => items?.length ? (
                 <div key={title} style={{marginBottom:16}}>
                   <div style={{fontSize:12,fontWeight:600,color:`var(--${c})`,textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>{title}</div>
                   {items.map((item,i) => <div key={i} style={{fontSize:13,color:"var(--text-2)",padding:"7px 10px",background:"var(--ink)",borderRadius:8,marginBottom:4,lineHeight:1.5}}>{item}</div>)}
                 </div>
               ) : null)}
-
               {d.proposal && (
                 <div style={{padding:16,background:"var(--lime-dim2)",borderRadius:"10px",border:"1px solid rgba(184,245,74,0.15)",marginTop:12}}>
                   <div style={{fontSize:11,fontWeight:600,color:"var(--lime)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Proposta sugerida</div>
@@ -1960,8 +2386,7 @@ function ExecutiveReport() {
         <h1 className="page-title">Relatório Executivo</h1>
         <p className="page-sub">Relatório estratégico completo com score, diagnóstico e próximos passos por cliente.</p>
       </div>
-      {err && <Alert>{err}</Alert>}
-
+      {err && <Alert type="error">{err}</Alert>}
       <div className="card">
         <div className="row">
           <ClientSelect value={clientId} onChange={setClientId} clients={clients} />
@@ -1970,7 +2395,6 @@ function ExecutiveReport() {
           </button>
         </div>
       </div>
-
       {r && (
         <div>
           <div className="kpi-grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))"}}>
@@ -1980,13 +2404,9 @@ function ExecutiveReport() {
               <div className="kpi-change neutral">{r.score_data?.priority||""}</div>
             </div>
             {Object.entries(r.score_data?.counts||{}).map(([k,v]) => (
-              <div key={k} className="kpi-card">
-                <div className="kpi-label">{k.replace(/_/g," ")}</div>
-                <div className="kpi-value">{v}</div>
-              </div>
+              <div key={k} className="kpi-card"><div className="kpi-label">{k.replace(/_/g," ")}</div><div className="kpi-value">{v}</div></div>
             ))}
           </div>
-
           <div className="two-col">
             <div className="card">
               <div className="card-title">Diagnóstico Estratégico</div>
@@ -1998,7 +2418,6 @@ function ExecutiveReport() {
                 </div>
               ))}
             </div>
-
             <div className="card">
               <div className="card-title">Próximos Passos</div>
               {(r.next_steps||[]).map((s,i) => (
@@ -2007,14 +2426,12 @@ function ExecutiveReport() {
                   <span style={{fontSize:13.5,color:"var(--text-2)"}}>{s}</span>
                 </div>
               ))}
-
               {(r.risk_flags||[]).length > 0 && (
                 <div style={{marginTop:16}}>
                   <div style={{fontSize:11,fontWeight:600,color:"var(--rose)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Riscos identificados</div>
                   {r.risk_flags.map((f,i) => <div key={i} style={{fontSize:12.5,color:"var(--rose)",padding:"6px 10px",background:"var(--rose-dim)",borderRadius:6,marginBottom:4}}>⚠ {f}</div>)}
                 </div>
               )}
-
               {(r.opportunity_flags||[]).length > 0 && (
                 <div style={{marginTop:12}}>
                   <div style={{fontSize:11,fontWeight:600,color:"var(--lime)",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8}}>Oportunidades</div>
@@ -2036,9 +2453,7 @@ function AlertsPanel() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
-    api("/api/alerts/agency")
-      .then(d => { setData(d); setLoading(false); })
-      .catch(e => { setErr(e.message); setLoading(false); });
+    api("/api/alerts/agency").then(d => { setData(d); setLoading(false); }).catch(e => { setErr(e.message); setLoading(false); });
   },[]);
 
   const d = data?.alerts || data || {};
@@ -2050,20 +2465,15 @@ function AlertsPanel() {
         <h1 className="page-title">Central de Alertas</h1>
         <p className="page-sub">Monitoramento automático de anomalias e alertas de performance da carteira.</p>
       </div>
-      {err && <Alert>{err}</Alert>}
+      {err && <Alert type="error">{err}</Alert>}
       {loading && <div style={{padding:80,textAlign:"center"}}><Spinner size={28}/></div>}
-
       {d && !loading && (
         <div>
           <div className="kpi-grid">
             {[["Críticos","rose",d.totals?.critical||0],["Avisos","amber",d.totals?.warnings||0],["Ações","lime",d.totals?.actions||0]].map(([l,c,v]) => (
-              <div key={l} className={`kpi-card ${c}`}>
-                <div className="kpi-label">{l}</div>
-                <div className="kpi-value" style={{color:`var(--${c})`}}>{v}</div>
-              </div>
+              <div key={l} className={`kpi-card ${c}`}><div className="kpi-label">{l}</div><div className="kpi-value" style={{color:`var(--${c})`}}>{v}</div></div>
             ))}
           </div>
-
           {[["🔴 Críticos","critical","rose"],["⚠ Avisos","warnings","amber"],["→ Ações","actions","lime"]].map(([title,key,c]) => {
             const items = d[key] || [];
             if (!items.length) return null;
@@ -2112,7 +2522,34 @@ function App() {
 
   return (
     <div className="app">
-      <Sidebar section={section} setSection={setSection} onLogout={logout} />
+      <aside className="sidebar">
+        <div className="sidebar-inner">
+          <div className="brand">
+            <div className="brand-logo">
+              <div className="brand-icon">RD</div>
+              <span className="brand-name">RD Manager IA</span>
+            </div>
+            <div className="brand-sub">Plataforma para agências</div>
+          </div>
+          {[
+            ["Visão geral", [["dashboard",icons.dashboard,"Dashboard"],["clients",icons.clients,"Clientes"],["portfolio",icons.portfolio,"Carteira"]]],
+            ["Módulos RD", [["landing_pages",icons.lp,"Landing Pages"],["leads",icons.leads,"Leads"],["segmentations",icons.seg,"Segmentações"],["workflows",icons.flows,"Workflows"],["campaigns",icons.clients,"Campanhas"],["flow_studio",icons.studio,"Flow Studio IA"]]],
+            ["Crescimento", [["health_audit",icons.health,"Auditoria de Saúde"],["prospect",icons.prospect,"Prospecção"],["report",icons.report,"Relatório Executivo"],["alerts",icons.alerts,"Alertas"]]],
+          ].map(([group, items]) => (
+            <div key={group} className="nav-section">
+              <div className="nav-label">{group}</div>
+              {items.map(([id, icon, label]) => (
+                <button key={id} className={`nav-btn ${section===id?"active":""}`} onClick={()=>setSection(id)}>
+                  {icon} {label}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="sidebar-footer">
+          <button className="logout-btn" onClick={logout}>{icons.logout} Sair da conta</button>
+        </div>
+      </aside>
       <main className="main">
         {pages[section] || <Dashboard />}
       </main>
