@@ -1466,7 +1466,7 @@ function Leads() {
           <div className="card-title">Análise IA da Base</div>
           <div className="two-col">
             {aiAnalysis.overview && (
-              <div style={{padding:16,background:`var(--${aiAnalysis.overview.health==="saudavel"?"lime":aiAnalysis.overview.health==="atencao"?"amber":"rose"}-dim)`,borderRadius:var(--r),border:`1px solid rgba(${aiAnalysis.overview.health==="saudavel"?"184,245,74":aiAnalysis.overview.health==="atencao"?"245,200,74":"245,74,122"},0.2)`}}>
+              <div style={{padding:16,background:`var(--${aiAnalysis.overview.health==="saudavel"?"lime":aiAnalysis.overview.health==="atencao"?"amber":"rose"}-dim)`,borderRadius:"var(--r)",border:`1px solid rgba(${aiAnalysis.overview.health==="saudavel"?"184,245,74":aiAnalysis.overview.health==="atencao"?"245,200,74":"245,74,122"},0.2)`}}>
                 <div style={{fontSize:11,fontWeight:600,color:"var(--text-3)",textTransform:"uppercase",marginBottom:8}}>Diagnóstico geral</div>
                 <p style={{fontSize:13.5,color:"var(--text-2)",lineHeight:1.6}}>{aiAnalysis.overview.summary}</p>
               </div>
