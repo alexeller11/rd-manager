@@ -10,7 +10,7 @@ from app.utils.notifier import send_telegram_message
 
 from app.auth_core import ensure_admin_exists, get_current_user, migrate_plaintext_rd_credentials
 from app.core.settings import get_settings
-from app.database import close_db, init_db, db_fetchval, db_execute
+from app.database import close_db, init_db, db_fetchval, db_execute, using_postgres
 from app.routers import (
     agency_dashboard,
     agency_expert,
@@ -47,18 +47,33 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 async def _ensure_webhook_table() -> None:
-    await db_execute(
-        """
-        CREATE TABLE IF NOT EXISTS rd_webhook_events (
-            id SERIAL PRIMARY KEY,
-            event_type TEXT NOT NULL,
-            contact_uuid TEXT NOT NULL DEFAULT '',
-            email TEXT NOT NULL DEFAULT '',
-            payload JSONB NOT NULL DEFAULT '{}',
-            received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    if using_postgres():
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS rd_webhook_events (
+                id SERIAL PRIMARY KEY,
+                event_type TEXT NOT NULL,
+                contact_uuid TEXT NOT NULL DEFAULT '',
+                email TEXT NOT NULL DEFAULT '',
+                payload JSONB NOT NULL DEFAULT '{}',
+                received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            """
         )
-        """
-    )
+    else:
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS rd_webhook_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_type TEXT NOT NULL,
+                contact_uuid TEXT NOT NULL DEFAULT '',
+                email TEXT NOT NULL DEFAULT '',
+                payload TEXT NOT NULL DEFAULT '{}',
+                received_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+    
     await db_execute(
         "CREATE INDEX IF NOT EXISTS idx_webhook_email ON rd_webhook_events (email)"
     )
@@ -69,17 +84,32 @@ async def _ensure_webhook_table() -> None:
 
 async def _ensure_weekly_analyses_table() -> None:
     """Cria tabela weekly_analyses usada por intelligence.py."""
-    await db_execute(
-        """
-        CREATE TABLE IF NOT EXISTS weekly_analyses (
-            id SERIAL PRIMARY KEY,
-            client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
-            result TEXT NOT NULL DEFAULT '',
-            week_ref TEXT NOT NULL DEFAULT '',
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    if using_postgres():
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS weekly_analyses (
+                id SERIAL PRIMARY KEY,
+                client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+                result TEXT NOT NULL DEFAULT '',
+                week_ref TEXT NOT NULL DEFAULT '',
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+            """
         )
-        """
-    )
+    else:
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS weekly_analyses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id INTEGER NOT NULL,
+                result TEXT NOT NULL DEFAULT '',
+                week_ref TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+            )
+            """
+        )
+    
     await db_execute(
         "CREATE INDEX IF NOT EXISTS idx_weekly_analyses_client ON weekly_analyses(client_id, created_at DESC);"
     )
@@ -189,7 +219,7 @@ app.include_router(
     dependencies=private_dependencies,
 )
 
-# ── Leads & CRM ─────────────────────────────────────────────────────────────────────────────
+# ── Leads & CRM ─────────────────────────────────────────────────────────────────────────
 app.include_router(
     leads.router, prefix="/api/leads", tags=["leads"],
     dependencies=private_dependencies,
