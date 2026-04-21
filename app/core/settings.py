@@ -78,6 +78,18 @@ class Settings(BaseSettings):
             if not self.admin_password:
                 raise RuntimeError("ADMIN_PASSWORD é obrigatório em produção.")
 
+    def get_database_url(self) -> str:
+        if self.app_env.lower() == "production" and not self.debug_mode:
+            return self.database_url
+        else:
+            # Use SQLite for development on Windows
+            import platform
+            if platform.system() == "Windows":
+                return "sqlite:///./dev.db"
+            else:
+                # For other environments, default to PostgreSQL
+                return self.database_url or "postgresql://user:password@localhost/dbname"
+
 
 @lru_cache
 def get_settings() -> Settings:
