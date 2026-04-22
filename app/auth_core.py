@@ -8,7 +8,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.core.settings import get_settings
-from app.database import db_execute, db_fetch_all, db_fetch_one, db_fetchval, using_postgres
+from app.database import db_execute, db_fetch_all, db_fetch_one, db_fetchval, using_postgres, db_fetchone, db_fetchall
 
 settings = get_settings()
 

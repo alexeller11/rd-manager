@@ -40,7 +40,6 @@ async def init_db():
                 _pg_pool = await asyncpg.create_pool(
                     dsn=database_url,
                     min_size=1,
-                    # fix: aumentado de 2 para 5 para suportar requisições concorrentes em produção
                     max_size=5,
                     ssl='require' if 'render.com' in database_url or settings.app_env == 'production' else None,
                     command_timeout=60,
@@ -58,7 +57,6 @@ async def init_db():
             logger.error("Erro ao inicializar o banco de dados (tentativa %d/3): %s", attempt + 1, e)
             await asyncio.sleep(5)
 
-    # fix: levanta RuntimeError em vez de retornar None silenciosamente
     raise RuntimeError(
         "Falha ao inicializar o banco de dados após 3 tentativas. Verifique DATABASE_URL e conexão com o banco."
     )
@@ -134,3 +132,8 @@ async def close_db():
     else:
         await _sqlite_conn.close()
         logger.info("✅ SQLite fechado com sucesso.")
+
+
+# Aliases
+db_fetchone = db_fetch_one
+db_fetchall = db_fetch_all
