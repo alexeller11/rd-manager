@@ -51,8 +51,7 @@ async def init_db():
                 _sqlite_conn.row_factory = aiosqlite.Row
                 logger.info("✅ SQLite inicializado com sucesso.")
 
-            # fix: chamada à função init_schema deve ser removida ou definida
-            # await init_schema()
+            await init_schema()
             logger.info("Banco de dados e schema inicializados com sucesso.")
             return
         except Exception as e:
@@ -63,3 +62,66 @@ async def init_db():
     raise RuntimeError(
         "Falha ao inicializar o banco de dados após 3 tentativas. Verifique DATABASE_URL e conexão com o banco."
     )
+
+
+async def init_schema():
+    if using_postgres():
+        async with _pg_pool.acquire() as conn:
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS leads (
+                    id SERIAL PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    email TEXT UNIQUE NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+    else:
+        await _sqlite_conn.execute("""
+            CREATE TABLE IF NOT EXISTS leads (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+
+async def db_execute(query: str, *args) -> None:
+    if using_postgres():
+        async with _pg_pool.acquire() as conn:
+            await conn.execute(query, *args)
+    else:
+        await _sqlite_conn.execute(query, *args)
+
+
+async def db_fetch_one(query: str, *args) -> Optional[dict]:
+    if using_postgres():
+        async with _pg_pool.acquire() as conn:
+            result = await conn.fetchrow(query, *args)
+            return dict(result) if result else None
+    else:
+        cursor = await _sqlite_conn.execute(query, *args)
+        row = await cursor.fetchone()
+        return dict(row) if row else None
+
+
+async def db_fetch_all(query: str, *args) -> list[dict]:
+    if using_postgres():
+        async with _pg_pool.acquire() as conn:
+            result = await conn.fetch(query, *args)
+            return [dict(row) for row in result]
+    else:
+        cursor = await _sqlite_conn.execute(query, *args)
+        rows = await cursor.fetchall()
+        return [dict(row) for row in rows]
+
+
+async def db_fetchval(query: str, *args) -> Any:
+    if using_postgres():
+        async with _pg_pool.acquire() as conn:
+            result = await conn.fetchval(query, *args)
+            return result
+    else:
+        cursor = await _sqlite_conn.execute(query, *args)
+        row = await cursor.fetchone()
+        return row[0] if row else None
