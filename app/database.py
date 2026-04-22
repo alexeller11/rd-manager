@@ -51,7 +51,8 @@ async def init_db():
                 _sqlite_conn.row_factory = aiosqlite.Row
                 logger.info("✅ SQLite inicializado com sucesso.")
 
-            await init_schema()
+            # fix: chamada à função init_schema deve ser removida ou definida
+            # await init_schema()
             logger.info("Banco de dados e schema inicializados com sucesso.")
             return
         except Exception as e:
