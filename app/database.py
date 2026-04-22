@@ -125,3 +125,12 @@ async def db_fetchval(query: str, *args) -> Any:
         cursor = await _sqlite_conn.execute(query, *args)
         row = await cursor.fetchone()
         return row[0] if row else None
+
+
+async def close_db():
+    if using_postgres():
+        await _pg_pool.close()
+        logger.info("✅ PostgreSQL fechado com sucesso.")
+    else:
+        await _sqlite_conn.close()
+        logger.info("✅ SQLite fechado com sucesso.")
