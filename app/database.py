@@ -89,7 +89,7 @@ async def db_execute(query: str, *args) -> None:
         async with _pg_pool.acquire() as conn:
             await conn.execute(query, *args)
     else:
-        await _sqlite_conn.execute(query, *args)
+        await _sqlite_conn.execute(query, args)
 
 
 async def db_fetch_one(query: str, *args) -> Optional[dict]:
@@ -98,7 +98,7 @@ async def db_fetch_one(query: str, *args) -> Optional[dict]:
             result = await conn.fetchrow(query, *args)
             return dict(result) if result else None
     else:
-        cursor = await _sqlite_conn.execute(query, *args)
+        cursor = await _sqlite_conn.execute(query, args)
         row = await cursor.fetchone()
         return dict(row) if row else None
 
@@ -109,7 +109,7 @@ async def db_fetch_all(query: str, *args) -> list[dict]:
             result = await conn.fetch(query, *args)
             return [dict(row) for row in result]
     else:
-        cursor = await _sqlite_conn.execute(query, *args)
+        cursor = await _sqlite_conn.execute(query, args)
         rows = await cursor.fetchall()
         return [dict(row) for row in rows]
 
@@ -120,7 +120,7 @@ async def db_fetchval(query: str, *args) -> Any:
             result = await conn.fetchval(query, *args)
             return result
     else:
-        cursor = await _sqlite_conn.execute(query, *args)
+        cursor = await _sqlite_conn.execute(query, args)
         row = await cursor.fetchone()
         return row[0] if row else None
 
