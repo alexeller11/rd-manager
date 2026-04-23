@@ -68,7 +68,7 @@ async def _ensure_clients_table():
 
         # SQLite does not support ADD COLUMN IF NOT EXISTS, so we need to check if the columns exist first
         columns = await db_fetch_all("PRAGMA table_info(clients)")
-        column_names = [column[1] for column in columns]
+        column_names = [column["name"] for column in columns]
         if "created_at" not in column_names:
             await db_execute(
                 "ALTER TABLE clients ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP;"

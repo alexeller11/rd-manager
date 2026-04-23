@@ -33,7 +33,7 @@ async def _ensure_active_column():
             return
         try:
             columns = await db_fetch_all("PRAGMA table_info(clients)")
-            column_names = [column[1] for column in columns]
+            column_names = [column["name"] for column in columns]
             if "active" not in column_names:
                 await db_execute(
                     "ALTER TABLE clients ADD COLUMN active BOOLEAN DEFAULT TRUE;"
