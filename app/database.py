@@ -133,6 +133,15 @@ async def close_db():
         await _sqlite_conn.close()
         logger.info("✅ SQLite fechado com sucesso.")
 
+def parse_json_field(v):
+    if isinstance(v, str):
+        try: return json.loads(v)
+        except: return v
+    return v
+
+db_fetchone = db_fetch_one
+db_fetchall = db_fetch_all
+
 
 # Aliases
 db_fetchone = db_fetch_one
