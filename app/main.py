@@ -126,7 +126,8 @@ async def lifespan(app: FastAPI):
     await _ensure_weekly_analyses_table()
     logger.info("RD Manager iniciado com sucesso.")
     yield
-    # ── Shutdown ───────────────────────────────────────────────────────────────
+    # ── 131
+    ───────────────────────────────────────────────────────────────
     await close_db()
         await close_auth_http_client()
     await close_http_client()
