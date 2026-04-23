@@ -141,8 +141,3 @@ def parse_json_field(v):
 
 db_fetchone = db_fetch_one
 db_fetchall = db_fetch_all
-
-
-# Aliases
-db_fetchone = db_fetch_one
-db_fetchall = db_fetch_all
