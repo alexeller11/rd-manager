@@ -41,8 +41,8 @@ async def init_db():
                     dsn=database_url,
                     min_size=1,
                     # fix: aumentado de 2 para 5 para suportar requisições concorrentes em produção
-                    max_size=5,
-                    ssl='require' if 'render.com' in database_url or settings.app_env == 'production' else None,
+            # Aumentado de 5 para 15 para melhor performance sob carga concorrente
+            max_size=15,                    ssl='require' if 'render.com' in database_url or settings.app_env == 'production' else None,
                     command_timeout=60,
                 )
                 logger.info("✅ PostgreSQL inicializado com sucesso.")
