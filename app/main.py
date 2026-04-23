@@ -8,7 +8,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from app.utils.notifier import send_telegram_message
 
-from app.auth_core import ensure_admin_exists, get_current_user, migrate_plaintext_rd_credentials
+from app.auth_core import ensure_admin_exists, get_current_user, migrate_plaintext_rd_credentials, close_auth_http_client
 from app.core.settings import get_settings
 from app.database import close_db, init_db, db_fetchval, db_execute, using_postgres
 from app.routers import (
@@ -128,6 +128,7 @@ async def lifespan(app: FastAPI):
     yield
     # ── Shutdown ───────────────────────────────────────────────────────────────
     await close_db()
+        await close_auth_http_client()
     await close_http_client()
     logger.info("RD Manager encerrado.")
 
