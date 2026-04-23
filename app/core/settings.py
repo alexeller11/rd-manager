@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import List
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,12 +10,14 @@ class Settings(BaseSettings):
     debug_mode: bool = Field(default=False, alias="DEBUG_MODE")  # False por padrão em produção
 
     database_url: str = Field(default="", alias="DATABASE_URL")
-
     secret_key: str = Field(default="", alias="SECRET_KEY")
-    admin_username: str = Field(default="admin", alias="ADMIN_USERNAME")
-    admin_password: str = Field(default="admin123", alias="ADMIN_PASSWORD")
 
-    allowed_origins_raw: str = Field(default="*", alias="ALLOWED_ORIGINS")
+    # SEGURANÇA: sem defaults para credenciais. Devem ser definidos via env vars.
+    admin_username: str = Field(default="admin", alias="ADMIN_USERNAME")
+    admin_password: str = Field(default="", alias="ADMIN_PASSWORD")
+
+    # SEGURANÇA: sem default "*" - deve ser configurado explicitamente no Render Dashboard
+    allowed_origins_raw: str = Field(default="", alias="ALLOWED_ORIGINS")
 
     invite_code: str = Field(default="", alias="INVITE_CODE")
     token_expire_minutes: int = Field(default=1440, alias="TOKEN_EXPIRE_MINUTES")
@@ -52,31 +54,35 @@ class Settings(BaseSettings):
     @property
     def allowed_origins(self) -> List[str]:
         raw = (self.allowed_origins_raw or "").strip()
-        if not raw or raw == "*":
+        if not raw:
+            # Sem configuração explícita: bloqueia tudo em produção
+            if self.app_env.lower() == "production":
+                return []
+            # Em dev local, permite localhost
+            return ["http://localhost:3000", "http://localhost:8000", "http://127.0.0.1:3000"]
+        if raw == "*":
             return ["*"]
         return [item.strip() for item in raw.split(",") if item.strip()]
 
     def validate(self):
         if self.app_env.lower() == "production" and not self.debug_mode:
             db = (self.database_url or "").strip().lower()
-
             valid_prefixes = (
                 "postgresql://",
                 "postgres://",
                 "postgresql+asyncpg://",
             )
-
             if not db.startswith(valid_prefixes):
                 raise RuntimeError("Em produção, use PostgreSQL em DATABASE_URL.")
-
             if not self.secret_key:
                 raise RuntimeError("SECRET_KEY é obrigatório em produção.")
-
             if not self.admin_username:
                 raise RuntimeError("ADMIN_USERNAME é obrigatório em produção.")
-
             if not self.admin_password:
-                raise RuntimeError("ADMIN_PASSWORD é obrigatório em produção.")
+                raise RuntimeError(
+                    "ADMIN_PASSWORD é obrigatório em produção. "
+                    "Defina a variável de ambiente ADMIN_PASSWORD no Render Dashboard."
+                )
 
 
 @lru_cache
