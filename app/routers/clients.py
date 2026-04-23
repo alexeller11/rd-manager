@@ -47,7 +47,7 @@ async def _ensure_clients_table():
         await db_execute(
             """
             CREATE TABLE IF NOT EXISTS clients (
-                id SERIAL PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 segment TEXT,
                 website TEXT,
@@ -60,18 +60,23 @@ async def _ensure_clients_table():
                 tone TEXT,
                 main_pain TEXT,
                 objections TEXT,
-                created_at TIMESTAMPTZ DEFAULT NOW(),
-                updated_at TIMESTAMPTZ DEFAULT NOW()
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
             """
         )
 
-        await db_execute(
-            "ALTER TABLE clients ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();"
-        )
-        await db_execute(
-            "ALTER TABLE clients ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();"
-        )
+        # SQLite does not support ADD COLUMN IF NOT EXISTS, so we need to check if the columns exist first
+        columns = await db_fetch_all("PRAGMA table_info(clients)")
+        column_names = [column[1] for column in columns]
+        if "created_at" not in column_names:
+            await db_execute(
+                "ALTER TABLE clients ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP;"
+            )
+        if "updated_at" not in column_names:
+            await db_execute(
+                "ALTER TABLE clients ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP;"
+            )
 
         await db_execute(
             """
@@ -79,8 +84,8 @@ async def _ensure_clients_table():
                 client_id INTEGER PRIMARY KEY REFERENCES clients(id) ON DELETE CASCADE,
                 access_token TEXT,
                 refresh_token TEXT,
-                expires_at TIMESTAMPTZ,
-                updated_at TIMESTAMPTZ
+                expires_at DATETIME,
+                updated_at DATETIME
             )
             """
         )

@@ -32,9 +32,12 @@ async def _ensure_active_column():
         if _active_column_ensured:
             return
         try:
-            await db_execute(
-                "ALTER TABLE clients ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;"
-            )
+            columns = await db_fetch_all("PRAGMA table_info(clients)")
+            column_names = [column[1] for column in columns]
+            if "active" not in column_names:
+                await db_execute(
+                    "ALTER TABLE clients ADD COLUMN active BOOLEAN DEFAULT TRUE;"
+                )
             _active_column_ensured = True
         except Exception:
             logger.exception("_ensure_active_column: falha ao adicionar coluna active")
