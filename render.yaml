@@ -19,8 +19,14 @@ services:
         sync: false
       - key: SECRET_KEY
         sync: false
+      # SEGURANÇA: ALLOWED_ORIGINS deve ser configurado com o domínio real no Render Dashboard
+      # Exemplo: https://rd-manager-alexeller.onrender.com
       - key: ALLOWED_ORIGINS
-        value: "*"
+        sync: false
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
       - key: GROQ_API_KEY
         sync: false
       - key: OPENAI_API_KEY
