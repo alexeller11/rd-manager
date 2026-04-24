@@ -43,6 +43,14 @@ def _get_auth_http_client() -> httpx.AsyncClient:
     return _AUTH_HTTP_CLIENT
 
 
+async def close_auth_http_client() -> None:
+    """Fecha o pool HTTP de auth. Deve ser chamado no shutdown do app."""
+    global _AUTH_HTTP_CLIENT
+    if _AUTH_HTTP_CLIENT is not None and not _AUTH_HTTP_CLIENT.is_closed:
+        await _AUTH_HTTP_CLIENT.aclose()
+    _AUTH_HTTP_CLIENT = None
+
+
 # Cache in-memory de tokens RD
 # Estrutura: { client_id: {"token": str, "expires_at": datetime} }
 # TTL conservador: expira 60s antes do token real para garantir margem.
@@ -80,24 +88,17 @@ async def save_mkt_token(
     account_data: dict | None = None,
 ):
     expires_at = datetime.now(timezone.utc) + timedelta(seconds=max(int(expires_in or 3600), 60))
-
     if using_postgres():
         await db_execute(
             """
             INSERT INTO rd_credentials (
-                client_id,
-                access_token,
-                refresh_token,
-                expires_at,
-                updated_at
-            )
-            VALUES ($1, $2, $3, $4, NOW())
-            ON CONFLICT (client_id)
-            DO UPDATE SET
-                access_token = EXCLUDED.access_token,
+                client_id, access_token, refresh_token, expires_at, updated_at
+            ) VALUES ($1, $2, $3, $4, NOW())
+            ON CONFLICT (client_id) DO UPDATE SET
+                access_token  = EXCLUDED.access_token,
                 refresh_token = EXCLUDED.refresh_token,
-                expires_at = EXCLUDED.expires_at,
-                updated_at = NOW()
+                expires_at    = EXCLUDED.expires_at,
+                updated_at    = NOW()
             """,
             client_id,
             (access_token or "").strip(),
@@ -105,22 +106,17 @@ async def save_mkt_token(
             expires_at,
         )
     else:
+        # SQLite: usa placeholders posicionais "?" (não "$1")
         await db_execute(
             """
             INSERT INTO rd_credentials (
-                client_id,
-                access_token,
-                refresh_token,
-                expires_at,
-                updated_at
-            )
-            VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
-            ON CONFLICT (client_id)
-            DO UPDATE SET
-                access_token = excluded.access_token,
+                client_id, access_token, refresh_token, expires_at, updated_at
+            ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT (client_id) DO UPDATE SET
+                access_token  = excluded.access_token,
                 refresh_token = excluded.refresh_token,
-                expires_at = excluded.expires_at,
-                updated_at = CURRENT_TIMESTAMP
+                expires_at    = excluded.expires_at,
+                updated_at    = CURRENT_TIMESTAMP
             """,
             client_id,
             (access_token or "").strip(),
@@ -129,18 +125,22 @@ async def save_mkt_token(
         )
 
     # compatibilidade com código legado que ainda lê clients.rd_token
-    await db_execute(
-        """
-        UPDATE clients
-        SET rd_token = $2
-        WHERE id = $1
-        """,
-        client_id,
-        (access_token or "").strip(),
-    )
+    if using_postgres():
+        await db_execute(
+            """
+            UPDATE clients SET rd_token = $2 WHERE id = $1
+            """,
+            client_id,
+            (access_token or "").strip(),
+        )
+    else:
+        await db_execute(
+            "UPDATE clients SET rd_token = ? WHERE id = ?",
+            (access_token or "").strip(),
+            client_id,
+        )
 
     _cache_put(client_id, (access_token or "").strip(), expires_at)
-
     return {
         "client_id": client_id,
         "saved": True,
@@ -182,8 +182,8 @@ def _normalize_password_for_bcrypt(password: str) -> str:
             return trimmed.decode("utf-8")
         except UnicodeDecodeError:
             trimmed = trimmed[:-1]
-            if not trimmed:
-                return ""
+        if not trimmed:
+            return ""
 
 
 def hash_password(password: str) -> str:
@@ -210,8 +210,7 @@ async def get_admin_by_username(username: str):
     return await db_fetch_one(
         """
         SELECT id, username, password_hash, created_at
-        FROM admins
-        WHERE username = $1
+        FROM admins WHERE username = $1
         """,
         username,
     )
@@ -220,9 +219,7 @@ async def get_admin_by_username(username: str):
 async def ensure_admin_exists():
     existing = await db_fetch_one(
         """
-        SELECT id, username
-        FROM admins
-        WHERE username = $1
+        SELECT id, username FROM admins WHERE username = $1
         """,
         settings.admin_username,
     )
@@ -276,12 +273,10 @@ async def get_valid_mkt_token(client_id: int) -> str:
     row = await db_fetch_one(
         """
         SELECT access_token, refresh_token, expires_at
-        FROM rd_credentials
-        WHERE client_id = $1
+        FROM rd_credentials WHERE client_id = $1
         """,
         client_id,
     )
-
     if row and row.get("access_token"):
         expires_at = _parse_expires_at(row.get("expires_at"))
         expires_soon = (
@@ -292,7 +287,6 @@ async def get_valid_mkt_token(client_id: int) -> str:
             refreshed = await refresh_mkt_token(client_id)
             if refreshed:
                 return refreshed
-
         token = row["access_token"]
         _cache_put(client_id, token, expires_at)
         return token
@@ -300,9 +294,7 @@ async def get_valid_mkt_token(client_id: int) -> str:
     # fallback: coluna legada clients.rd_token
     client = await db_fetch_one(
         """
-        SELECT rd_token
-        FROM clients
-        WHERE id = $1
+        SELECT rd_token FROM clients WHERE id = $1
         """,
         client_id,
     )
@@ -315,12 +307,9 @@ async def get_valid_mkt_token(client_id: int) -> str:
 
 async def refresh_mkt_token(client_id: int) -> str | None:
     _cache_invalidate(client_id)
-
     row = await db_fetch_one(
         """
-        SELECT refresh_token
-        FROM rd_credentials
-        WHERE client_id = $1
+        SELECT refresh_token FROM rd_credentials WHERE client_id = $1
         """,
         client_id,
     )
@@ -334,14 +323,11 @@ async def refresh_mkt_token(client_id: int) -> str | None:
         "refresh_token": refresh_token,
         "grant_type": "refresh_token",
     }
-
     # Usa pool reutilizável em vez de AsyncClient avulso
     http = _get_auth_http_client()
     response = await http.post(RD_TOKEN_URL, data=payload)
-
     if response.status_code >= 400:
         return None
-
     data = response.json()
     access_token = (data.get("access_token") or "").strip()
     if not access_token:
@@ -360,8 +346,7 @@ async def refresh_mkt_token(client_id: int) -> str | None:
 async def migrate_plaintext_rd_credentials():
     rows = await db_fetch_all(
         """
-        SELECT id, access_token, refresh_token
-        FROM rd_credentials
+        SELECT id, access_token, refresh_token FROM rd_credentials
         """
     ) or []
     return rows

@@ -28,10 +28,11 @@ def using_postgres() -> bool:
 
 async def init_db():
     import asyncio
+
+    global _pg_pool, _sqlite_conn
+
     for attempt in range(3):
         try:
-            global _pg_pool, _sqlite_conn
-
             if using_postgres():
                 database_url = _normalize_database_url(settings.database_url)
                 if database_url.startswith("postgresql+asyncpg://"):
@@ -40,8 +41,8 @@ async def init_db():
                 _pg_pool = await asyncpg.create_pool(
                     dsn=database_url,
                     min_size=1,
-                    max_size=5,
-                    ssl='require' if 'render.com' in database_url or settings.app_env == 'production' else None,
+                    max_size=15,
+                    ssl="require" if "render.com" in database_url or settings.app_env == "production" else None,
                     command_timeout=60,
                 )
                 logger.info("✅ PostgreSQL inicializado com sucesso.")
@@ -54,7 +55,11 @@ async def init_db():
             logger.info("Banco de dados e schema inicializados com sucesso.")
             return
         except Exception as e:
-            logger.error("Erro ao inicializar o banco de dados (tentativa %d/3): %s", attempt + 1, e)
+            logger.error(
+                "Erro ao inicializar o banco de dados (tentativa %d/3): %s",
+                attempt + 1,
+                e,
+            )
             await asyncio.sleep(5)
 
     raise RuntimeError(
@@ -62,82 +67,248 @@ async def init_db():
     )
 
 
+async def close_db():
+    global _pg_pool, _sqlite_conn
+
+    if _pg_pool is not None:
+        await _pg_pool.close()
+        _pg_pool = None
+
+    if _sqlite_conn is not None:
+        await _sqlite_conn.close()
+        _sqlite_conn = None
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False)
+    return value
+
+
+async def db_execute(query: str, *args):
+    if using_postgres():
+        assert _pg_pool is not None, "PostgreSQL pool não inicializado"
+        async with _pg_pool.acquire() as conn:
+            return await conn.execute(query, *args)
+
+    assert _sqlite_conn is not None, "SQLite connection não inicializada"
+    cursor = await _sqlite_conn.execute(query, tuple(_json_safe(arg) for arg in args))
+    await _sqlite_conn.commit()
+    return cursor
+
+
+async def db_fetch_one(query: str, *args):
+    if using_postgres():
+        assert _pg_pool is not None, "PostgreSQL pool não inicializado"
+        async with _pg_pool.acquire() as conn:
+            row = await conn.fetchrow(query, *args)
+            return dict(row) if row else None
+
+    assert _sqlite_conn is not None, "SQLite connection não inicializada"
+    cursor = await _sqlite_conn.execute(query, tuple(_json_safe(arg) for arg in args))
+    row = await cursor.fetchone()
+    return dict(row) if row else None
+
+
+async def db_fetch_all(query: str, *args):
+    if using_postgres():
+        assert _pg_pool is not None, "PostgreSQL pool não inicializado"
+        async with _pg_pool.acquire() as conn:
+            rows = await conn.fetch(query, *args)
+            return [dict(row) for row in rows]
+
+    assert _sqlite_conn is not None, "SQLite connection não inicializada"
+    cursor = await _sqlite_conn.execute(query, tuple(_json_safe(arg) for arg in args))
+    rows = await cursor.fetchall()
+    return [dict(row) for row in rows]
+
+
+async def db_fetchval(query: str, *args):
+    if using_postgres():
+        assert _pg_pool is not None, "PostgreSQL pool não inicializado"
+        async with _pg_pool.acquire() as conn:
+            return await conn.fetchval(query, *args)
+
+    assert _sqlite_conn is not None, "SQLite connection não inicializada"
+    cursor = await _sqlite_conn.execute(query, tuple(_json_safe(arg) for arg in args))
+    row = await cursor.fetchone()
+    if row is None:
+        return None
+    if isinstance(row, aiosqlite.Row):
+        values = list(row)
+        return values[0] if values else None
+    return row[0] if row else None
+
+
 async def init_schema():
     if using_postgres():
-        async with _pg_pool.acquire() as conn:
-            await conn.execute("""
-                CREATE TABLE IF NOT EXISTS leads (
-                    id SERIAL PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    email TEXT UNIQUE NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS clients (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                website TEXT,
+                segment TEXT,
+                description TEXT,
+                rd_token TEXT,
+                active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+            """
+        )
+        await db_execute(
+            "ALTER TABLE clients ADD COLUMN IF NOT EXISTS active BOOLEAN DEFAULT TRUE;"
+        )
+
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS rd_credentials (
+                id SERIAL PRIMARY KEY,
+                client_id INTEGER UNIQUE REFERENCES clients(id) ON DELETE CASCADE,
+                access_token TEXT,
+                refresh_token TEXT,
+                expires_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            )
+            """
+        )
+
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS admins (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+            """
+        )
+
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS rd_snapshots (
+                id SERIAL PRIMARY KEY,
+                client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+                data JSONB NOT NULL DEFAULT '{}',
+                snapshot_type TEXT NOT NULL DEFAULT 'marketing',
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+            """
+        )
+        await db_execute(
+            "CREATE INDEX IF NOT EXISTS idx_rd_snapshots_client_created ON rd_snapshots(client_id, created_at DESC);"
+        )
+
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS rd_sync_logs (
+                id SERIAL PRIMARY KEY,
+                client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+                sync_type TEXT NOT NULL DEFAULT 'marketing',
+                status TEXT NOT NULL DEFAULT 'success',
+                message TEXT,
+                records_synced INTEGER DEFAULT 0,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+            """
+        )
+        await db_execute(
+            "CREATE INDEX IF NOT EXISTS idx_rd_sync_logs_client ON rd_sync_logs(client_id, created_at DESC);"
+        )
+
     else:
-        await _sqlite_conn.execute("""
-            CREATE TABLE IF NOT EXISTS leads (
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS clients (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                website TEXT,
+                segment TEXT,
+                description TEXT,
+                rd_token TEXT,
+                active INTEGER DEFAULT 1,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
-        """)
+            """
+        )
+
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS rd_credentials (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id INTEGER UNIQUE,
+                access_token TEXT,
+                refresh_token TEXT,
+                expires_at TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+            )
+            """
+        )
+
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS admins (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS rd_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id INTEGER NOT NULL,
+                data TEXT NOT NULL DEFAULT '{}',
+                snapshot_type TEXT NOT NULL DEFAULT 'marketing',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+            )
+            """
+        )
+
+        await db_execute(
+            """
+            CREATE TABLE IF NOT EXISTS rd_sync_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client_id INTEGER NOT NULL,
+                sync_type TEXT NOT NULL DEFAULT 'marketing',
+                status TEXT NOT NULL DEFAULT 'success',
+                message TEXT,
+                records_synced INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+            )
+            """
+        )
 
 
-async def db_execute(query: str, *args) -> None:
-    if using_postgres():
-        async with _pg_pool.acquire() as conn:
-            await conn.execute(query, *args)
-    else:
-        await _sqlite_conn.execute(query, args)
+def parse_json_field(value: Any, default: Any = None) -> Any:
+    if value is None:
+        return {} if default is None else default
+    if isinstance(value, (dict, list)):
+        return value
+    if isinstance(value, (bytes, bytearray)):
+        value = value.decode("utf-8", errors="ignore")
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return {} if default is None else default
+        try:
+            return json.loads(text)
+        except Exception:
+            return {} if default is None else default
+    return {} if default is None else default
 
 
-async def db_fetch_one(query: str, *args) -> Optional[dict]:
-    if using_postgres():
-        async with _pg_pool.acquire() as conn:
-            result = await conn.fetchrow(query, *args)
-            return dict(result) if result else None
-    else:
-        cursor = await _sqlite_conn.execute(query, args)
-        row = await cursor.fetchone()
-        return dict(row) if row else None
+async def db_fetchone(query: str, *args):
+    return await db_fetch_one(query, *args)
 
 
-async def db_fetch_all(query: str, *args) -> list[dict]:
-    if using_postgres():
-        async with _pg_pool.acquire() as conn:
-            result = await conn.fetch(query, *args)
-            return [dict(row) for row in result]
-    else:
-        cursor = await _sqlite_conn.execute(query, args)
-        rows = await cursor.fetchall()
-        return [dict(row) for row in rows]
-
-
-async def db_fetchval(query: str, *args) -> Any:
-    if using_postgres():
-        async with _pg_pool.acquire() as conn:
-            result = await conn.fetchval(query, *args)
-            return result
-    else:
-        cursor = await _sqlite_conn.execute(query, args)
-        row = await cursor.fetchone()
-        return row[0] if row else None
-
-
-async def close_db():
-    if using_postgres():
-        await _pg_pool.close()
-        logger.info("✅ PostgreSQL fechado com sucesso.")
-    else:
-        await _sqlite_conn.close()
-        logger.info("✅ SQLite fechado com sucesso.")
-
-def parse_json_field(v):
-    if isinstance(v, str):
-        try: return json.loads(v)
-        except: return v
-    return v
-
-db_fetchone = db_fetch_one
-db_fetchall = db_fetch_all
+async def db_fetchall(query: str, *args):
+    return await db_fetch_all(query, *args)

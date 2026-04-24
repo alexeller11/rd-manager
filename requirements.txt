@@ -1,18 +1,35 @@
-python-jose[cryptography]
-fastapi
-uvicorn
-sqlalchemy
-aiosqlite
-pydantic-settings
-python-dotenv
-httpx
-asyncpg
-google-generativeai
-beautifulsoup4
-passlib[bcrypt]
-python-multipart
+# Core FastAPI e servidor
+fastapi==0.115.5
+uvicorn==0.32.1
+python-multipart==0.0.19
+
+# Auth & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
-# Dev / testes
-pytest
-pytest-anyio
-anyio[trio]
+
+# Database
+asyncpg==0.29.0
+aiosqlite==0.20.0
+sqlalchemy==2.0.36
+
+# HTTP client
+httpx==0.28.1
+
+# Settings management
+pydantic-settings==2.6.1
+python-dotenv==1.0.1
+
+# AI providers
+google-generativeai==0.8.3
+
+# Notifications
+telegram==0.0.1
+
+# HTML parsing
+beautifulsoup4==4.12.3
+
+# Testes
+pytest==8.3.4
+pytest-anyio==0.0.0
+anyio[trio]==4.7.0
