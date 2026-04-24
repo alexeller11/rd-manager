@@ -6,11 +6,15 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from app.utils.notifier import send_telegram_message
 
-from app.auth_core import ensure_admin_exists, get_current_user, migrate_plaintext_rd_credentials, close_auth_http_client
+from app.auth_core import (
+    close_auth_http_client,
+    ensure_admin_exists,
+    get_current_user,
+    migrate_plaintext_rd_credentials,
+)
 from app.core.settings import get_settings
-from app.database import close_db, init_db, db_fetchval, db_execute, using_postgres
+from app.database import close_db, db_execute, db_fetchval, init_db, using_postgres
 from app.routers import (
     agency_dashboard,
     agency_expert,
@@ -37,8 +41,8 @@ from app.routers import (
     seo_geo,
     webhooks,
 )
-from app.services.rd_fullsync import ensure_sync_tables
 from app.routers.rd_station import close_http_client
+from app.services.rd_fullsync import ensure_sync_tables
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -73,7 +77,7 @@ async def _ensure_webhook_table() -> None:
             )
             """
         )
-    
+
     await db_execute(
         "CREATE INDEX IF NOT EXISTS idx_webhook_email ON rd_webhook_events (email)"
     )
@@ -83,7 +87,6 @@ async def _ensure_webhook_table() -> None:
 
 
 async def _ensure_weekly_analyses_table() -> None:
-    """Cria tabela weekly_analyses usada por intelligence.py."""
     if using_postgres():
         await db_execute(
             """
@@ -109,7 +112,7 @@ async def _ensure_weekly_analyses_table() -> None:
             )
             """
         )
-    
+
     await db_execute(
         "CREATE INDEX IF NOT EXISTS idx_weekly_analyses_client ON weekly_analyses(client_id, created_at DESC);"
     )
@@ -117,7 +120,6 @@ async def _ensure_weekly_analyses_table() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # ── Startup ───────────────────────────────────────────────────────────────────
     await init_db()
     await ensure_admin_exists()
     await migrate_plaintext_rd_credentials()
@@ -126,10 +128,8 @@ async def lifespan(app: FastAPI):
     await _ensure_weekly_analyses_table()
     logger.info("RD Manager iniciado com sucesso.")
     yield
-    # ── 131
-    ───────────────────────────────────────────────────────────────
     await close_db()
-        await close_auth_http_client()
+    await close_auth_http_client()
     await close_http_client()
     logger.info("RD Manager encerrado.")
 
@@ -154,8 +154,6 @@ app.add_middleware(
 os.makedirs("app/static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-
-# ── Routers públicos (sem auth) ─────────────────────────────────────────────────────────────────
 app.include_router(oauth.router, prefix="/oauth", tags=["oauth"])
 app.include_router(webhooks.router, tags=["webhooks"])
 
@@ -166,109 +164,140 @@ def _build_private_dependencies():
 
 private_dependencies = _build_private_dependencies()
 
-# ── Auth ────────────────────────────────────────────────────────────────────────────────────
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
-# ── Clientes ─────────────────────────────────────────────────────────────────────────────
 app.include_router(
-    clients.router, prefix="/api/clients", tags=["clients"],
+    clients.router,
+    prefix="/api/clients",
+    tags=["clients"],
     dependencies=private_dependencies,
 )
 
-# ── Sync RD Station ─────────────────────────────────────────────────────────────────────
 app.include_router(
-    rd_fullsync.router, prefix="/api/rdsync", tags=["rd_fullsync"],
+    rd_fullsync.router,
+    prefix="/api/rdsync",
+    tags=["rd_fullsync"],
     dependencies=private_dependencies,
 )
 app.include_router(
-    rd_diagnostics.router, prefix="/api/rd-diagnostics", tags=["rd_diagnostics"],
+    rd_diagnostics.router,
+    prefix="/api/rd-diagnostics",
+    tags=["rd_diagnostics"],
     dependencies=private_dependencies,
 )
 app.include_router(
-    rd_modules.router, prefix="/api/rd-modules", tags=["rd_modules"],
+    rd_modules.router,
+    prefix="/api/rd-modules",
+    tags=["rd_modules"],
     dependencies=private_dependencies,
 )
 app.include_router(
-    rd_aggregator.router, prefix="/api/rd-aggregator", tags=["rd_aggregator"],
-    dependencies=private_dependencies,
-)
-
-# ── Dashboard & Agência ───────────────────────────────────────────────────────────────────
-app.include_router(
-    agency_dashboard.router, prefix="/api/agency", tags=["agency_dashboard"],
-    dependencies=private_dependencies,
-)
-app.include_router(
-    agency_expert.router, prefix="/api/agency-expert", tags=["agency_expert"],
+    rd_aggregator.router,
+    prefix="/api/rd-aggregator",
+    tags=["rd_aggregator"],
     dependencies=private_dependencies,
 )
 
-# ── Análise & Inteligência ───────────────────────────────────────────────────────────────────
 app.include_router(
-    analysis.router, prefix="/api/analysis", tags=["analysis"],
+    agency_dashboard.router,
+    prefix="/api/agency",
+    tags=["agency_dashboard"],
     dependencies=private_dependencies,
 )
 app.include_router(
-    intelligence.router, prefix="/api/intelligence", tags=["intelligence"],
-    dependencies=private_dependencies,
-)
-app.include_router(
-    reports.router, prefix="/api/reports", tags=["reports"],
-    dependencies=private_dependencies,
-)
-app.include_router(
-    executive_report.router, prefix="/api/executive-report", tags=["executive_report"],
+    agency_expert.router,
+    prefix="/api/agency-expert",
+    tags=["agency_expert"],
     dependencies=private_dependencies,
 )
 
-# ── Leads & CRM ─────────────────────────────────────────────────────────────────────────
 app.include_router(
-    leads.router, prefix="/api/leads", tags=["leads"],
+    analysis.router,
+    prefix="/api/analysis",
+    tags=["analysis"],
     dependencies=private_dependencies,
 )
 app.include_router(
-    crm.router, prefix="/api/crm", tags=["crm"],
-    dependencies=private_dependencies,
-)
-
-# ── Campanhas & Emails ─────────────────────────────────────────────────────────────────────────
-
-app.include_router(
-    campaign.router, prefix="/api/campaigns", tags=["campaigns"],
+    intelligence.router,
+    prefix="/api/intelligence",
+    tags=["intelligence"],
     dependencies=private_dependencies,
 )
 app.include_router(
-    emails.router, prefix="/api/emails", tags=["emails"],
-    dependencies=private_dependencies,
-)
-
-# ── Landing Pages & Flows ─────────────────────────────────────────────────────────────────────
-app.include_router(
-    landing_pages.router, prefix="/api/landing-pages", tags=["landing_pages"],
+    reports.router,
+    prefix="/api/reports",
+    tags=["reports"],
     dependencies=private_dependencies,
 )
 app.include_router(
-    flows_advanced.router, prefix="/api/flows-advanced", tags=["flows_advanced"],
+    executive_report.router,
+    prefix="/api/executive-report",
+    tags=["executive_report"],
     dependencies=private_dependencies,
 )
 
-# ── Auditoria & Saúde ───────────────────────────────────────────────────────────────────────
 app.include_router(
-    alerts.router, prefix="/api/alerts", tags=["alerts"],
+    leads.router,
+    prefix="/api/leads",
+    tags=["leads"],
     dependencies=private_dependencies,
 )
 app.include_router(
-    health_audit.router, prefix="/api/health-audit", tags=["health_audit"],
+    crm.router,
+    prefix="/api/crm",
+    tags=["crm"],
     dependencies=private_dependencies,
 )
 
-# ── Outros ───────────────────────────────────────────────────────────────────────────────────
 app.include_router(
-    seo_geo.router, prefix="/api/seo-geo", tags=["seo_geo"],
+    campaign.router,
+    prefix="/api/campaigns",
+    tags=["campaigns"],
     dependencies=private_dependencies,
 )
 app.include_router(
-    prospect.router, prefix="/api/prospect", tags=["prospect"],
+    emails.router,
+    prefix="/api/emails",
+    tags=["emails"],
+    dependencies=private_dependencies,
+)
+
+app.include_router(
+    landing_pages.router,
+    prefix="/api/landing-pages",
+    tags=["landing_pages"],
+    dependencies=private_dependencies,
+)
+app.include_router(
+    flows_advanced.router,
+    prefix="/api/flows-advanced",
+    tags=["flows_advanced"],
+    dependencies=private_dependencies,
+)
+
+app.include_router(
+    alerts.router,
+    prefix="/api/alerts",
+    tags=["alerts"],
+    dependencies=private_dependencies,
+)
+app.include_router(
+    health_audit.router,
+    prefix="/api/health-audit",
+    tags=["health_audit"],
+    dependencies=private_dependencies,
+)
+
+app.include_router(
+    seo_geo.router,
+    prefix="/api/seo-geo",
+    tags=["seo_geo"],
+    dependencies=private_dependencies,
+)
+app.include_router(
+    prospect.router,
+    prefix="/api/prospect",
+    tags=["prospect"],
     dependencies=private_dependencies,
 )
 
@@ -279,7 +308,6 @@ async def health_check():
         await db_fetchval("SELECT 1")
         return {"status": "ok", "version": "4.1.0", "db": "connected"}
     except Exception as e:
-        # fix: retorna JSONResponse com status 503 em vez de tupla (FastAPI não suporta tupla)
         return JSONResponse(
             content={"status": "degraded", "error": str(e)},
             status_code=503,
