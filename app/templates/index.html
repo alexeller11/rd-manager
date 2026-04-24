@@ -1001,12 +1001,19 @@ function ClientsPanel() {
   }
 
   async function sync(id) {
-    setSyncingId(id); setErr(""); setOk("");
-    try { await api(`/api/rdsync/run/${id}`, { method:"POST" }); setOk("Sync executado!"); await load(); }
-    catch(e) { setErr(e.message); }
-    finally { setSyncingId(null); }
+  setSyncingId(id);
+  setErr("");
+  setOk("");
+  try {
+    await api(`/api/rd/sync/${id}`);
+    setOk("Sync executado!");
+    await load();
+  } catch(e) {
+    setErr(e.message);
+  } finally {
+    setSyncingId(null);
   }
-
+}
   const initials = (name) => name?.split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase() || "??";
 
   return (
